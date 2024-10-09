@@ -1,0 +1,15 @@
+set debug xml
+
+target extended-remote /dev/kgp/bmp
+
+mon swdp_scan
+att 1
+
+set mem inaccessible-by-default off
+set print pretty
+set max-value-size unlimited
+
+set remote hardware-breakpoint-limit 6
+set remote hardware-watchpoint-limit 4
+
+mon traceswo

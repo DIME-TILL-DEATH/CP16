@@ -1,0 +1,94 @@
+# gnuplot1d.script
+#
+# Copyright (C) 2008 Florian Lorenzen
+# www:   https://mcuoneclipse.com/2020/02/09/visualizing-data-with-eclipse-gdb-and-gnuplot/ 
+# 
+# Copyright (C) 2020 Chernov Sergey aka Klen Santakheza 
+# email: klen_s@mail.ru
+# www:   http://bg-optics.ru
+#        http://caxapa.ru
+#
+# Plot an expression that expands to {x1, x2, ..., xN}, i. e.
+# N numbers using gnuplot.
+#
+# This file is for the GNU debugger 10.x.
+#
+# It writes temporary files named __plot1d.dump, __plot1d.dat, __plot1d.gp, so
+# you should not have files of the same name in the working directory.
+#
+# It requires sed, awk, and gnuplot available in the $PATH.
+
+# plot1d_opt_range <expr> <opt> <range>
+#
+# Plot the points of <expr> passing <opt> as plot options using
+# <range> in the set yrange command.
+
+
+
+define log2file
+  # включаем вывод массивов без ограничения размера 
+  set print elements 0         
+  # выключаем коллапс вывода массива если есть повторяющиеся элементы
+  set print repeats unlimited  
+  # включаем перезапись файла
+  set logging overwrite on     
+  # задаем имя файла лога
+  set logging file $arg0       
+  # включаем вывод gdb в файл $arg0
+  set logging on               
+  # вывод значения пеерменной
+  output $arg0                 
+  # выключаем вывод gdb в файл 
+  set logging off                 
+  # включаем вывод массивов по умолчаню
+  set print elements 200       
+  # включаем коллапс вывода массива если есть повторяющиеся элементы по умолчаню
+  set print repeats 10         
+end
+
+
+
+define plot1_opt_range
+  log2file $arg0
+  # приводим к формату данных gnuplot  
+  shell sed -i "s/{//g;s/}//g;s/ //g;s/,/\n/g" $arg0
+  # отрисовка графика
+  shell gnuplot --persist -e  "set title \"$arg0\"; $arg1 ; set yrange $arg2; plot \"$arg0\" with lines"
+  shell rm -f $arg0 
+end
+
+define plot2_opt_range
+  log2file $arg0
+  log2file $arg1
+  # приводим к формату данных gnuplot  
+  shell sed -i "s/{//g;s/}//g;s/ //g;s/,/\n/g" $arg0
+  shell sed -i "s/{//g;s/}//g;s/ //g;s/,/\n/g" $arg1
+  # отрисовка графика
+  shell gnuplot --persist -e  "$arg2 ; set yrange $arg3; plot \"$arg0\" with line,\"$arg1\" with line"
+  #shell rm -f $arg0
+  #shell rm -f $arg1 
+end
+
+
+
+define plot1
+  plot1_opt_range $arg0 "" [*:*]
+end
+
+# plot1_opt <expr> <opt>
+# Plot the points of <expr> passing <opt> to the plot command after the datafile. So, one can pass "with lines" here.
+define plot1d_opt
+  plot1d_opt_range $arg0 $arg1 [*:*]
+end
+
+
+define plot2
+  plot2_opt_range $arg0  $arg1 "" [*:*]
+end
+
+define plot2_opt
+  plot2_opt_range $arg0  $arg1 $arg2 [*:*]
+end
+
+
+

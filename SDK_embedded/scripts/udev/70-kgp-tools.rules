@@ -1,0 +1,35 @@
+# Klen's GNU pakage (KGP)
+# udev script
+
+ACTION!="add|change", GOTO="rules_end"
+SUBSYSTEM!="usb|tty", GOTO="rules_end"
+
+
+#ST dfu device
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="df11", MODE="0666", GROUP="plugdev", SYMLINK+="kgp_tools/stm32_dfu"
+#vodolazen_m2
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="ff00", ATTRS{idProduct}=="0009", MODE="0666", GROUP="plugdev", SYMLINK+="kgp_tools/vodolazen_m2"
+#fuel system tester device
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="ff00", ATTRS{idProduct}=="0010", MODE="0666", GROUP="plugdev", SYMLINK+="kgp_tools/fuel_sys_test"
+
+#ttyACM usb devices
+SUBSYSTEM!="tty", GOTO="rules_end"
+
+#ENV{ID_USB_INTERFACE_NUM}="$attr{bInterfaceNumber}"
+
+# KGP debug probe interfases
+ENV{ID_USB_INTERFACE_NUM}=="00", ATTRS{idVendor}=="1d50", ATTRS{idProduct}=="6018", MODE="660", GROUP="plugdev", SYMLINK+="kgp_tools/dprobe_gdb_server"
+ENV{ID_USB_INTERFACE_NUM}=="02", ATTRS{idVendor}=="1d50", ATTRS{idProduct}=="6018", MODE="660", GROUP="plugdev", SYMLINK+="kgp_tools/dprobe_uart"
+
+#kgp devices
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="ff00", ATTRS{idProduct}=="0008", MODE="0666", GROUP="plugdev", SYMLINK+="kgp_tools/kgp_board_uart"
+
+# FTDI bridges dev file aliases
+ENV{ID_USB_INTERFACE_NUM}=="00", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", MODE="660", GROUP="plugdev", SYMLINK+="kgp_tools/ft232r_uart"
+
+LABEL="rules_end"
+
+
+# for avoid tty* dev file locks may deactivates or uninstall system modem manager
+# 
+

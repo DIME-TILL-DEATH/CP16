@@ -1,0 +1,7 @@
+LIBNAME = libvmath
+
+LIB_SRC_DIR=$(VMATH_SRC_DIR)
+
+include $(SRC_DIR)/rules.mk
+
+CXXFLAGS +=	-I./

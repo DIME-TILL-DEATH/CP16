@@ -1,0 +1,73 @@
+FREERTOS_KERNEL_SRC_DIR=$(SDK_DIR)/libs/FreeRTOS/Source
+
+SDK_STM32_DIR=UNKNOWN_STM32_SDK_DIR
+
+# выбор путей исходников стандартной библиотеки STM32
+ifeq ($(CHIP_FAMILY),STM32L1XX)
+	SDK_STM32_DIR=$(SDK_DIR)/libs/st/stm32/l1xx
+else ifeq ($(CHIP_FAMILY),STM32F0XX)
+	SDK_STM32_DIR=$(SDK_DIR)/libs/st/stm32/f0xx
+else ifeq ($(CHIP_FAMILY),STM32F1XX)
+	SDK_STM32_DIR=$(SDK_DIR)/libs/st/stm32/f1xx
+else ifeq ($(CHIP_FAMILY),STM32F2XX)
+	SDK_STM32_DIR=$(SDK_DIR)/libs/st/stm32/f2xx
+else ifeq ($(CHIP_FAMILY),STM32F3XX)
+	SDK_STM32_DIR=$(SDK_DIR)/libs/st/stm32/f3xx	
+else ifeq ($(CHIP_FAMILY),STM32F4XX)
+	SDK_STM32_DIR=$(SDK_DIR)/libs/st/stm32/f4xx
+endif
+
+# выбор путей исходников портов FreeRTOS
+ifeq ($(CPU),CORTEX_M0)
+	FREERTOS_PORTABLE_SRC_DIR=$(FREERTOS_KERNEL_SRC_DIR)/portable/GCC/ARM_CM0
+else ifeq ($(CPU),CORTEX_M3)
+	FREERTOS_PORTABLE_SRC_DIR=$(FREERTOS_KERNEL_SRC_DIR)/portable/GCC/ARM_CM3
+else ifeq ($(CPU),CORTEX_M3_MPU)
+	FREERTOS_PORTABLE_SRC_DIR=$(FREERTOS_KERNEL_SRC_DIR)/portable/GCC/ARM_CM3_MPU
+else ifeq ($(CPU),CORTEX_M4F)
+	FREERTOS_PORTABLE_SRC_DIR=$(FREERTOS_KERNEL_SRC_DIR)/portable/GCC/ARM_CM4F
+else ifeq ($(CPU),ARM7_LPC2000)
+	FREERTOS_PORTABLE_SRC_DIR=$(FREERTOS_KERNEL_SRC_DIR)/portable/GCC/ARM7_LPC2000
+else ifeq ($(CPU),ARM7_LPC2300)
+	FREERTOS_PORTABLE_SRC_DIR=$(FREERTOS_KERNEL_SRC_DIR)/portable/GCC/ARM7_LPC23xx
+endif
+
+# hardware depended library
+
+STM32_CRT_SRC_DIR=$(SDK_STM32_DIR)/crt
+STM32_PERIFERIAL_DRV_SRC_DIR=$(SDK_STM32_DIR)/StdPeriph_Driver
+STM32_CMSIS_SRC_DIR=$(SDK_STM32_DIR)/CMSIS
+STM32_DSP_SRC_DIR=$(SDK_STM32_DIR)/DSP_Lib
+STM32_USB_DRV_SRC_DIR=$(SDK_STM32_DIR)/USB_FS_Device_Driver
+STM32_ETH_DRV_SRC_DIR=$(SDK_STM32_DIR)/ETH_Driver
+
+# multihardware library
+STM32_CPAL_SRC_DIR=$(SDK_STM32_DIR)/../CPAL
+STM32_CMSIS_COMMON_SRC_DIR=$(SDK_STM32_DIR)/../CMSIS
+STM32_CRT_COMMON_SRC_DIR=$(SDK_STM32_DIR)/../klen/crt
+STM32_SDCARD_COMMON_SRC_DIR=$(SDK_STM32_DIR)/../klen/sdcard
+
+
+# platfor independed librares
+
+WRAPERS_SRC_DIR=$(SDK_DIR)/libs/wrapers
+MMGR_SRC_DIR=$(SDK_DIR)/libs/mmgr
+KLIBC_SRC_DIR=$(SDK_DIR)/libs/klibc
+FATFS_SRC_DIR=$(SDK_DIR)/libs/fatfs/src
+I2C_SRC_DIR=$(SDK_STM32_DIR)/../klen/i2c
+#FORMAT_SRC_DIR=$(SDK_DIR)/libs/format/src
+#CMINPACKF_SRC_DIR=$(SDK_DIR)/libs/cminpack-1.1.3/src/c_float
+#GSL_LIB_DIR=$(SDK_DIR)/libs/gsl-1.15/arm-kgp-eabi/cortex-m3
+TLSF_SRC_DIR=$(SDK_DIR)/libs/tlsf
+READLINE_SRC_DIR=$(SDK_DIR)/libs/readline
+LUA_SRC_DIR=$(SDK_DIR)/libs/lua/src
+CELT_SRC_DIR=$(SDK_DIR)/libs/celt-0.11.1
+VMATH_SRC_DIR=$(SDK_DIR)/libs/vmath
+RTCOUNTER_SRC_DIR=$(SDK_DIR)/libs/rtcounter
+CONSOLE_SRC_DIR=$(SDK_DIR)/libs/console
+CONSOLE_HANDLERS_SRC_DIR=$(SDK_DIR)/libs/console_handlers
+FILTER_SRC_DIR=$(SDK_DIR)/libs/filter
+ITM_TRACE_SRC_DIR=$(SDK_DIR)/libs/itm_trace
+SUNSET_SRC_DIR=$(SDK_DIR)/libs/sunset
+TINY_AES128_SRC_DIR=$(SDK_DIR)/libs/tiny_aes128
+HASH_SRC_DIR=$(SDK_DIR)/libs/hash

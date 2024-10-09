@@ -1,0 +1,14 @@
+LIBNAME = libcmsis
+
+LIB_SRC_DIR=$(STM32_CMSIS_SRC_DIR)
+
+include $(SRC_DIR)/rules.mk
+
+CFLAGS += -I./ -I$(SRC_DIR)/include \
+			-I$(STM32_CMSIS_COMMON_SRC_DIR) \
+			$(HARDWARE_DEFS)
+
+
+
+
+

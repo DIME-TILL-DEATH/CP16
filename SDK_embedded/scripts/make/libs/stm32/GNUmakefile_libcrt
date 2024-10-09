@@ -1,0 +1,17 @@
+LIBNAME = libcrt
+
+LIB_SRC_DIR=$(STM32_CRT_SRC_DIR)
+
+include $(SRC_DIR)/rules.mk
+
+CFLAGS +=	-I./ \
+			-I$(SRC_DIR)/include \
+			-I$(STM32_CRT_COMMON_SRC_DIR) \
+			-I$(STM32_CMSIS_COMMON_SRC_DIR) \
+			-I$(STM32_CMSIS_SRC_DIR) \
+			-I$(STM32_PERIFERIAL_DRV_SRC_DIR)  \
+			$(CRT_DEFS) \
+			$(HARDWARE_DEFS)
+
+
+

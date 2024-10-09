@@ -1,0 +1,17 @@
+LIBNAME = libfatfs
+
+LIB_SRC_DIR=$(FATFS_SRC_DIR)
+
+include $(SRC_DIR)/rules.mk
+
+CFLAGS +=	-I./\
+		-I$(SRC_DIR)/include \
+		-I$(STM32_SDCARD_COMMON_SRC_DIR) \
+		-I$(FREERTOS_KERNEL_SRC_DIR)/include \
+		-I$(FREERTOS_PORTABLE_SRC_DIR) \
+		$(FREERTOS_DEFS) \
+		-D_USE_LFN=2
+
+
+
+

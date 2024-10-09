@@ -1,0 +1,15 @@
+LIBNAME = libtiny_aes128
+
+LIB_SRC_DIR=$(TINY_AES128_SRC_DIR)
+
+include $(SRC_DIR)/rules.mk
+
+CFLAGS += -I./
+
+CXXFLAGS +=	$(CFLAGS)
+      
+
+
+
+
+

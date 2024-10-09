@@ -1,0 +1,17 @@
+LIBNAME = liblua
+
+LIB_SRC_DIR=$(LUA_SRC_DIR)
+
+include $(SRC_DIR)/rules.mk
+
+CFLAGS +=	-I./ \
+                -I$(SRC_DIR)/include \
+		-I$(KLIBC_SRC_DIR) \
+		-I$(FATFS_SRC_DIR) \
+		-I$(FREERTOS_KERNEL_SRC_DIR)/include \
+		-I$(FREERTOS_PORTABLE_SRC_DIR) \
+		$(FREERTOS_DEFS)
+
+
+
+

@@ -1,0 +1,15 @@
+LIBNAME = libhash
+
+LIB_SRC_DIR=$(HASH_SRC_DIR)
+
+include $(SRC_DIR)/rules.mk
+
+CFLAGS += -I./
+
+CXXFLAGS +=	$(CFLAGS)
+      
+
+
+
+
+

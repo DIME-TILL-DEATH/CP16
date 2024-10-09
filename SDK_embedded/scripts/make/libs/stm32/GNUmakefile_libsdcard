@@ -1,0 +1,15 @@
+LIBNAME = libsdcard
+
+LIB_SRC_DIR=$(STM32_SDCARD_COMMON_SRC_DIR)
+
+include $(SRC_DIR)/rules.mk
+
+CFLAGS +=	-I./ \
+			-I$(SRC_DIR)/application \
+			-I$(FATFS_SRC_DIR) \
+			-I$(STM32_PERIFERIAL_DRV_SRC_DIR)  \
+			-I$(STM32_CMSIS_COMMON_SRC_DIR) \
+        	-I$(STM32_CMSIS_SRC_DIR) \
+        	
+#        	-DSDIO_TRANSFER_CLK_DIV=0 -DSDIO_INIT_CLK_DIV=0x76 -D__SD_DETECT_PASS__
+        	

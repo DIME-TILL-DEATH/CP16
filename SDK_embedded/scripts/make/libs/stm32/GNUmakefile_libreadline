@@ -1,0 +1,12 @@
+LIBNAME = libreadline
+
+LIB_SRC_DIR=$(READLINE_SRC_DIR)
+
+include $(SRC_DIR)/rules.mk
+
+CXXFLAGS +=	-I./ \
+			-I$(SRC_DIR)/include \
+			-I$(KLIBC_SRC_DIR) \
+			-DREAD_LINE_OUT_CONSOLE
+
+

@@ -1,0 +1,13 @@
+set debug xml
+set remotetimeout 500
+set mem inaccessible-by-default off
+
+monitor  gdb_memory_map enable
+monitor  gdb_target_description enable
+
+monitor  reset_config trst_only
+monitor  reset halt
+monitor  flash write_image erase out/image.elf
+monitor  reset halt
+tbreak main
+continue

@@ -1,0 +1,20 @@
+LIBNAME = libtlsf
+
+LIB_SRC_DIR=$(TLSF_SRC_DIR)
+
+NO_SUBDIR_WALKER=yes
+
+include $(SRC_DIR)/rules.mk
+
+CFLAGS += -I./ \
+			$(TLSF_DEFS) \
+			-I$(SRC_DIR)/include \
+			-I$(FREERTOS_KERNEL_SRC_DIR)/include \
+			-I$(FREERTOS_PORTABLE_SRC_DIR) \
+			$(FREERTOS_DEFS) \
+			$(APP_DEFS)
+
+
+
+
+

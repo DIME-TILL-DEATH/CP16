@@ -1,0 +1,14 @@
+LIBNAME = libfilter
+
+LIB_SRC_DIR=$(FILTER_SRC_DIR)
+
+NO_SUBDIR_WALKER=yes
+
+include $(SRC_DIR)/rules.mk
+
+CFLAGS += -I./
+
+
+
+
+

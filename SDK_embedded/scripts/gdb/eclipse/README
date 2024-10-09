@@ -1,0 +1,26 @@
+add to eclipse debug mode startup tab:
+
+openocd :
+Use remote target:
+ yes
+JTAG Device:
+  OpenOVD (via pipe)
+GDB connection string: 
+  | openocd --pipe -s /klen/arm-kgp-eabi/share/openocd -f scripts/board/st_nucleo_f7.cfg
+  | openocd --pipe -s /klen/arm-kgp-eabi/share/openocd -f scripts/board/stm32f4discovery.cfg
++
+  source -v ${workspace_loc}/SDK_embedded/scripts/gdb/eclipse/stm32.openocd.init.script
++
+  source -v ${workspace_loc}/SDK_embedded/scripts/gdb/eclipse/stm32.openocd.run.script
+
+
+
+
+bmp:
+Use remote target:
+ no
+
+blackmagic:
+  source -v ${workspace_loc}/SDK_embedded/scripts/gdb/eclipse/stm32.blackmagic.script
+
+  'run' - in "Run command" window 

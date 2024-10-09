@@ -1,0 +1,11 @@
+LIBNAME = libfreertos_portable
+
+LIB_SRC_DIR=$(FREERTOS_PORTABLE_SRC_DIR)
+
+include $(SRC_DIR)/rules.mk
+
+CFLAGS +=	-I./								\
+			-I$(LIB_SRC_DIR)					\
+			-I$(FREERTOS_KERNEL_SRC_DIR)/include	\
+			-I$(SRC_DIR)/include				\
+			$(FREERTOS_DEFS)

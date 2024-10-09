@@ -1,0 +1,13 @@
+set arch riscv:rv32
+
+set debug xml
+
+set mem inaccessible-by-default off
+set print pretty
+set max-value-size unlimited
+
+set remote hardware-breakpoint-limit 6
+set remote hardware-watchpoint-limit 4
+
+
+

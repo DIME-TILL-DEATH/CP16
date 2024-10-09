@@ -1,0 +1,23 @@
+set debug xml
+set remotetimeout 500
+set mem inaccessible-by-default off
+set max-value-size unlimited
+
+monitor  gdb_memory_map enable
+monitor  gdb_target_description enable
+
+#correct value use from openocd info that out in start
+# cortex-m7 
+#     breakpoint 8
+#     watchpoint 4
+# 
+# cortex-m4 
+#     breakpoint 6
+#     watchpoint 4
+# 
+
+set remote hardware-breakpoint-limit 8
+set remote hardware-watchpoint-limit 4
+
+monitor  reset_config trst_only
+monitor  reset halt

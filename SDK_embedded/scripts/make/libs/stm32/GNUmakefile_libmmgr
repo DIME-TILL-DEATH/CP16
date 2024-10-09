@@ -1,0 +1,13 @@
+LIBNAME = libmmgr
+
+LIB_SRC_DIR=$(MMGR_SRC_DIR)
+
+include $(SRC_DIR)/rules.mk
+
+CFLAGS +=	-I./ \
+			-I$(TLSF_SRC_DIR) \
+			$(MEM_POOLS_DEFS)
+
+
+
+

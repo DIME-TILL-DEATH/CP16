@@ -1,0 +1,21 @@
+LIBNAME = librtcounter
+
+LIB_SRC_DIR=$(RTCOUNTER_SRC_DIR)
+
+include $(SRC_DIR)/rules.mk
+
+CXXFLAGS +=	-I./	\
+			-I./ \
+			-I$(SRC_DIR)/include \
+			-I$(STM32_PERIFERIAL_DRV_SRC_DIR)  \
+			-I$(STM32_CMSIS_COMMON_SRC_DIR) \
+			-I$(STM32_CMSIS_SRC_DIR)	\
+			-I$(FREERTOS_KERNEL_SRC_DIR)/include \
+			-I$(FREERTOS_PORTABLE_SRC_DIR) \
+			$(APP_DEFS) \
+			$(FREERTOS_DEFS)
+
+
+
+
+

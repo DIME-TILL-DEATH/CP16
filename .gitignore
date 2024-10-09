@@ -1,3 +1,10 @@
+.metadata
+cp16pa/.settings/
+cp16rv/.settings/
+
+#outputs
+*.bin
+
 # Prerequisites
 *.d
 
@@ -11,6 +18,8 @@
 *.ilk
 *.map
 *.exp
+*.dep
+*.stamp
 
 # Precompiled Headers
 *.gch

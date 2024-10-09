@@ -1,0 +1,15 @@
+LIBNAME = libitm_trace
+
+LIB_SRC_DIR=$(ITM_TRACE_SRC_DIR)
+
+include $(SRC_DIR)/rules.mk
+
+CFLAGS +=	-I./ \
+			-I$(SRC_DIR)/include \
+			-I$(STM32_CMSIS_COMMON_SRC_DIR) \
+			-I$(STM32_CMSIS_SRC_DIR) \
+			$(CRT_DEFS) \
+			$(HARDWARE_DEFS)
+
+
+
