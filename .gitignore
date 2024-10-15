@@ -1,6 +1,7 @@
 .metadata
-cp16pa/.settings/
-cp16rv/.settings/
+cp16/.settings/
+cp16/out/
+cp16/doc/
 
 #outputs
 *.bin
