@@ -23,8 +23,8 @@ inline float soft_clip_amp(float in);
 inline float soft_clip_pre(float in);
 inline float dc_block(float in);
 
-const uint8_t ver[] = FIRMWARE_VER;
-const uint8_t dev[] = FIRMWARE_NAME;
+const char ver[] = FIRMWARE_VER;
+const char dev[] = FIRMWARE_NAME;
 
 float __CCM_BSS__ coeff_preamp[preamp_stage * 5];
 float __CCM_BSS__ stage_preamp[preamp_stage * 4];
@@ -35,13 +35,13 @@ float __CCM_BSS__ State[taps_fir + block_size -1];
 float __CCM_BSS__ coeff_eq[eq_stage * 5];
 float __CCM_BSS__ stage_eq[eq_stage * 4];
 
-float __CCM_BSS__ coeff_presen[presen_stage * 5];
-float __CCM_BSS__ stage_presen[presen_stage * 4];
+float __CCM_BSS__ coeff_presen[presence_stage * 5];
+float __CCM_BSS__ stage_presen[presence_stage * 4];
 
 arm_fir_instance_f32 fir_instance ;
 arm_biquad_casd_df1_inst_f32 preamp_instance;
 arm_biquad_casd_df1_inst_f32 eq_instance;
-arm_biquad_casd_df1_inst_f32 presen_instance;
+arm_biquad_casd_df1_inst_f32 presence_instance;
 
 uint8_t usb_flag = 0;
 bool sw4_state = true;
@@ -73,7 +73,7 @@ void TCSTask::Code()
 
 	arm_fir_init_f32(&fir_instance, taps_fir, Coeffs, State, block_size);
 	arm_biquad_cascade_df1_init_f32(&eq_instance, eq_stage , coeff_eq , stage_eq);
-	arm_biquad_cascade_df1_init_f32(&presen_instance, presen_stage , coeff_presen, stage_presen);
+	arm_biquad_cascade_df1_init_f32(&presence_instance, presence_stage , coeff_presen, stage_presen);
 	arm_biquad_cascade_df1_init_f32(&preamp_instance, preamp_stage , coeff_preamp, stage_preamp);
 
 	flash_folder_init();
@@ -83,18 +83,29 @@ void TCSTask::Code()
 	delay_nop(0xffff);
 
 #ifdef __PA_VERSION__
-	if(sys_para[2] == 2) sig_invert(1);
+//	if(sys_para[2] == 2) sig_invert(1);
+	if(system_parameters.output_mode == LINE) sig_invert(1);
 #endif
 
-	extern const uint8_t ver[];
-	uint8_t temp = 0;
-	for(uint8_t i = 0 ; i < 8 ; i++)
-		if(ver[i] != sys_para[23 + i]) temp++;
+	//extern const uint8_t ver[];
+//	uint8_t temp = 0;
+//	for(uint8_t i = 0 ; i < 8 ; i++)
+//		if(ver[i] != sys_para[23 + i]) temp++;
 
-	if(temp)
+	char version_string[FIRMWARE_STRING_SIZE] = {0};
+
+	// sprintf нужен
+	//		kgp_sdk_libc::emb_printf::sprintf((char*)&system_parameters.firmware_version, "%s.%s", dev, ver);
+	kgp_sdk_libc::strcpy(version_string, dev);
+	version_string[kgp_sdk_libc::strlen(dev)] = '.';
+	kgp_sdk_libc::strcpy(version_string + kgp_sdk_libc::strlen(dev) + 1, ver);
+
+	if(kgp_sdk_libc::strcmp(version_string, system_parameters.firmware_version))
 	{
-		for(uint8_t i = 0 ; i < 5 ; i++)sys_para[13 + i] = dev[i];
-		for(uint8_t i = 0 ; i < 8 ; i++)sys_para[23 + i] = ver[i];
+		system_parameters.eol_symb = '\n';
+		kgp_sdk_libc::memset(system_parameters.firmware_version, 0, FIRMWARE_STRING_SIZE);
+		kgp_sdk_libc::strcpy(system_parameters.firmware_version, version_string);
+
 		save_sys();
 	}
 
@@ -191,8 +202,24 @@ float __CCM_BSS__ out_biquad_sample[block_size];
 
 float __CCM_BSS__ gate_buf[block_size];
 
-float pream_vol = 1.0f;
+//----------------------------------------------
+void (*processing_stage_func[5])(uint8_t* in);
 
+
+void __RAMFUNC__ eq_processing_stage(float* in_samples, float* out_samples)
+{
+	float out_biquad_samples[block_size];
+
+	arm_biquad_cascade_df1_f32(&eq_instance, in_samples, out_biquad_samples, block_size);
+	if(preset_data[eq_on])
+	{
+		for(uint8_t i = 0; i < block_size; i++)
+			out_samples[i] = out_biquad_sample[i];
+	}
+}
+//----------------------------------------------
+
+float pream_vol = 1.0f;
 uint8_t dma_ht_fl = 0;
 //================================PA======================
 #ifdef __PA_VERSION__
@@ -230,7 +257,7 @@ extern "C" void DMA1_Stream3_IRQHandler()
 			inp_di_sample[i] = compr_out(inp_di_sample[i]);
 	}
 
-	//-------------------------------------Fender--------------------------------------------
+	//-------------------------------------EQ pre--------------------------------------------
 	if(preset_data[eq_po])
 	{
 		arm_biquad_cascade_df1_f32(&eq_instance, inp_di_sample, out_biquad_sample, block_size);
@@ -240,22 +267,29 @@ extern "C" void DMA1_Stream3_IRQHandler()
 				inp_di_sample[i] = out_biquad_sample[i];
 		}
 	}
-
+	//-------------------------------------Fender--------------------------------------------
 	if(preset_data[preamp_on])
 	{
 		arm_biquad_cascade_df1_f32(&preamp_instance, inp_di_sample, out_biquad_sample, block_size);
 		for(uint8_t i = 0; i < block_size; i++)
 			inp_di_sample[i] = out_biquad_sample[i] * pream_vol * 3.0f;
 	}
+
+	//--------------------------------------Presence-------------------------------------------
+	if(preset_data[pr_on])
+	{
+		arm_biquad_cascade_df1_f32(&presence_instance, processing_sample, out_biquad_sample, block_size);
+		for(uint8_t i = 0; i < block_size; i++)
+			processing_sample[i] = out_biquad_sample[i];
+	}
 	//--------------------------------------Amplifier----------------------------------------
 	if(preset_data[amp_on])
 	{
-		// Дефолтный тоже клипит!
-		for(uint8_t i = 0; i < block_size; i++)
-			inp_di_sample[i] = soft_clip_amp(inp_di_sample[i] * amp_vol) * amp_sla;
-
 		if(preset_data[a_t] != 8)
 		{
+			for(uint8_t i = 0; i < block_size; i++)
+				inp_di_sample[i] = soft_clip_amp(inp_di_sample[i] * amp_vol) * amp_sla;
+
 			arm_fir_f32(&fir_instance, inp_di_sample, out_biquad_sample, block_size);
 			for(uint8_t i = 0; i < block_size; i++)
 				inp_di_sample[i] = out_biquad_sample[i];
@@ -278,12 +312,12 @@ extern "C" void DMA1_Stream3_IRQHandler()
 		for(uint8_t i = 0; i < block_size; i++)
 			processing_sample[i] = filt_hp(processing_sample[i]);
 	}
-	//--------------------------------------EQ-----------------------------------------------
+	//--------------------------------------EQ-post-----------------------------------------------
 	if(!preset_data[eq_po])
 	{
-		arm_biquad_cascade_df1_f32(&eq_instance, processing_sample, out_biquad_sample, block_size);
 		if(preset_data[eq_on])
 		{
+			arm_biquad_cascade_df1_f32(&eq_instance, processing_sample, out_biquad_sample, block_size);
 			for(uint8_t i = 0; i < block_size; i++)
 				processing_sample[i] = out_biquad_sample[i];
 		}
@@ -294,14 +328,6 @@ extern "C" void DMA1_Stream3_IRQHandler()
 		for(uint8_t i = 0; i < block_size; i++)
 			processing_sample[i] = filt_lp(processing_sample[i]);
 	}
-	//--------------------------------------Presence-------------------------------------------
-	arm_biquad_cascade_df1_f32(&presen_instance, processing_sample, out_biquad_sample, block_size);
-	if(preset_data[pr_on])
-	{
-		for(uint8_t i = 0; i < block_size; i++)
-			processing_sample[i] = out_biquad_sample[i];
-	}
-
 	//----------------------------Calculate fade-------------------------------
 	calc_fade_step();
 	//----------------------------ER + GATE-------------------------------
@@ -342,7 +368,8 @@ extern "C" void DMA1_Stream3_IRQHandler()
 		ccr[i] = out_clip(processing_sample[i] * preset_volume) * 8388607.0f * get_fade_coef();
 
 		// phones, line, inst?
-		if(sys_para[2] == 1) ccr[i] = ccr[i] >> 1;
+//		if(sys_para[2] == 1) ccr[i] = ccr[i] >> 1;
+		if(system_parameters.output_mode == BALANCE) ccr[i] = ccr[i] >> 1;
 
 		dac_data[a].left.sample = ror16((uint32_t)(ccl[i] << 8));	// IR in ADAU1701 processing
 		dac_data[a].right.sample = ror16((uint32_t)(ccr[i] << 8)); // master out
@@ -485,11 +512,9 @@ extern "C" void DMA1_Stream3_IRQHandler()
 	//--------------------------------------Presence-------------------------------------------
 	if(preset_data[pr_on])
 	{
-		arm_biquad_cascade_df1_f32(&presen_instance, processing_sample, out_biquad_sample, block_size);
+		arm_biquad_cascade_df1_f32(&presence_instance, processing_sample, out_biquad_sample, block_size);
 		for(uint8_t i=0; i<block_size; i++)
 			processing_sample[i] = out_biquad_sample[i];
-//			processing_sample[i] = proc_shelf(processing_sample[i]);
-
 	}
 	//----------------------------Calculate fades-------------------------------
 
@@ -539,15 +564,29 @@ extern "C" void DMA1_Stream3_IRQHandler()
 		ccr[i] =  -out_sampleR[i];
 
 		// phones, line, inst?
-		switch(sys_para[2])
+//		switch(sys_para[2])
+//		{
+//			case 1:
+//			{
+//				ccl[i] = ccl[i] >> 1;
+//				ccr[i] = ccr[i] >> 1;
+//				break;
+//			}
+//			case 2: ccr[i] = -ccl[i];
+//		}
+		switch(system_parameters.output_mode)
 		{
-			case 1:
-			{
-				ccl[i] = ccl[i] >> 1;
-				ccr[i] = ccr[i] >> 1;
-				break;
-			}
-			case 2: ccr[i] = -ccl[i];
+		case BALANCE:
+		{
+			cl[i] = ccl[i] >> 1;
+			ccr[i] = ccr[i] >> 1;
+			break;
+		}
+		case LINE:
+		{
+			ccr[i] = -ccl[i];
+			break;
+		}
 		}
 
 		ccl[i] = __SSAT(ccl[i], 24);

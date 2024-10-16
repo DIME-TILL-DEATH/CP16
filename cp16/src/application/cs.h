@@ -4,23 +4,26 @@
 
 #define eq_stage 5
 #define preamp_stage 6
-#define presen_stage 1
+#define presence_stage 1
 #define taps_fir 384
 
 #ifdef __PA_VERSION__
-     enum {eq1=0,eq2,eq3,eq4,eq5,/*early*/e_vol,e_t,/*pres_vol*/pres_lev,/*cab_on*/cab_on,/*eq_on*/eq_on,
-    	   /*er_on*/er_on,/*amp_on*/amp_on,/*amplif*/a_vol,/*amplifier slave*/amp_slave,a_t,
-		   /*preamp_on*/preamp_on,/*preamp vol*/preamp_vol,preamp_lo,preamp_mi,preamp_hi,
-		   /*gate*/gate_on,gate_th,gate_att,/*compressor*/compr_on,sustein,compr_vol,
-           /*eq band freq*/fr1,fr2,fr3,fr4,fr5,/*eq band q*/q1,q2,q3,q4,q5,/*lohi*/lop,hip,hip_on,lop_on,
-           /*presence*/pr_on,pr_vol,/*eq position*/eq_po,/*end*/pdCount};
+enum{
+	eq1=0,eq2,eq3,eq4,eq5,/*early*/e_vol,e_t,/*pres_vol*/pres_lev,/*cab_on*/cab_on,/*eq_on*/eq_on,
+   /*er_on*/er_on,/*amp_on*/amp_on,/*amplif*/a_vol,/*amplifier slave*/amp_slave,a_t,
+   /*preamp_on*/preamp_on,/*preamp vol*/preamp_vol,preamp_lo,preamp_mi,preamp_hi,
+   /*gate*/gate_on,gate_th,gate_att,/*compressor*/compr_on,sustein,compr_vol,
+   /*eq band freq*/fr1,fr2,fr3,fr4,fr5,/*eq band q*/q1,q2,q3,q4,q5,/*lohi*/lop,hip,hip_on,lop_on,
+   /*presence*/pr_on,pr_vol,/*eq position*/eq_po,/*end*/pdCount};
 #else
-     enum {eq1=0,eq2,eq3,eq4,eq5,/*early*/e_vol,e_t,/*pres_vol*/pres_lev,/*cab_on*/cab_on,/*eq_on*/eq_on,
-    	   /*er_on*/er_on,/*preamp_on*/preamp_on_,preamp_lo_,preamp_mi_,preamp_hi_,preamp_on,
-		   preamp_vol,preamp_lo,preamp_mi,preamp_hi,/*gate*/gate_on,gate_th,gate_att,
-		   /*compressor*/compr_on,sustein,compr_vol,
-           /*eq band freq*/fr1,fr2,fr3,fr4,fr5,/*eq band q*/q1,q2,q3,q4,q5,/*lohi*/lop,hip,hip_on,lop_on,
-           /*amp*/pr_on,pr_vol,www,pdCount};
+enum{
+	eq1=0,eq2,eq3,eq4,eq5,
+ /*early*/e_vol,e_t,/*pres_vol*/pres_lev,/*cab_on*/cab_on,/*eq_on*/eq_on,
+   /*er_on*/er_on,/*preamp_on*/preamp_on_,preamp_lo_,preamp_mi_,preamp_hi_,preamp_on,
+   preamp_vol,preamp_lo,preamp_mi,preamp_hi,/*gate*/gate_on,gate_th,gate_att,
+   /*compressor*/compr_on,sustein,compr_vol,
+   /*eq band freq*/fr1,fr2,fr3,fr4,fr5,/*eq band q*/q1,q2,q3,q4,q5,/*lohi*/lop,hip,hip_on,lop_on,
+   /*amp*/pr_on,pr_vol,www,pdCount};
 #endif
 
 class TCSTask : public TTask
@@ -83,8 +86,6 @@ extern float ear_vol;
 extern float amp_vol;
 extern float amp_sla;
 
-
-
 extern float pream_vol;
 extern TCSTask* CSTask ;
 
@@ -97,8 +98,8 @@ extern uint8_t m1_up1[];
 
 extern volatile uint8_t rev_en;
 extern volatile uint8_t rev_en1;
-extern const uint8_t ver[];
-extern const uint8_t dev[];
+extern const char ver[];
+extern const char dev[];
 
 extern bool sw4_state ;
 

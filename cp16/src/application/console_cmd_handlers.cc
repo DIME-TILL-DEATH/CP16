@@ -515,18 +515,21 @@ static void change_pres_command_handler ( TReadLine* rl , TReadLine::const_symbo
 
 static void get_mode_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
 {
-	 if ( count == 1 )
+	 if (count == 1)
 	 {
-		 i2hex( sys_para[2],hex);
+//		 i2hex( sys_para[2], hex);
+		 i2hex(system_parameters.output_mode, hex);
 		 msg_console("%s\n" , hex ) ;
 		 return ;
 	 }
 	 char* end ;
-     uint32_t val = kgp_sdk_libc::strtol ( args[1] , &end, 16 );
-     sys_para[2] = val;
+     uint32_t val = kgp_sdk_libc::strtol(args[1], &end, 16 );
+//     sys_para[2] = val;
+     system_parameters.output_mode = val;
 
 #ifdef __PA_VERSION__
-     if(sys_para[2] == 2) sig_invert(1);
+//     if(sys_para[2] == 2) sig_invert(1);
+     if(system_parameters.output_mode == LINE) sig_invert(1);
      else sig_invert(0);
 #endif
 

@@ -3,31 +3,39 @@
 #include "appdefs.h"
 #include "console.h"
 
+// Проверить соответствие номеров
+enum
+{
+	PHONES = 0,
+	BALANCE,
+	LINE
+};
+
+#define FIRMWARE_STRING_SIZE 20
+typedef struct
+{
+	uint8_t empty[2];
+	uint8_t output_mode;
+	uint8_t reserved[8];
+	uint8_t eol_symb = '\n';
+	char firmware_version[FIRMWARE_STRING_SIZE];
+#ifdef __LA3_MOD__
+	uint8_t la3_cln_preset;
+	uint8_t la3_drv_preset;
+#endif
+}system_parameters_t;
+
+extern system_parameters_t system_parameters;
 extern float cab_data[] ;
-extern uint16_t delay_time;
 extern uint16_t early_type;
 extern volatile uint8_t prog;
 extern volatile uint8_t prog1;
-extern volatile uint32_t flash_adr;
 extern uint8_t preset_data[];
-extern uint8_t prog_data_temp[];
-extern uint8_t prog_data_temp1[];
-extern uint8_t imya[];
-extern uint8_t imya1[];
-extern const uint8_t imya_init[];
-extern uint8_t imya_t [];
-extern uint8_t imya1_t[];
-extern uint8_t control[];
-extern uint8_t sys_para[];
+//extern uint8_t prog_data_temp[];
+//extern uint8_t prog_data_temp1[];
+//extern uint8_t control[];
 extern uint8_t impulse_buffer[];
-extern char name_buf [];
-extern const uint8_t no_loaded[];
-extern volatile uint16_t adc_low;
-extern volatile uint16_t adc_high;
-extern volatile uint16_t adc_val;
-extern volatile float adc_val1;
-
-
+extern char name_buf[];
 
 extern uint8_t bank_pres[];enum  bank_pres_field_t { bpf_bank=0, bpf_preset=1 } ;
 

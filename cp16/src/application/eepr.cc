@@ -5,17 +5,14 @@
 #include "console.h"
 
 
-uint16_t delay_time;
 float cab_data[1024] ;
 uint8_t impulse_avaliable;
 
 volatile uint8_t prog;
 volatile uint8_t prog1;
 volatile uint32_t flash_adr;
-volatile uint16_t adc_low;
-volatile uint16_t adc_high;
-volatile uint16_t adc_val;
-volatile float adc_val1;
+
+system_parameters_t system_parameters;
 
 #ifdef __PA_VERSION__
 uint8_t impulse_buffer[3938] = {0,0,0,0x80};
@@ -29,23 +26,14 @@ const uint8_t prog_data_init[128] = {/*eq*/15,15,15,15,15,/*early*/15,1,/*pres_v
 char name_buf [64];
 #endif
 
-uint8_t prog_data_temp[32];
-uint8_t prog_data_temp1[64];
-const uint32_t del_tim_init = 500;
-const uint8_t imya_init[]  {"Preset         "};
-const uint8_t imya_init1[] {"Name           "};
+
 uint8_t preset_data[128];
-uint8_t sys_para[32] = {0,0,0,0,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30};
-uint8_t control[32];
-uint8_t imya [16];
-uint8_t imya1[16];
-uint8_t imya_t [16];
-uint8_t imya1_t[16];
+
 uint8_t dir_use[10];
 volatile uint32_t fl_st;
 const uint8_t no_loaded[]="No loaded";
 uint8_t check [] = "  Check folders";
-uint8_t bank_pres[2] = {0,0};
+uint8_t bank_pres[2] = {0, 0};
 
 constexpr char volume_label[] = FIRMWARE_NAME;
 
@@ -109,7 +97,7 @@ static inline bool dir_get_wav( const emb_string& dir_name,  std::emb_string& wa
                         fn_name+= "/" ;
                         fn_name+= fn ;
 
-                        // currunt cab file name output
+                        // current cab file name output
 
                         wav_file_name = fn ;
                         result = true ;
@@ -656,87 +644,98 @@ bool load_pres(float* cd, std::emb_string& err_msg,uint8_t val)
          f_mount(0, "0:", 0);
          return result ;
 }
+
 void flash_folder_init(void)
 {
-	  FRESULT res;
-	  DIR dir;
-	  FATFS fs;
-	  FIL file;
-	  UINT f_size;
-	  FILINFO fno;
+	FRESULT res;
+	DIR dir;
+	FATFS fs;
+	FIL file;
+	UINT bytes_readed;
+	FILINFO fno;
+
 #if _USE_LFN
-   const size_t sz = _MAX_LFN + 1 ;
-   char* lfn = new char[sz];   /* Buffer to store the LFN */
-   fno.lfname = lfn;
-   fno.lfsize = sz ;
+	const size_t sz = _MAX_LFN + 1 ;
+	char* lfn = new char[sz];   /* Buffer to store the LFN */
+	fno.lfname = lfn;
+	fno.lfsize = sz ;
 #endif
-	  if(f_mount ( &fs , "0:",  1) != FR_OK)
-	   {
-	    f_mkfs("0:",0,0);
-	    f_setlabel(volume_label);
-	    f_mount ( &fs , "0:",  1);
-	   }
-	  emb_string hl_dir ;
-	  for(size_t i = 0 ; i < 4 ; i++)
-	   {
-	     hl_dir = "/Bank_" ;
-	     hl_dir += i  ;
-	     res = f_opendir(&dir, hl_dir.c_str());
-	     f_closedir(&dir);
-	  	 if(res != FR_OK)res = f_mkdir(hl_dir.c_str());
-	     emb_string ll_dir ;
-	     uint8_t z = 0;
-	     for(size_t j = 0 ; j < 4 ; j++)
-	      {
-	        ll_dir = hl_dir + "/Preset_" ;
-	        ll_dir += j ;
-	        res = f_opendir(&dir,ll_dir.c_str());
-	        if(res != FR_OK)res = f_mkdir(ll_dir.c_str());
-	        ll_dir += "/preset.pan" ;
-	        res = f_open(&file, ll_dir.c_str() , FA_READ | FA_WRITE | FA_OPEN_ALWAYS) ;
-	        if(file.fsize == 0)f_write(&file , prog_data_init , 128 ,  &f_size);
-	        //f_read(&file, prog_data , 128 , &f_size);
-	        f_close(&file);
-	        while(1)
-	        {
-	            res = f_readdir(&dir, &fno);
-	        	if((res != FR_OK) || (fno.fname[0] == 0))break;
-	        	if(fno.fname[0] != 46)z += 1;
-	        }
-	        z -= 1;
-	        f_closedir(&dir);
-	      }
+
+	if(f_mount ( &fs , "0:",  1) != FR_OK)
+	{
+		f_mkfs("0:", 0, 0);
+		f_setlabel(volume_label);
+		f_mount(&fs, "0:", 1);
+	}
+
+	emb_string hl_dir ;
+	for(size_t i = 0 ; i < 4 ; i++)
+	{
+		hl_dir = "/Bank_";
+		hl_dir += i;
+		res = f_opendir(&dir, hl_dir.c_str());
+		f_closedir(&dir);
+		if(res != FR_OK) res = f_mkdir(hl_dir.c_str());
+
+		emb_string ll_dir ;
+		uint8_t z = 0;
+		for(size_t j = 0 ; j < 4 ; j++)
+		{
+			ll_dir = hl_dir + "/Preset_" ;
+			ll_dir += j ;
+			res = f_opendir(&dir,ll_dir.c_str());
+			if(res != FR_OK)res = f_mkdir(ll_dir.c_str());
+			ll_dir += "/preset.pan" ;
+			res = f_open(&file, ll_dir.c_str() , FA_READ | FA_WRITE | FA_OPEN_ALWAYS) ;
+			if(file.fsize == 0)f_write(&file , prog_data_init , 128 ,  &bytes_readed);
+			//f_read(&file, prog_data , 128 , &f_size);
+			f_close(&file);
+			while(1)
+			{
+				res = f_readdir(&dir, &fno);
+				if((res != FR_OK) || (fno.fname[0] == 0)) break;
+				if(fno.fname[0] != 46) z += 1;
+			}
+			z -= 1;
+			f_closedir(&dir);
+		}
 	     if(z)dir_use[i] = 1;
 	     else dir_use[i] = 0;
-	   }
-	  res = f_open(&file, "/system.pan" , FA_READ | FA_WRITE | FA_OPEN_ALWAYS) ;
-	  f_read(&file, sys_para , 32 , &f_size);
-	  if( f_size(&file) == 32 ) // запись map0, map1 по умолчанию
-	  {
+	}
+
+	res = f_open(&file, "/system.pan" , FA_READ | FA_WRITE | FA_OPEN_ALWAYS) ;
+	f_read(&file, &system_parameters, sizeof(system_parameters), &bytes_readed);
+
+#ifdef __LA3_MOD__
+	if(bytes_readed(&file) == 32) // запись map0, map1 по умолчанию
+	{
 		size_t fsize ;
-		f_lseek (&file , 32);
-		uint16_t map =0x1122 ; // дефолтные пресеты по умолчанию при инициализации
-		f_write(&file, &map , 2 , &fsize);
+		f_lseek (&file, 32);
+		uint16_t map  = 0x1122 ; // дефолтные пресеты по умолчанию при инициализации
+		f_write(&file, &map, 2, &fsize);
 		f_sync(&file);
-	  }
-	  f_close(&file);
+	}
+#endif
 
-	  res = f_opendir(&dir, "/tmp_preset");
-	  f_closedir(&dir);
-	  if(res != FR_OK)res = f_mkdir("/tmp_preset");
+	f_close(&file);
 
-	  f_mount(0, "0:", 0);
+	res = f_opendir(&dir, "/tmp_preset");
+	f_closedir(&dir);
+	if(res != FR_OK)res = f_mkdir("/tmp_preset");
+
+	f_mount(0, "0:", 0);
 }
+
 void save_sys(void)
 {
 	FATFS fs;
 	FIL file;
-	UINT f_size;
+	UINT bytes_written;
 	DWORD seek = 0;
 	f_mount ( &fs , "0:",  1);
 	f_open(&file, "/system.pan" , FA_WRITE);
 	f_lseek (&file , seek);
-	f_write(&file, sys_para , 32 , &f_size);
+	f_write(&file, &system_parameters, sizeof(system_parameters), &bytes_written);
 	f_sync(&file);
 	f_close(&file);
 	f_mount(0, "0:", 0);
@@ -1135,8 +1134,8 @@ void load_map1(uint8_t& bank_preset)
 	DWORD seek = 33;
 	f_mount ( &fs , "0:",  1);
 	f_open(&file, "/system.pan" , FA_READ);
-	f_lseek (&file , seek);
-	f_read(&file, &bank_preset , 1 , &f_size);
+	f_lseek (&file, seek);
+	f_read(&file, &bank_preset, 1 , &f_size);
 	f_close(&file);
 	f_mount(0, "0:", 0);
 }
