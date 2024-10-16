@@ -11,11 +11,11 @@
 #include "compressor.h"
 #include "amp_imp.h"
 
+#include "DSP/sound_processing.h"
+
 extern char __CCM_BSS__ buff[];
 char hex[3] = {0,0,0} ;
 uint16_t imp_count = 0;
-volatile uint8_t rev_en = 0;
-volatile uint8_t rev_en1 = 0;
 
 // первый аргумент - имя файла(актуально для второго 0 ) второй - 0 это запись файла импульса , данные идут побайтно с подтверждением ,
 // 1 это загрузка импульса - данные идут семплами(по 3 байта начиная с младшева)
@@ -941,20 +941,30 @@ static void preset_wavs_info_command_handler ( TReadLine* rl , TReadLine::const_
 }
 */
 
-#ifdef __PA_VERSION__
 static void eq_position_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
 {
-	 if ( count == 1 )
+	 if (count == 1)
 	 {
 		 i2hex( preset_data[eq_po],hex);
 		 msg_console("%s\n" , hex ) ;
-		 return ;
+		 return;
 	 }
+
 	 char* end ;
-     uint32_t val = kgp_sdk_libc::strtol ( args[1] , &end, 16 );
-     preset_data[eq_po] = val ;
-     msg_console("%s\n" , hex ) ;
+     uint32_t val = kgp_sdk_libc::strtol(args[1], &end, 16);
+     preset_data[eq_po] = val;
+     if(val)
+     {
+    	 DSP_set_module_to_processing_stage(EQ, 1);
+     }
+     else
+     {
+    	 DSP_set_module_to_processing_stage(EQ, 6);
+     }
+
+     msg_console("%s\n" , hex);
 }
+
 static void amp_on_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
 {
 	 if ( count == 1 )
@@ -996,6 +1006,7 @@ static void amp_slave_command_handler ( TReadLine* rl , TReadLine::const_symbol_
      amp_sla = powf(preset_data[amp_slave],4.0f)*(0.99f/powf(31.0f,4.0f)) + 0.01f;
      msg_console("%s\n" , hex ) ;
 }
+
 static void amp_type_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
 {
 	 if ( count == 1 )
@@ -1007,27 +1018,27 @@ static void amp_type_command_handler ( TReadLine* rl , TReadLine::const_symbol_t
 	 char* end ;
      uint32_t val = kgp_sdk_libc::strtol ( args[1] , &end, 16 );
      preset_data[a_t] = val ;
-     int a = taps_fir -1;
+     int a = TAPS_PA_FIR -1;
      extern float Coeffs[];
      switch(val){
-     case 0:for(int i = 0 ; i < taps_fir ; i++)Coeffs[a--] = PP_6L6[i];break;
-     case 1:for(int i = 0 ; i < taps_fir ; i++)Coeffs[a--] = PP_EL34[i];break;
-     case 2:for(int i = 0 ; i < taps_fir ; i++)Coeffs[a--] = SE_6L6[i];break;
-     case 3:for(int i = 0 ; i < taps_fir ; i++)Coeffs[a--] = SE_EL34[i];break;
-     case 4:for(int i = 0 ; i < taps_fir ; i++)Coeffs[a--] = tc_1[i];break;
-     case 5:for(int i = 0 ; i < taps_fir ; i++)Coeffs[a--] = fender[i];break;
-     case 6:for(int i = 0 ; i < taps_fir ; i++)Coeffs[a--] = jcm800[i];break;
-     case 7:for(int i = 0 ; i < taps_fir ; i++)Coeffs[a--] = lc50[i];break;
-     case 9:for(int i = 0 ; i < taps_fir ; i++)Coeffs[a--] = mes_mod[i];break;
-     case 10:for(int i = 0 ; i < taps_fir ; i++)Coeffs[a--] = mes_vint[i];break;
-     case 11:for(int i = 0 ; i < taps_fir ; i++)Coeffs[a--] = Pr0_Re0_5150[i];break;
-     case 12:for(int i = 0 ; i < taps_fir ; i++)Coeffs[a--] = Pr5_Re5_5150[i];break;
-     case 13:for(int i = 0 ; i < taps_fir ; i++)Coeffs[a--] = Pr8_Re7_5150[i];break;
-     case 14:for(int i = 0 ; i < taps_fir ; i++)Coeffs[a--] = Pr9_Re8_5150[i];break;
+     case 0:for(int i = 0 ; i < TAPS_PA_FIR ; i++)Coeffs[a--] = PP_6L6[i];break;
+     case 1:for(int i = 0 ; i < TAPS_PA_FIR ; i++)Coeffs[a--] = PP_EL34[i];break;
+     case 2:for(int i = 0 ; i < TAPS_PA_FIR ; i++)Coeffs[a--] = SE_6L6[i];break;
+     case 3:for(int i = 0 ; i < TAPS_PA_FIR ; i++)Coeffs[a--] = SE_EL34[i];break;
+     case 4:for(int i = 0 ; i < TAPS_PA_FIR ; i++)Coeffs[a--] = tc_1[i];break;
+     case 5:for(int i = 0 ; i < TAPS_PA_FIR ; i++)Coeffs[a--] = fender[i];break;
+     case 6:for(int i = 0 ; i < TAPS_PA_FIR ; i++)Coeffs[a--] = jcm800[i];break;
+     case 7:for(int i = 0 ; i < TAPS_PA_FIR ; i++)Coeffs[a--] = lc50[i];break;
+     case 9:for(int i = 0 ; i < TAPS_PA_FIR ; i++)Coeffs[a--] = mes_mod[i];break;
+     case 10:for(int i = 0 ; i < TAPS_PA_FIR ; i++)Coeffs[a--] = mes_vint[i];break;
+     case 11:for(int i = 0 ; i < TAPS_PA_FIR ; i++)Coeffs[a--] = Pr0_Re0_5150[i];break;
+     case 12:for(int i = 0 ; i < TAPS_PA_FIR ; i++)Coeffs[a--] = Pr5_Re5_5150[i];break;
+     case 13:for(int i = 0 ; i < TAPS_PA_FIR ; i++)Coeffs[a--] = Pr8_Re7_5150[i];break;
+     case 14:for(int i = 0 ; i < TAPS_PA_FIR ; i++)Coeffs[a--] = Pr9_Re8_5150[i];break;
      }
      msg_console("END\n") ;
 }
-#endif
+
 
 void ConsoleSetCmdHandlers(TReadLine* rl)
 {
@@ -1045,13 +1056,11 @@ void ConsoleSetCmdHandlers(TReadLine* rl)
   rl->AddCommandHandler("eo", early_on_command_handler);
   rl->AddCommandHandler("ev", early_volume_command_handler);
   rl->AddCommandHandler("et", early_type_command_handler);
-#ifdef __PA_VERSION__
   rl->AddCommandHandler("eqp",eq_position_command_handler);
   rl->AddCommandHandler("ao", amp_on_command_handler);
   rl->AddCommandHandler("av", amp_volume_command_handler);
   rl->AddCommandHandler("as", amp_slave_command_handler);
   rl->AddCommandHandler("at", amp_type_command_handler);
-#endif
   rl->AddCommandHandler("po", presence_on_command_handler);
   rl->AddCommandHandler("pv", presence_volume_command_handler);
   rl->AddCommandHandler("lo", lpf_on_command_handler);

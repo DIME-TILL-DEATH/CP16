@@ -1,5 +1,4 @@
 #include "reverb.h"
-#include "DSP_inst.h"
 
 char __CCM_BSS__ buff[32768];
 float* early_buf = (float*)buff;

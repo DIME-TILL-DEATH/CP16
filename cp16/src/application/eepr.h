@@ -3,12 +3,11 @@
 #include "appdefs.h"
 #include "console.h"
 
-// Проверить соответствие номеров
 enum
 {
 	PHONES = 0,
-	BALANCE,
-	LINE
+	LINE,
+	BALANCE
 };
 
 #define FIRMWARE_STRING_SIZE 20
@@ -31,9 +30,6 @@ extern uint16_t early_type;
 extern volatile uint8_t prog;
 extern volatile uint8_t prog1;
 extern uint8_t preset_data[];
-//extern uint8_t prog_data_temp[];
-//extern uint8_t prog_data_temp1[];
-//extern uint8_t control[];
 extern uint8_t impulse_buffer[];
 extern char name_buf[];
 

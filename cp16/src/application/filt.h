@@ -50,6 +50,7 @@ inline void SetLPF(float fCut)
     b1 = (w - fCut) * Norm;
     a0 = a1 = fCut * Norm;
 }
+
 inline void SetHPF(float fCut)
 {
     float w = 2.0f * 48000.0f;
@@ -60,6 +61,7 @@ inline void SetHPF(float fCut)
     a11 = -a01;
     b11 = (w - fCut) * Norm;
 }
+
 inline void filt_ini(uint8_t num , uint8_t* adr , uint8_t* adr1)
 {
   float w0;
@@ -75,6 +77,7 @@ inline void filt_ini(uint8_t num , uint8_t* adr , uint8_t* adr1)
   filt_q =  powf(200 - ((int8_t)adr1[num] + 100) , 3.0f)*(5.0f/powf(200.0f , 3.0f)) + 0.225f;
   filt_alpha[num] = filt_sin[num]/2.0*filt_q;
 }
+
 inline float filt_proc(float in , float* buf , float* coef)
 {
   buf[0] = in;
@@ -85,6 +88,7 @@ inline float filt_proc(float in , float* buf , float* coef)
   buf[3] = out;
   return out;
 }
+
 inline float filt_lp(float in)
 {
   fil_lp_in[0] = in;
@@ -93,6 +97,7 @@ inline float filt_lp(float in)
   fil_lp_out[1] = fil_lp_out[0];
   return fil_lp_out[0];
 }
+
 inline float filt_hp(float in)
 {
   fil_hp_in[0] = in;
@@ -129,12 +134,13 @@ inline void set_filt (uint8_t num,uint8_t filt_gain)
 	eq_coef[num][4] = (1.0f - filt_alpha[num]/A)/a0;
 }
 
-#ifdef __RV_VERSION__
+
 inline float proc_shelf(float in)
 {
 	pres_buf[0] = in;
 	float out = Coeffs_b[0]*pres_buf[0] + Coeffs_b[1]*pres_buf[1] + Coeffs_b[2]*pres_buf[2] -
 			    Coeffs_b[3]*pres_buf[3] - Coeffs_b[4]*pres_buf[4];
+
 	pres_buf[2] = pres_buf[1];
 	pres_buf[1] = pres_buf[0];
 	pres_buf[4] = pres_buf[3];
@@ -144,14 +150,14 @@ inline float proc_shelf(float in)
 
 inline float biquad (float in)
 {
-  float out = filt_proc(in , (float*)eq_1_buf , (float*)eq_coef[0]);
-  out = filt_proc(out , (float*)eq_2_buf , (float*)eq_coef[1]);
-  out = filt_proc(out , (float*)eq_3_buf , (float*)eq_coef[2]);
-  out = filt_proc(out , (float*)eq_4_buf , (float*)eq_coef[3]);
-  out = filt_proc(out , (float*)eq_5_buf , (float*)eq_coef[4]);
-  return out;
+	float out = filt_proc(in , (float*)eq_1_buf , (float*)eq_coef[0]);
+	out = filt_proc(out , (float*)eq_2_buf , (float*)eq_coef[1]);
+	out = filt_proc(out , (float*)eq_3_buf , (float*)eq_coef[2]);
+	out = filt_proc(out , (float*)eq_4_buf , (float*)eq_coef[3]);
+	out = filt_proc(out , (float*)eq_5_buf , (float*)eq_coef[4]);
+	return out;
 }
-#endif
+
 
 inline void filt_set(float gain , float* adr , float q_fac , float freq)
 {
@@ -169,6 +175,7 @@ inline void filt_set(float gain , float* adr , float q_fac , float freq)
 	adr[4] = -(1.0f - alfa/AA)/a0;//-A2
 	adr[3] = -(-2.0f*cos_)/a0;  //-A1
 }
+
 inline void set_shelf(float gain)
 {
 	float A = powf(10.0f, gain /40.0f);
@@ -203,12 +210,14 @@ inline void set_shelf_hi(float gain , float* adr , float slope , float freq)
 	float sin_ = sinf(w0);
 	float alfa = sin_/2.0f * sqrtf((A+1.0f/A)*(1.0f/slope - 1.0f)+2.0f);
 	float a0 = (A+1.0f) - (A-1.0f)*cos_ + 2.0f*sqrtf(A)*alfa;
+
 	adr[2] = (A*((A+1.0f)+(A-1.0f)*cos_ - 2.0f*sqrtf(A)*alfa))/a0; // B2
 	adr[1] = (-2.0f*A*((A-1.0f)+(A+1.0f)*cos_))/a0;                // B1
 	adr[0] = (A*((A+1.0f)+(A-1.0f)*cos_ + 2.0f*sqrtf(A)*alfa))/a0; // B0
 	adr[4] = -((A+1.0f) - (A-1.0f)*cos_ - 2.0f*sqrtf(A)*alfa)/a0;  // A2
-	adr[3] = -(2.0f*((A-1.0f)-(A+1.0f)*cos_))/a0;  // A1
+	adr[3] = -(2.0f*((A-1.0f)-(A+1.0f)*cos_))/a0;  				// A1
 }
+
 inline void pre_param(uint8_t num,uint8_t val)
 {
 	int8_t va = val;
