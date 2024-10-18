@@ -1,6 +1,6 @@
 #include "appdefs.h"
-#include "eepr.h"
-#include "sigma.h"
+#include "eeprom.h"
+#include "ADAU/adau1701.h"
 #include "ff.h"
 #include "console.h"
 

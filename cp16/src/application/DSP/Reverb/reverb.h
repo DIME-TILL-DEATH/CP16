@@ -4,7 +4,7 @@
 #include "appdefs.h"
 
 #include "early.h"
-#include "eepr.h"
+#include "eeprom.h"
 
 #define rev_size 8192
 

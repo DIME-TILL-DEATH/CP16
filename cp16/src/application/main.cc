@@ -8,11 +8,11 @@
 #include "cs.h"
 #include "bt.h"
 #include "errno.h"
-#include "sigma.h"
+#include "ADAU/adau1701.h"
 #include "usb_bsp.h"
 #include "debug_led.h"
 #include "ff.h"
-#include "init.h"
+#include "gpio.h"
 
 volatile uint8_t usb_type = 0;
 volatile uint32_t sysclock ;

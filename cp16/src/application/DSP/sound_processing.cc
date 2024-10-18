@@ -7,7 +7,7 @@
 
 #include "sound_processing.h"
 
-#include "sigma.h"
+#include "ADAU/adau1701.h"
 
 processing_func_ptr processing_library[NUM_MODULE_TYPES];
 processing_func_ptr processing_stage[NUM_MODULE_TYPES];
@@ -58,8 +58,6 @@ float __CCM_BSS__ processed_samples[block_size];
 
 float __CCM_BSS__ out_sampleL[block_size];
 float __CCM_BSS__ out_sampleR[block_size];
-
-//float __CCM_BSS__ out_biquad_sample[block_size];
 
 int32_t __CCM_BSS__ ccl[block_size];
 int32_t __CCM_BSS__ ccr[block_size];

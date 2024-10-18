@@ -1,7 +1,5 @@
 #include "appdefs.h"
-#include "filt.h"
-
-
+#include "filters.h"
 
 float eq_coef[5][5];
 

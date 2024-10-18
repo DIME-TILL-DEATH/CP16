@@ -1,11 +1,11 @@
 #include "appdefs.h"
-#include "sigma.h"
+#include "adau1701.h"
 #ifdef __PA_VERSION__
-#include "sigma_cod_pa.h"
+#include "adau_program_pa.h"
 #else
 #include "sigma_cod_rv.h"
 #endif
-#include "init.h"
+#include "gpio.h"
 
 
 ad_data_t adc_data[block_size * 2];

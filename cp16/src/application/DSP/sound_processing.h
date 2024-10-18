@@ -11,7 +11,7 @@
 #include "appdefs.h"
 
 #include "fades.h"
-#include "filt.h"
+#include "DSP/filters.h"
 #include "compressor.h"
 #include "amp_imp.h"
 #include "Reverb/reverb.h"

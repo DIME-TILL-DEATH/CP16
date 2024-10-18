@@ -9,7 +9,7 @@
 #include "usbd_desc.h"
 #include "usb_dcd_int.h"
 #include "cs.h"
-#include "sigma.h"
+#include "ADAU/adau1701.h"
 
 
 #include "console.h"

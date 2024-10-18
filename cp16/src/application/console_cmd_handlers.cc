@@ -1,15 +1,15 @@
 #include "console_handlers.h"
-#include "eepr.h"
-#include "sigma.h"
+#include "eeprom.h"
+#include "ADAU/adau1701.h"
 #include "cs.h"
 #include "math.h"
-#include "filt.h"
+#include "DSP/filters.h"
 #include "ff.h"
-#include "Reverb/reverb.h"
-#include "init.h"
+#include "DSP/Reverb/reverb.h"
+#include "gpio.h"
 
-#include "compressor.h"
-#include "amp_imp.h"
+#include "DSP/compressor.h"
+#include "DSP/amp_imp.h"
 
 #include "DSP/sound_processing.h"
 

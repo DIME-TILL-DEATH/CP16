@@ -1,6 +1,6 @@
 #include "appdefs.h"
-#include "init.h"
-#include "eepr.h"
+#include "gpio.h"
+#include "eeprom.h"
 
 //-----------------------------------------------------------------
 void init(void)
