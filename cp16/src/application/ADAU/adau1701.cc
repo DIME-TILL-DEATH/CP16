@@ -207,9 +207,13 @@ void adau_init_ic (void)
 		delay_nop(0xff);
 	}
 
-	adau_transmit(DSP_PROGRAMM_ADDRESS, (uint8_t*)Program_Data_init, 1024 * 5);
-	adau_transmit(DSP_DATA_ADDRESS, (uint8_t*)Param_Data_init, 1024 * 4);
-	adau_transmit(DSP_CTRL_ADDRESS, (uint8_t*)R3_HWCONFIGURATION_IC_1_Default, sizeof(R3_HWCONFIGURATION_IC_1_Default)/sizeof(uint8_t));
+	uint8_t* param_data_init = (uint8_t*)malloc(1024 * 4);
+	kgp_sdk_libc::memset(param_data_init, 0, 1024 * 4);
+	adau_transmit(DSP_DATA_ADDRESS, (uint8_t*)param_data_init, 1024 * 4);
+	free(param_data_init);
+
+	adau_transmit(DSP_PROGRAMM_ADDRESS, (uint8_t*)adau_program_pa_classic, 1024 * 5);
+	adau_transmit(DSP_CTRL_ADDRESS, (uint8_t*)R3_HWCONFIGURATION_IC_1_Default, sizeof(R3_HWCONFIGURATION_IC_1_Default));
 }
 
 void to523(float param_dec , uint8_t* param_hex)

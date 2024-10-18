@@ -48,8 +48,8 @@ extern ad_data_t adc_data[];
 extern da_data_t dac_data[];
 
 void adau_init_reset_pin();
-void adau_init_ic (void);
-void adau_transmit (uint16_t address, uint8_t* data, uint32_t size);
+void adau_init_ic(void);
+void adau_transmit(uint16_t address, uint8_t* data, uint32_t size);
 
 void dsp_mute(void);
 void dsp_run(void);

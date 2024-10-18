@@ -89,7 +89,7 @@ static void current_cabinet_command_handler ( TReadLine* rl , TReadLine::const_s
 	    //---------------------------------------------------------------------------------------------
 	                f_close(&f);
 	    	    	f_mount(0, "0:", 0);
-	    	    	kgp_sdk_libc::memset(buff,0,buff_size);
+	    	    	kgp_sdk_libc::memset(buff, 0, buff_size);
 	    	    	rev_en = 0;
 	    	    	rev_en1 = 0;
 	    	    	msg_console("ccEND\n") ;
@@ -958,24 +958,24 @@ static void eq_position_command_handler ( TReadLine* rl , TReadLine::const_symbo
     	 DSP_set_module_to_processing_stage(CM, 0);
     	 DSP_set_module_to_processing_stage(EQ, 1);
     	 DSP_set_module_to_processing_stage(PR, 2);
-    	 DSP_set_module_to_processing_stage(PA, 4);
+    	 DSP_set_module_to_processing_stage(PA, 3);
+    	 DSP_set_module_to_processing_stage(IR, 4);
     	 DSP_set_module_to_processing_stage(HP, 5);
     	 DSP_set_module_to_processing_stage(LP, 6);
     	 DSP_set_module_to_processing_stage(NG, 7);
     	 DSP_set_module_to_processing_stage(ER, 8);
-    	 ir_send_position = 5;
      }
      else
      {
     	 DSP_set_module_to_processing_stage(CM, 0);
     	 DSP_set_module_to_processing_stage(PR, 1);
     	 DSP_set_module_to_processing_stage(PA, 2);
+    	 DSP_set_module_to_processing_stage(IR, 3);
     	 DSP_set_module_to_processing_stage(HP, 4);
     	 DSP_set_module_to_processing_stage(EQ, 5);
     	 DSP_set_module_to_processing_stage(LP, 6);
     	 DSP_set_module_to_processing_stage(NG, 7);
     	 DSP_set_module_to_processing_stage(ER, 8);
-    	 ir_send_position = 3;
      }
 
      msg_console("%s\n" , hex);
