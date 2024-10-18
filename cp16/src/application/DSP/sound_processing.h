@@ -23,15 +23,16 @@
 
 typedef void (*processing_func_ptr)(float* in, float* out);
 
-typedef enum{
-	NG=0,
-	CM,
+typedef enum
+{
+	CM=0,
 	PR,
 	PA,
 	IR,
 	HP,
 	EQ,
 	LP,
+	NG,
 	ER,
 	//---------
 	NUM_MODULE_TYPES

@@ -87,15 +87,15 @@ void DSP_init()
 	compressor_change_preset(0, 0);
 
 
-	processing_library[0] = compressor_processing_stage;
-	processing_library[1] = preamp_processing_stage;
-	processing_library[2] = pa_processing_stage;
-//	processing_library[3] = ir_processing_stage;
-	processing_library[4] = hpf_processing_stage;
-	processing_library[5] = eq_processing_stage;
-	processing_library[6] = lpf_processing_stage;
-	processing_library[7] = gate_processing_stage;
-	processing_library[8] = early_processing_stage;
+	processing_library[CM] = compressor_processing_stage;
+	processing_library[PR] = preamp_processing_stage;
+	processing_library[PA] = pa_processing_stage;
+//	processing_library[IR] = ir_processing_stage;
+	processing_library[HP] = hpf_processing_stage;
+	processing_library[EQ] = eq_processing_stage;
+	processing_library[LP] = lpf_processing_stage;
+	processing_library[NG] = gate_processing_stage;
+	processing_library[ER] = early_processing_stage;
 
 	for(int i = 0; i < NUM_MODULE_TYPES; i++)
 	{
@@ -153,12 +153,13 @@ extern "C" void DMA1_Stream3_IRQHandler()
 		gate_buf[i] = gate_out(inp_di_sample[i]);
 	}
 
+	//------------------------------PRE RPOCESS-----------------------------------------------
 	for(int i = 0; i < ir_send_position; i++)
 	{
 		if(processing_stage[i]) //pointer check
 			processing_stage[i](processed_samples, processed_samples);
 	}
-
+	//------------------------------Send samples to IQ or bypass--------------------------------
 	for(int i = 0; i < block_size; i++)
 	{
 		ccl[i] = out_clip(processed_samples[i] * 0.3f) * 8388607.0f * get_fade_coef();
@@ -176,7 +177,7 @@ extern "C" void DMA1_Stream3_IRQHandler()
 		for(uint8_t i = 0; i < block_size; i++)
 			processed_samples[i] = inp_cab_sample[i];
 	}
-
+	//---------------------------------------------Post process----------------------------------
 	for(int i = ir_send_position + 1; i < NUM_MODULE_TYPES; i++)
 	{
 		if(processing_stage[i]) //pointer check
@@ -241,7 +242,7 @@ void __RAMFUNC__ compressor_processing_stage(float* in_samples, float* out_sampl
 	if(preset_data[compr_on])
 	{
 		for(uint8_t i = 0; i < block_size; i++)
-			inp_di_sample[i] = compr_out(inp_di_sample[i]);
+			out_samples[i] = compr_out(in_samples[i]);
 	}
 }
 

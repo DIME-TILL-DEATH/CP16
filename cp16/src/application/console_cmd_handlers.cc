@@ -955,11 +955,27 @@ static void eq_position_command_handler ( TReadLine* rl , TReadLine::const_symbo
      preset_data[eq_po] = val;
      if(val)
      {
+    	 DSP_set_module_to_processing_stage(CM, 0);
     	 DSP_set_module_to_processing_stage(EQ, 1);
+    	 DSP_set_module_to_processing_stage(PR, 2);
+    	 DSP_set_module_to_processing_stage(PA, 4);
+    	 DSP_set_module_to_processing_stage(HP, 5);
+    	 DSP_set_module_to_processing_stage(LP, 6);
+    	 DSP_set_module_to_processing_stage(NG, 7);
+    	 DSP_set_module_to_processing_stage(ER, 8);
+    	 ir_send_position = 5;
      }
      else
      {
-    	 DSP_set_module_to_processing_stage(EQ, 6);
+    	 DSP_set_module_to_processing_stage(CM, 0);
+    	 DSP_set_module_to_processing_stage(PR, 1);
+    	 DSP_set_module_to_processing_stage(PA, 2);
+    	 DSP_set_module_to_processing_stage(HP, 4);
+    	 DSP_set_module_to_processing_stage(EQ, 5);
+    	 DSP_set_module_to_processing_stage(LP, 6);
+    	 DSP_set_module_to_processing_stage(NG, 7);
+    	 DSP_set_module_to_processing_stage(ER, 8);
+    	 ir_send_position = 3;
      }
 
      msg_console("%s\n" , hex);
