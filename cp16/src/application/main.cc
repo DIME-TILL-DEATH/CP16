@@ -29,7 +29,7 @@ extern "C" void _init(void)
 	sysclock = GetCpuClock() ;
 	*(__errno()) = 0 ;
 
-	sig_reset_init();
+	adau_init_reset_pin();
 	sig_reset(true);
 	DELAY_NOP(5000);
 	sig_reset(false);

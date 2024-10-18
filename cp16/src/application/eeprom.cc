@@ -15,11 +15,11 @@ volatile uint32_t flash_adr;
 system_parameters_t system_parameters;
 
 #ifdef __PA_VERSION__
-uint8_t impulse_buffer[3938] = {0,0,0,0x80};
+//uint8_t impulse_buffer[3938] = {0,0,0,0x80};
 const uint8_t prog_data_init[128] = {/*eq*/15,15,15,15,15,/*early*/0,0,/*pres_vol*/31,/*on_of*/1,/*delay*/0,0,0,16,16,0,0,25,0,0,0,0,0,0,0,0};
 char name_buf [512];
 #else
-uint8_t impulse_buffer[3938] = {0,2,0,0x80};
+//uint8_t impulse_buffer[3938] = {0,2,0,0x80};
 const uint8_t prog_data_init[128] = {/*eq*/15,15,15,15,15,/*early*/15,1,/*pres_vol*/31,/*on_of*/1,/*delay*/0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};

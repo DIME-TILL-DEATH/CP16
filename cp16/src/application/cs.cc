@@ -128,7 +128,7 @@ void preset_change(void)
 	}
 	else
 	{
-		sig_load(cab_data, impulse_buffer);
+		sig_load(cab_data);
 		impulse_avaliable = 1;
 		led_pulse_config(0);
 	}

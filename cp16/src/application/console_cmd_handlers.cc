@@ -136,7 +136,7 @@ static void current_cabinet_command_handler ( TReadLine* rl , TReadLine::const_s
 	    	        			cab_data[imp_count] = convert ( (uint8_t*)buff1 ) ;
 	    	        		}
                   		  }
-	    	        	  sig_load(cab_data , impulse_buffer);
+	    	        	  sig_load(cab_data);
 	    	        	  impulse_avaliable = 1;
 	    	        	  preset_data[cab_on] = 1;
 	    	        	  imp_count = 0;
@@ -559,7 +559,7 @@ static void load_current_cab_command_handler ( TReadLine* rl , TReadLine::const_
 	emb_string err_msg;
 	if(load_pres(cab_data,err_msg,0) != true)impulse_avaliable = 0;
 	else {
-		sig_load(cab_data , impulse_buffer);
+		sig_load(cab_data);
 		impulse_avaliable = 1;
 	}
 	msg_console("END\n") ;

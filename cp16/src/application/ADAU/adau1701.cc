@@ -1,10 +1,10 @@
 #include "appdefs.h"
 #include "adau1701.h"
-#ifdef __PA_VERSION__
+//#ifdef __PA_VERSION__
 #include "adau_program_pa.h"
-#else
-#include "sigma_cod_rv.h"
-#endif
+//#else
+//#include "sigma_cod_rv.h"
+//#endif
 #include "gpio.h"
 
 
@@ -12,36 +12,61 @@ ad_data_t adc_data[block_size * 2];
 da_data_t dac_data[block_size * 2];
 
 
-void adau_transmit (uint8_t* adr , uint32_t size )
+void adau_transmit(uint16_t address, uint8_t* data, uint32_t size)
 {
-	GPIO_ResetBits(adau_spi_cs_port,adau_spi_cs);
-	SPI_I2S_SendData(adau_com_spi,0);
+	GPIO_ResetBits(adau_spi_cs_port, adau_spi_cs);
+
+	SPI_I2S_SendData(adau_com_spi, 0x00);
+	while(SPI_I2S_GetFlagStatus(adau_com_spi,SPI_I2S_FLAG_TXE) == 0);
+
+	SPI_I2S_SendData(adau_com_spi, (address>>8) & 0xFF);
+	while(SPI_I2S_GetFlagStatus(adau_com_spi,SPI_I2S_FLAG_TXE) == 0);
+
+	SPI_I2S_SendData(adau_com_spi, address & 0xFF);
 	while(SPI_I2S_GetFlagStatus(adau_com_spi,SPI_I2S_FLAG_TXE) == 0);
 
 	for(uint16_t i = 0 ; i < size ; i++)
 	{
-		SPI_I2S_SendData(adau_com_spi,adr[i]);
+		SPI_I2S_SendData(adau_com_spi,data[i]);
 		while(SPI_I2S_GetFlagStatus(adau_com_spi,SPI_I2S_FLAG_TXE) == 0);
 	}
 
 	while(SPI_I2S_GetFlagStatus(adau_com_spi,SPI_I2S_FLAG_BSY) == 1);
 
-	GPIO_SetBits(adau_spi_cs_port,adau_spi_cs);
+	GPIO_SetBits(adau_spi_cs_port, adau_spi_cs);
 }
 
 void dsp_run(void)
 {
-	adau_transmit ((uint8_t*)sig_run,4 );
+	uint8_t sig_run[]={0, 0x1c};
+	adau_transmit(DSP_CTRL_ADDRESS, (uint8_t*)sig_run, 2);
 }
 
 void dsp_mute(void)
 {
-	adau_transmit ((uint8_t*)sig_mute_1,4 );
+	uint8_t sig_mute[]={0, 0x14};
+	adau_transmit(DSP_CTRL_ADDRESS, (uint8_t*)sig_mute, 2);
 }
 
 void dsp_clear(void)
 {
-	adau_transmit ((uint8_t*)sig_clear,4 );
+	uint8_t sig_clear[]={0, 0};
+	adau_transmit(DSP_CTRL_ADDRESS, (uint8_t*)sig_clear, 2);
+}
+
+void adau_init_reset_pin()
+{
+	GPIO_InitTypeDef GPIO_InitStructure;
+
+	RCC_AHB1PeriphClockCmd(DSP_RESET_RCC_GPIO, ENABLE);
+	GPIO_InitStructure.GPIO_Pin = DSP_RESET_PIN  ;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
+	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP ;
+	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz ;
+	GPIO_Init(DSP_RESET_PORT, &GPIO_InitStructure);
+
+	GPIO_ResetBits(DSP_RESET_PORT, DSP_RESET_PIN);
 }
 
 void adau_init_ic (void)
@@ -182,9 +207,9 @@ void adau_init_ic (void)
 		delay_nop(0xff);
 	}
 
-	adau_transmit((uint8_t*)Program_Data_init, 5122);
-	adau_transmit((uint8_t*)Param_Data_init, 4098);
-	adau_transmit((uint8_t*)R3_HWCONFIGURATION_IC_1_Default, 26);
+	adau_transmit(DSP_PROGRAMM_ADDRESS, (uint8_t*)Program_Data_init, 1024 * 5);
+	adau_transmit(DSP_DATA_ADDRESS, (uint8_t*)Param_Data_init, 1024 * 4);
+	adau_transmit(DSP_CTRL_ADDRESS, (uint8_t*)R3_HWCONFIGURATION_IC_1_Default, sizeof(R3_HWCONFIGURATION_IC_1_Default)/sizeof(uint8_t));
 }
 
 void to523(float param_dec , uint8_t* param_hex)
@@ -200,38 +225,14 @@ void to523(float param_dec , uint8_t* param_hex)
 	param_hex[0] = param_hex[0] ^ 0x08;
 }
 
-void sig_load (float* cab_data , uint8_t* buf)
+uint8_t converted_impulse_buffer[DSP_FIR_SIZE * 4];
+void sig_load (float* cab_data)
 {
-	for(size_t i = 0 ; i < 984 ; i++)
+	for(size_t i = 0 ; i < DSP_FIR_SIZE ; i++)
 	{
-		to523(cab_data[i],(uint8_t *) buf + i*4 + 2);
+		to523(cab_data[i], converted_impulse_buffer + i*4);
 	}
-	GPIO_ResetBits(adau_spi_cs_port,adau_spi_cs);
-	adau_transmit((uint8_t*)buf,3936);
-}
-
-uint8_t vol_hex[6] = {0,1};
-void sig_volume(float val)
-{
-#ifdef __RV_VERSION__
-  to523(val*0.3, (uint8_t *) vol_hex + 2);
-  adau_transmit((uint8_t*)vol_hex , 6);
-#endif
-}
-
-void sig_reset_init()
-{
-	GPIO_InitTypeDef GPIO_InitStructure;
-
-	RCC_AHB1PeriphClockCmd(DSP_RESET_RCC_GPIO, ENABLE);
-	GPIO_InitStructure.GPIO_Pin = DSP_RESET_PIN  ;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
-	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP ;
-	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz ;
-	GPIO_Init(DSP_RESET_PORT, &GPIO_InitStructure);
-
-	GPIO_ResetBits(DSP_RESET_PORT, DSP_RESET_PIN);
+	adau_transmit(DSP_FIR_ADDRESS, (uint8_t*)converted_impulse_buffer, DSP_FIR_SIZE * 4);
 }
 
 void sig_reset(bool state)
@@ -244,7 +245,7 @@ void sig_reset(bool state)
 
 void sig_invert(uint8_t val)
 {
-	uint8_t buf[6] = {0x03,0xd7,0,0x80,0,0};
-	if(val) buf[2] = 0xff;
-	adau_transmit((uint8_t*)buf, 6);
+	uint8_t buf[] = {0, 0x80, 0, 0};
+	if(val) buf[0] = 0xff;
+	adau_transmit(0x03d7, (uint8_t*)buf, 4);
 }
