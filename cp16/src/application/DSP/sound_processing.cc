@@ -122,6 +122,26 @@ void DSP_set_module_to_processing_stage(DSP_module_type_t module_type, uint8_t s
 }
 
 //================================Main processing routine=================================
+uint32_t frame_part=0;
+extern "C" void SPI2_IRQHandler()
+{
+	SPI_I2S_ClearITPendingBit(adau_i2s_spi_ext, SPI_I2S_IT_RXNE);
+
+	uint8_t temp[7] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+	if(frame_part==0)
+	{
+//		GPIO_SetBits(GPIOB,GPIO_Pin_7);
+
+		adau_dma_transmit(DSP_ITF0_ADDRESS, temp, sizeof(temp));
+		frame_part=3;
+//		GPIO_ResetBits(GPIOB, GPIO_Pin_7);
+	}
+	else
+	{
+		frame_part--;
+	}
+}
+
 uint8_t dma_ht_fl = 0;
 extern "C" void DMA1_Stream3_IRQHandler()
 {
@@ -222,8 +242,8 @@ extern "C" void DMA1_Stream3_IRQHandler()
 //=============================Processing functions=====================================
 void __RAMFUNC__ dummy_processing_stage(float* in_samples, float* out_samples)
 {
-	GPIO_ResetBits(GPIOB,GPIO_Pin_7);
-	GPIO_SetBits(GPIOB,GPIO_Pin_7);
+//	GPIO_ResetBits(GPIOB,GPIO_Pin_7);
+//	GPIO_SetBits(GPIOB,GPIO_Pin_7);
 }
 
 void __RAMFUNC__ gate_processing_stage(float* in_samples, float* out_samples)
@@ -268,18 +288,18 @@ void __RAMFUNC__ pa_processing_stage(float* in_samples, float* out_samples)
 				out_samples[i] = soft_clip_amp(in_samples[i] * amp_vol) * amp_sla;
 
 			float out_biquad_samples[block_size];
-			arm_fir_f32(&fir_instance, out_samples, out_biquad_samples, block_size);
-			for(uint8_t i = 0; i < block_size; i++)
-				out_samples[i] = out_biquad_samples[i];
+			arm_fir_f32(&fir_instance, out_samples, out_samples, block_size);
+//			for(uint8_t i = 0; i < block_size; i++)
+//				out_samples[i] = out_biquad_samples[i];
 		}
 	}
 	//--------------------------------------Presence-------------------------------------------
 	if(preset_data[pr_on])
 	{
 		float out_biquad_samples[block_size];
-		arm_biquad_cascade_df1_f32(&presence_instance, out_samples, out_biquad_samples, block_size);
-		for(uint8_t i = 0; i < block_size; i++)
-			out_samples[i] = out_biquad_samples[i];
+		arm_biquad_cascade_df1_f32(&presence_instance, out_samples, out_samples, block_size);
+//		for(uint8_t i = 0; i < block_size; i++)
+//			out_samples[i] = out_biquad_samples[i];
 	}
 }
 
@@ -299,10 +319,7 @@ void __RAMFUNC__ eq_processing_stage(float* in_samples, float* out_samples)
 	if(preset_data[eq_on])
 	{
 		float out_biquad_samples[block_size];
-		arm_biquad_cascade_df1_f32(&eq_instance, out_samples, out_biquad_samples, block_size);
-
-		for(uint8_t i = 0; i < block_size; i++)
-			out_samples[i] = out_biquad_samples[i];
+		arm_biquad_cascade_df1_f32(&eq_instance, in_samples, out_samples, block_size);
 	}
 }
 

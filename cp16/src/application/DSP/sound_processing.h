@@ -19,7 +19,7 @@
 #define eq_stage 5
 #define preamp_stage 6
 #define presence_stage 1
-#define TAPS_PA_FIR 384
+#define TAPS_PA_FIR 256//384
 
 typedef void (*processing_func_ptr)(float* in, float* out);
 

@@ -45,10 +45,8 @@ void TCSTask::Code()
 
 	delay_nop(0xffff);
 
-#ifdef __PA_VERSION__
-//	if(sys_para[2] == 2) sig_invert(1);
 	if(system_parameters.output_mode == BALANCE) sig_invert(1);
-#endif
+	else sig_invert(0);
 
 	char version_string[FIRMWARE_STRING_SIZE] = {0};
 
@@ -65,7 +63,17 @@ void TCSTask::Code()
 		save_sys();
 	}
 
-	dsp_run();
+	adau_run();
+
+//	DMA_Cmd(DMA1_Stream3, ENABLE);
+//		DMA_Cmd(DMA1_Stream4, ENABLE);
+//
+//		DMA_ITConfig (DMA1_Stream3, DMA_IT_TC , ENABLE);
+//		DMA_ITConfig (DMA1_Stream3, DMA_IT_HT , ENABLE);
+
+//		NVIC_EnableIRQ(SPI2_IRQn);
+//		NVIC_EnableIRQ(SPI3_IRQn);
+
 
 	while(1)
 	{
@@ -93,6 +101,10 @@ void TCSTask::Code()
 #else
 	key_check();  // управление пресетами с внешних устройств по средством gpio обычных cp16
 #endif
+
+	NVIC_EnableIRQ(DMA1_Stream5_IRQn);
+	SPI_I2S_DMACmd(adau_com_spi, SPI_I2S_DMAReq_Tx, ENABLE);
+	NVIC_EnableIRQ(SPI2_IRQn);
 	}
 }
 
