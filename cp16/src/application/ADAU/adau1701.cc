@@ -1,7 +1,7 @@
 #include "appdefs.h"
 #include "adau1701.h"
 //#ifdef __PA_VERSION__
-#include "adau_program_pa.h"
+#include "adau_programm_pa-rv.h"
 //#else
 //#include "sigma_cod_rv.h"
 //#endif
@@ -11,7 +11,7 @@
 ad_data_t adc_data[block_size * 2];
 da_data_t dac_data[block_size * 2];
 
-#define SPI3_DMA_BUFFER_SIZE 256
+#define SPI3_DMA_BUFFER_SIZE 16
 uint8_t spi_com_buffer[SPI3_DMA_BUFFER_SIZE];
 
 void adau_transmit(uint16_t address, uint8_t* data, uint32_t size)
@@ -90,9 +90,6 @@ void adau_init_ic (void)
 	NVIC_InitStructure.NVIC_IRQChannel = SPI2_IRQn ;
 	NVIC_Init(&NVIC_InitStructure);
 
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 4;
-	NVIC_InitStructure.NVIC_IRQChannel = SPI3_IRQn ;
-	NVIC_Init(&NVIC_InitStructure);
 
 	RCC_AHB1PeriphClockCmd(adau_spi_port_rcc | adau_spi_clk_port_rcc | adau_spi_cs_port_rcc |
 						 adau_i2s_port_rcc | adau_i2s_d_port_rcc | adau_i2s_mclk_rcc , ENABLE);
@@ -182,7 +179,7 @@ void adau_init_ic (void)
 	DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord;
 	DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_Word;
 	DMA_InitStructure.DMA_Mode = DMA_Mode_Circular;
-	DMA_InitStructure.DMA_Priority = DMA_Priority_VeryHigh;
+	DMA_InitStructure.DMA_Priority = DMA_Priority_Medium;
 	DMA_InitStructure.DMA_FIFOMode = DMA_FIFOMode_Enable;
 	DMA_Init(DMA1_Stream3, &DMA_InitStructure);
 
@@ -231,10 +228,10 @@ void adau_init_ic (void)
 	DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
 	DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
 	DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;
-	DMA_InitStructure.DMA_MemoryDataSize = DMA_PeripheralDataSize_Word;
+	DMA_InitStructure.DMA_MemoryDataSize = DMA_PeripheralDataSize_Byte;
 	DMA_InitStructure.DMA_Mode = DMA_Mode_Normal;
 	DMA_InitStructure.DMA_Priority = DMA_Priority_VeryHigh;
-	DMA_InitStructure.DMA_FIFOMode = DMA_FIFOMode_Enable;
+	DMA_InitStructure.DMA_FIFOMode = DMA_FIFOMode_Disable;
 	DMA_Init(DMA1_Stream5, &DMA_InitStructure);
 
 	DMA_ITConfig(DMA1_Stream5, DMA_IT_TC , ENABLE);
@@ -257,20 +254,26 @@ void adau_init_ic (void)
 	adau_transmit(DSP_DATA_ADDRESS, (uint8_t*)param_data_init, 1024 * 4);
 	free(param_data_init);
 
-	adau_transmit(DSP_PROGRAMM_ADDRESS, (uint8_t*)adau_program_pa_classic, 1024 * 5);
+	adau_transmit(DSP_PROGRAMM_ADDRESS, (uint8_t*)adau_program_parv, 1024 * 5);
 	adau_transmit(DSP_CTRL_ADDRESS, (uint8_t*)R3_HWCONFIGURATION_IC_1_Default, sizeof(R3_HWCONFIGURATION_IC_1_Default));
 
-
-	uint8_t buf[] = {0, 0x80, 0, 0};
-	adau_transmit(0x03d7, (uint8_t*)buf, 4); // set volume?
+	kgp_sdk_libc::memset(spi_com_buffer, 0, SPI3_DMA_BUFFER_SIZE);
+//	uint8_t buf[] = {0, 0x80, 0, 0};
+//	adau_transmit(0x03d7, (uint8_t*)buf, 4); // set volume?
 }
 
-void adau_dma_transmit(uint16_t address, uint8_t* data, uint32_t size)
+void adau_dma_transmit(uint16_t address, void* data, uint32_t size)
 {
 	GPIO_ResetBits(adau_spi_cs_port, adau_spi_cs);
 
 	spi_com_buffer[0] = 0x00;
-	kgp_sdk_libc::memcpy(spi_com_buffer+1, &address, 2);
+	spi_com_buffer[1] = (address>>8) & 0xFF;
+	spi_com_buffer[2] = address & 0xFF;
+
+//	spi_com_buffer[3] = 0x00;
+//	spi_com_buffer[4] = 0x0C;
+//	spi_com_buffer[5] = 0x0A;
+//	spi_com_buffer[6] = 0xDE;
 	kgp_sdk_libc::memcpy(spi_com_buffer+3, data, size);
 	DMA_SetCurrDataCounter(DMA1_Stream5, size+3);
 
@@ -282,6 +285,8 @@ extern "C" void DMA1_Stream5_IRQHandler()
 	DMA_ClearITPendingBit(DMA1_Stream5, DMA_IT_TCIF5);
 
 	while(SPI_I2S_GetFlagStatus(adau_com_spi,SPI_I2S_FLAG_BSY) == 1);
+
+//	delay_nop(0xf);
 
 	GPIO_SetBits(adau_spi_cs_port, adau_spi_cs);
 }
@@ -312,6 +317,7 @@ void sig_load (float* cab_data)
 		to523(cab_data[i], converted_impulse_buffer + i*4);
 	}
 	NVIC_DisableIRQ(SPI2_IRQn);
+	while(SPI_I2S_GetFlagStatus(adau_com_spi,SPI_I2S_FLAG_BSY) == 1); //wait for SPI complete action
 	adau_transmit(DSP_FIR_ADDRESS, (uint8_t*)converted_impulse_buffer, DSP_FIR_SIZE * 4);
 	NVIC_EnableIRQ(SPI2_IRQn);
 }

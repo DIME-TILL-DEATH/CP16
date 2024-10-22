@@ -122,19 +122,20 @@ void DSP_set_module_to_processing_stage(DSP_module_type_t module_type, uint8_t s
 }
 
 //================================Main processing routine=================================
-uint32_t frame_part=0;
+uint8_t frame_part=0;
+uint8_t __CCM_BSS__ aux_samples[block_size][4];
+uint32_t aux_smpl_rd_ptr=0;
+uint8_t aux_smpl_wr_ptr=0;
 extern "C" void SPI2_IRQHandler()
 {
 	SPI_I2S_ClearITPendingBit(adau_i2s_spi_ext, SPI_I2S_IT_RXNE);
 
-	uint8_t temp[7] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 	if(frame_part==0)
 	{
-//		GPIO_SetBits(GPIOB,GPIO_Pin_7);
-
-		adau_dma_transmit(DSP_ITF0_ADDRESS, temp, sizeof(temp));
+		adau_dma_transmit(DSP_ITF0_ADDRESS, &aux_samples[aux_smpl_rd_ptr][0], sizeof(uint32_t));
 		frame_part=3;
-//		GPIO_ResetBits(GPIOB, GPIO_Pin_7);
+		aux_smpl_rd_ptr++;
+		if(aux_smpl_rd_ptr == block_size) aux_smpl_rd_ptr=0;
 	}
 	else
 	{
@@ -149,7 +150,7 @@ extern "C" void DMA1_Stream3_IRQHandler()
 	//--------------------------------------------------------Start---------------------
 	if(DMA_GetITStatus(DMA1_Stream3, DMA_IT_HTIF3))
 	{
-		DMA_ClearITPendingBit( DMA1_Stream3, DMA_IT_HTIF3);
+		DMA_ClearITPendingBit(DMA1_Stream3, DMA_IT_HTIF3);
 		dma_ht_fl = 0;
 	}
 	else
@@ -162,10 +163,11 @@ extern "C" void DMA1_Stream3_IRQHandler()
 	//---------------------------Input sample convert------------------------------------
 	for(uint8_t i = 0 ; i < block_size; i++)
 	{
-//		uint8_t a = i + dma_ht_fl * block_size;
-
 		inp_di_sample[i] = (int32_t)(ror16(adc_data[base_address + i].left.sample)) >> 8;
 		inp_cab_sample[i] = (int32_t)(ror16(adc_data[base_address + i].right.sample)) >> 8;
+
+		dac_data[base_address + i].left.sample = adc_data[base_address + i].left.sample;	// send samples in ADAU1701 processing
+		dac_data[base_address + i].right.sample = adc_data[base_address + i].right.sample;
 
 		processed_samples[i] = dc_block(inp_di_sample[i]) * 0.000000119f;  //-----> Output ADC
 		inp_cab_sample[i] *= 0.000000119f;                            //-----> Output CAB
@@ -179,11 +181,22 @@ extern "C" void DMA1_Stream3_IRQHandler()
 		if(processing_stage[i]) //pointer check
 			processing_stage[i](processed_samples, processed_samples);
 	}
+
+	//-------------------> To IR callback
 	//------------------------------Send samples to IQ or bypass--------------------------------
+	aux_smpl_wr_ptr = aux_smpl_rd_ptr+1;
+	if(aux_smpl_wr_ptr >= block_size) aux_smpl_wr_ptr=0;
 	for(int i = 0; i < block_size; i++)
 	{
 		ccl[i] = out_clip(processed_samples[i] * 0.3f) * 8388607.0f * get_fade_coef();
-		dac_data[base_address + i].left.sample = ror16((uint32_t)(ccl[i] << 8));	// send samples in ADAU1701 processing
+		ccr[i] = out_clip(inp_cab_sample[i] * 0.3f) * 8388607.0f * get_fade_coef();
+//		dac_data[base_address + i].left.sample = ror16((uint32_t)(ccl[i] << 8));	// send samples in ADAU1701 processing
+//		dac_data[base_address + i].right.sample = ror16((uint32_t)(ccr[i] << 8));
+		//aux_samples[aux_smpl_wr_ptr] = ror16((uint32_t)(ccl[i] << 8));
+		to523(processed_samples[i], &aux_samples[aux_smpl_wr_ptr][0]);
+
+		aux_smpl_wr_ptr++;
+		if(aux_smpl_wr_ptr >= block_size) aux_smpl_wr_ptr=0;
 	}
 
 	//---------------------------------------Cab data or Dry signal-------------------------
@@ -197,6 +210,7 @@ extern "C" void DMA1_Stream3_IRQHandler()
 		for(uint8_t i = 0; i < block_size; i++)
 			processed_samples[i] = inp_cab_sample[i];
 	}
+	//------------------> to Ir callback
 	//---------------------------------------------Post process----------------------------------
 	for(int i = ir_send_position + 1; i < NUM_MODULE_TYPES; i++)
 	{
@@ -228,7 +242,7 @@ extern "C" void DMA1_Stream3_IRQHandler()
 //		if(sys_para[2] == 1) ccr[i] = ccr[i] >> 1;
 		if(system_parameters.output_mode == LINE) ccr[i] = ccr[i] >> 1;
 
-		dac_data[base_address + i].right.sample = ror16((uint32_t)(ccr[i] << 8)); // master out
+		//dac_data[base_address + i].right.sample = ror16((uint32_t)(ccr[i] << 8)); // master out
 
 		// (Использовалось ccl, перепроверить, переделать)расчет индикации громкости входа
 		vol_ind_vector[1] += vol_ind_k[0] * ( abs(ccl[i]) * vol_ind_k[2] - vol_ind_vector[1]);

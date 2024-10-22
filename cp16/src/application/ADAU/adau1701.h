@@ -62,19 +62,21 @@ void adau_mute(void);
 void adau_run(void);
 void adau_clear(void);
 
-void adau_dma_transmit(uint16_t address, uint8_t* data, uint32_t size);
+void adau_dma_transmit(uint16_t address, void* data, uint32_t size);
 void adau_transmit(uint16_t address, uint8_t* data, uint32_t size);
 
 void sig_invert(uint8_t val);
 void sig_reset(bool state);
 void sig_load(float* cab_data);
 
+void to523(float param_dec , uint8_t* param_hex);
+
 #define DSP_FIR_SIZE 983
-#define DSP_FIR_ADDRESS 0x0000
+#define DSP_FIR_ADDRESS 0x0001
 
 #define DSP_DATA_ADDRESS 0x0000
 #define DSP_PROGRAMM_ADDRESS 0x0400
-#define DSP_ITF0_ADDRESS 0x0800
+#define DSP_ITF0_ADDRESS 0x0000
 #define DSP_CTRL_ADDRESS 0x081c
 
 const uint8_t R3_HWCONFIGURATION_IC_1_Default[] =

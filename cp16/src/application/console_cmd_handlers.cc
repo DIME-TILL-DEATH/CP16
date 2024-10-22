@@ -528,9 +528,7 @@ static void get_mode_command_handler ( TReadLine* rl , TReadLine::const_symbol_t
 //     sys_para[2] = val;
      system_parameters.output_mode = val;
 //
-// 	uint8_t temp[] = {0x1, 0x2, 0x3, 0x4};
-//
-// 			adau_dma_transmit(DSP_ITF0_ADDRESS, temp, sizeof(temp));
+
 
 #ifdef __PA_VERSION__
 //     if(sys_para[2] == 2) sig_invert(1);
