@@ -86,7 +86,7 @@ void adau_init_ic (void)
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
 	NVIC_Init(&NVIC_InitStructure);
 
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
 	NVIC_InitStructure.NVIC_IRQChannel = SPI2_IRQn ;
 	NVIC_Init(&NVIC_InitStructure);
 
@@ -251,15 +251,13 @@ void adau_init_ic (void)
 
 	uint8_t* param_data_init = (uint8_t*)malloc(1024 * 4);
 	kgp_sdk_libc::memset(param_data_init, 0, 1024 * 4);
-	adau_transmit(DSP_DATA_ADDRESS, (uint8_t*)param_data_init, 1024 * 4);
+	adau_transmit(DSP_DATA_ADDRESS, (uint8_t*)Param_Data_IC_1, 1024 * 4);
 	free(param_data_init);
 
 	adau_transmit(DSP_PROGRAMM_ADDRESS, (uint8_t*)adau_program_parv, 1024 * 5);
 	adau_transmit(DSP_CTRL_ADDRESS, (uint8_t*)R3_HWCONFIGURATION_IC_1_Default, sizeof(R3_HWCONFIGURATION_IC_1_Default));
 
 	kgp_sdk_libc::memset(spi_com_buffer, 0, SPI3_DMA_BUFFER_SIZE);
-//	uint8_t buf[] = {0, 0x80, 0, 0};
-//	adau_transmit(0x03d7, (uint8_t*)buf, 4); // set volume?
 }
 
 void adau_dma_transmit(uint16_t address, void* data, uint32_t size)
@@ -270,10 +268,6 @@ void adau_dma_transmit(uint16_t address, void* data, uint32_t size)
 	spi_com_buffer[1] = (address>>8) & 0xFF;
 	spi_com_buffer[2] = address & 0xFF;
 
-//	spi_com_buffer[3] = 0x00;
-//	spi_com_buffer[4] = 0x0C;
-//	spi_com_buffer[5] = 0x0A;
-//	spi_com_buffer[6] = 0xDE;
 	kgp_sdk_libc::memcpy(spi_com_buffer+3, data, size);
 	DMA_SetCurrDataCounter(DMA1_Stream5, size+3);
 
@@ -285,8 +279,7 @@ extern "C" void DMA1_Stream5_IRQHandler()
 	DMA_ClearITPendingBit(DMA1_Stream5, DMA_IT_TCIF5);
 
 	while(SPI_I2S_GetFlagStatus(adau_com_spi,SPI_I2S_FLAG_BSY) == 1);
-
-//	delay_nop(0xf);
+	delay_nop(0xFF);
 
 	GPIO_SetBits(adau_spi_cs_port, adau_spi_cs);
 }
@@ -317,7 +310,8 @@ void sig_load (float* cab_data)
 		to523(cab_data[i], converted_impulse_buffer + i*4);
 	}
 	NVIC_DisableIRQ(SPI2_IRQn);
-	while(SPI_I2S_GetFlagStatus(adau_com_spi,SPI_I2S_FLAG_BSY) == 1); //wait for SPI complete action
+	while(SPI_I2S_GetFlagStatus(adau_com_spi, SPI_I2S_FLAG_BSY) == 1); //wait for SPI complete action
+
 	adau_transmit(DSP_FIR_ADDRESS, (uint8_t*)converted_impulse_buffer, DSP_FIR_SIZE * 4);
 	NVIC_EnableIRQ(SPI2_IRQn);
 }

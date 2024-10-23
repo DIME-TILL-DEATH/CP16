@@ -19,7 +19,7 @@
 #define eq_stage 5
 #define preamp_stage 6
 #define presence_stage 1
-#define TAPS_PA_FIR 256//384
+#define TAPS_PA_FIR 128//384
 
 typedef void (*processing_func_ptr)(float* in, float* out);
 
@@ -33,13 +33,12 @@ typedef enum
 	EQ,
 	LP,
 	NG,
-	ER,
 	//---------
-	NUM_MODULE_TYPES
-}DSP_module_type_t;
+	NUM_MONO_MODULE_TYPES
+}DSP_mono_module_type_t;
 
 void DSP_init();
-void DSP_set_module_to_processing_stage(DSP_module_type_t module_type, uint8_t stage_num);
+void DSP_set_module_to_processing_stage(DSP_mono_module_type_t module_type, uint8_t stage_num);
 
 extern float preset_volume;
 extern float ear_vol;

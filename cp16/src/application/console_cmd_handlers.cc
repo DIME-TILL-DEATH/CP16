@@ -966,7 +966,6 @@ static void eq_position_command_handler ( TReadLine* rl , TReadLine::const_symbo
     	 DSP_set_module_to_processing_stage(HP, 5);
     	 DSP_set_module_to_processing_stage(LP, 6);
     	 DSP_set_module_to_processing_stage(NG, 7);
-    	 DSP_set_module_to_processing_stage(ER, 8);
      }
      else
      {
@@ -978,7 +977,6 @@ static void eq_position_command_handler ( TReadLine* rl , TReadLine::const_symbo
     	 DSP_set_module_to_processing_stage(EQ, 5);
     	 DSP_set_module_to_processing_stage(LP, 6);
     	 DSP_set_module_to_processing_stage(NG, 7);
-    	 DSP_set_module_to_processing_stage(ER, 8);
      }
 
      msg_console("%s\n" , hex);

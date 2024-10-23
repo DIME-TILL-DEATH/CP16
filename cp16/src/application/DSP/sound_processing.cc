@@ -9,20 +9,21 @@
 
 #include "ADAU/adau1701.h"
 
-processing_func_ptr processing_library[NUM_MODULE_TYPES];
-processing_func_ptr processing_stage[NUM_MODULE_TYPES];
+processing_func_ptr processing_library[NUM_MONO_MODULE_TYPES];
+processing_func_ptr processing_stage[NUM_MONO_MODULE_TYPES];
 
-void __RAMFUNC__ dummy_processing_stage(float* in_samples, float* out_samples);
-
+void __RAMFUNC__ bypass_processing_stage(float* in_samples, float* out_samples);
+//------MONO OUT-----------------------------------------------------------
 void __RAMFUNC__ compressor_processing_stage(float* in_samples, float* out_samples);
 void __RAMFUNC__ preamp_processing_stage(float* in_samples, float* out_samples);
 void __RAMFUNC__ pa_processing_stage(float* in_samples, float* out_samples);
-//void __RAMFUNC__ ir_processing_stage(float* in_samples, float* out_samples);
+void __RAMFUNC__ ir_processing_stage(float* in_samples, float* out_samples);
 void __RAMFUNC__ hpf_processing_stage(float* in_samples, float* out_samples);
 void __RAMFUNC__ eq_processing_stage(float* in_samples, float* out_samples);
 void __RAMFUNC__ lpf_processing_stage(float* in_samples, float* out_samples);
 void __RAMFUNC__ gate_processing_stage(float* in_samples, float* out_samples);
-void __RAMFUNC__ early_processing_stage(float* in_samples, float* out_samples);
+//------STEREO OUT-----------------------------------------------------------
+void __RAMFUNC__ early_processing_stage(float* in_samples, float* out_l_samples, float* out_r_samples);
 
 uint8_t ir_send_position = 3;
 
@@ -51,19 +52,6 @@ float __CCM_BSS__ stage_eq[eq_stage * 4];
 float __CCM_BSS__ coeff_presen[presence_stage * 5];
 float __CCM_BSS__ stage_presen[presence_stage * 4];
 
-float __CCM_BSS__ inp_di_sample[block_size];
-float __CCM_BSS__ inp_cab_sample[block_size];
-
-float __CCM_BSS__ processed_samples[block_size];
-
-float __CCM_BSS__ out_sampleL[block_size];
-float __CCM_BSS__ out_sampleR[block_size];
-
-int32_t __CCM_BSS__ ccl[block_size];
-int32_t __CCM_BSS__ ccr[block_size];
-uint32_t __CCM_BSS__ cl[block_size];
-uint32_t __CCM_BSS__ cr[block_size];
-
 float __CCM_BSS__ gate_buf[block_size];
 
 arm_fir_instance_f32 fir_instance;
@@ -90,14 +78,13 @@ void DSP_init()
 	processing_library[CM] = compressor_processing_stage;
 	processing_library[PR] = preamp_processing_stage;
 	processing_library[PA] = pa_processing_stage;
-//	processing_library[IR] = ir_processing_stage;
+	processing_library[IR] = ir_processing_stage;
 	processing_library[HP] = hpf_processing_stage;
 	processing_library[EQ] = eq_processing_stage;
 	processing_library[LP] = lpf_processing_stage;
 	processing_library[NG] = gate_processing_stage;
-	processing_library[ER] = early_processing_stage;
 
-	for(int i = 0; i < NUM_MODULE_TYPES; i++)
+	for(int i = 0; i < NUM_MONO_MODULE_TYPES; i++)
 	{
 		processing_stage[i] = processing_library[i];
 	}
@@ -109,44 +96,52 @@ void DSP_init()
 	arm_biquad_cascade_df1_init_f32(&preamp_instance, preamp_stage , coeff_preamp, stage_preamp);
 }
 
-void DSP_set_module_to_processing_stage(DSP_module_type_t module_type, uint8_t stage_num)
+void DSP_set_module_to_processing_stage(DSP_mono_module_type_t module_type, uint8_t stage_num)
 {
-	if(module_type == IR)
-	{
-		ir_send_position = stage_num;
-	}
-	else
-	{
 		processing_stage[stage_num] = processing_library[module_type];
-	}
 }
 
 //================================Main processing routine=================================
 uint8_t frame_part=0;
-uint8_t __CCM_BSS__ aux_samples[block_size][4];
-uint32_t aux_smpl_rd_ptr=0;
+uint8_t __CCM_BSS__ aux_samples[block_size * 2][4];
+uint8_t aux_smpl_rd_ptr=0;
 uint8_t aux_smpl_wr_ptr=0;
+
+bool double_buf_ptr = 0;
 extern "C" void SPI2_IRQHandler()
 {
 	SPI_I2S_ClearITPendingBit(adau_i2s_spi_ext, SPI_I2S_IT_RXNE);
 
 	if(frame_part==0)
 	{
-		adau_dma_transmit(DSP_ITF0_ADDRESS, &aux_samples[aux_smpl_rd_ptr][0], sizeof(uint32_t));
-		frame_part=3;
+		adau_dma_transmit(DSP_AUXIN_ADDRESS, &aux_samples[aux_smpl_rd_ptr][0], 4);
 		aux_smpl_rd_ptr++;
-		if(aux_smpl_rd_ptr == block_size) aux_smpl_rd_ptr=0;
+		if(aux_smpl_rd_ptr == block_size * 2) aux_smpl_rd_ptr=0;
 	}
-	else
-	{
-		frame_part--;
-	}
+
+	if(frame_part==0) frame_part=3;
+	else frame_part--;
 }
 
-uint8_t dma_ht_fl = 0;
+float __CCM_BSS__ di_samples[block_size];
+float __CCM_BSS__ ir_samples[block_size];
+
+float __CCM_BSS__ processing_samples[block_size];
+
+float __CCM_BSS__ out_sampleL[block_size];
+float __CCM_BSS__ out_sampleR[block_size];
+
+int32_t __CCM_BSS__ ccl[block_size];
+int32_t __CCM_BSS__ ccr[block_size];
+
+//uint8_t __CCM_BSS__ buf_aux_samples[block_size][4];
+
+
 extern "C" void DMA1_Stream3_IRQHandler()
 {
 	GPIO_SetBits(GPIOB,GPIO_Pin_7);
+
+	uint8_t dma_ht_fl = 0;
 	//--------------------------------------------------------Start---------------------
 	if(DMA_GetITStatus(DMA1_Stream3, DMA_IT_HTIF3))
 	{
@@ -163,60 +158,26 @@ extern "C" void DMA1_Stream3_IRQHandler()
 	//---------------------------Input sample convert------------------------------------
 	for(uint8_t i = 0 ; i < block_size; i++)
 	{
-		inp_di_sample[i] = (int32_t)(ror16(adc_data[base_address + i].left.sample)) >> 8;
-		inp_cab_sample[i] = (int32_t)(ror16(adc_data[base_address + i].right.sample)) >> 8;
+		di_samples[i] = (int32_t)(ror16(adc_data[base_address + i].left.sample)) >> 8;
+		ir_samples[i] = (int32_t)(ror16(adc_data[base_address + i].right.sample)) >> 8;
 
-		dac_data[base_address + i].left.sample = adc_data[base_address + i].left.sample;	// send samples in ADAU1701 processing
-		dac_data[base_address + i].right.sample = adc_data[base_address + i].right.sample;
 
-		processed_samples[i] = dc_block(inp_di_sample[i]) * 0.000000119f;  //-----> Output ADC
-		inp_cab_sample[i] *= 0.000000119f;                            //-----> Output CAB
+		processing_samples[i] = dc_block(di_samples[i]) * 0.000000119f;
+		ir_samples[i] *= 0.000000119f;
 
-		gate_buf[i] = gate_out(inp_di_sample[i]);
+		gate_buf[i] = gate_out(processing_samples[i]);
+
+		di_samples[i] *= get_fade_coef();
 	}
 
-	//------------------------------PRE RPOCESS-----------------------------------------------
-	for(int i = 0; i < ir_send_position; i++)
+	//---------------------------------------------Processing------------------------------------
+	for(int i = 0; i < NUM_MONO_MODULE_TYPES; i++)
 	{
 		if(processing_stage[i]) //pointer check
-			processing_stage[i](processed_samples, processed_samples);
+			processing_stage[i](processing_samples, processing_samples);
 	}
 
-	//-------------------> To IR callback
-	//------------------------------Send samples to IQ or bypass--------------------------------
-	aux_smpl_wr_ptr = aux_smpl_rd_ptr+1;
-	if(aux_smpl_wr_ptr >= block_size) aux_smpl_wr_ptr=0;
-	for(int i = 0; i < block_size; i++)
-	{
-		ccl[i] = out_clip(processed_samples[i] * 0.3f) * 8388607.0f * get_fade_coef();
-		ccr[i] = out_clip(inp_cab_sample[i] * 0.3f) * 8388607.0f * get_fade_coef();
-//		dac_data[base_address + i].left.sample = ror16((uint32_t)(ccl[i] << 8));	// send samples in ADAU1701 processing
-//		dac_data[base_address + i].right.sample = ror16((uint32_t)(ccr[i] << 8));
-		//aux_samples[aux_smpl_wr_ptr] = ror16((uint32_t)(ccl[i] << 8));
-		to523(processed_samples[i], &aux_samples[aux_smpl_wr_ptr][0]);
-
-		aux_smpl_wr_ptr++;
-		if(aux_smpl_wr_ptr >= block_size) aux_smpl_wr_ptr=0;
-	}
-
-	//---------------------------------------Cab data or Dry signal-------------------------
-	if(!preset_data[cab_on] || !impulse_avaliable)
-	{
-		// bypass
-		dummy_processing_stage(processed_samples, processed_samples);
-	}
-	else
-	{
-		for(uint8_t i = 0; i < block_size; i++)
-			processed_samples[i] = inp_cab_sample[i];
-	}
-	//------------------> to Ir callback
-	//---------------------------------------------Post process----------------------------------
-	for(int i = ir_send_position + 1; i < NUM_MODULE_TYPES; i++)
-	{
-		if(processing_stage[i]) //pointer check
-			processing_stage[i](processed_samples, processed_samples);
-	}
+	early_processing_stage(processing_samples, out_sampleL, out_sampleR);
 	//---------------------------------------------Post corrrection------------------------------
 
 	calc_fade_step();
@@ -224,7 +185,7 @@ extern "C" void DMA1_Stream3_IRQHandler()
 	for(uint8_t i = 0; i < block_size; i++)
 	{
 	//---------------------------------------------PWM indicator---------------------------------
-		float a_ind = fabsf(processed_samples[i]);
+		float a_ind = fabsf(out_sampleL[i]);
 
 		if(pwm_count_f < a_ind) pwm_count_f = a_ind;
 		pwm_count_po++;
@@ -236,28 +197,39 @@ extern "C" void DMA1_Stream3_IRQHandler()
 			pwm_count_f = 0.0f;
 		}
 	//----------------------------------Out conversion-----------------------------------------------
-		ccr[i] = out_clip(processed_samples[i] * preset_volume) * 8388607.0f * get_fade_coef();
 
-		// phones, line, inst?
-//		if(sys_para[2] == 1) ccr[i] = ccr[i] >> 1;
-		if(system_parameters.output_mode == LINE) ccr[i] = ccr[i] >> 1;
 
-		//dac_data[base_address + i].right.sample = ror16((uint32_t)(ccr[i] << 8)); // master out
+		ccl[i] = out_clip(out_sampleL[i] * preset_volume) * 8388607.0f;// * get_fade_coef();
+		ccr[i] = out_clip(out_sampleR[i] * preset_volume) * 8388607.0f;// * get_fade_coef();
+
+
+		switch(system_parameters.output_mode)
+		{
+			case LINE: ccl[i] = ccl[i] >> 1 ; ccr[i] = ccr[i] >> 1; break;
+			case BALANCE: ccr[i] = -ccl[i]; break;
+		}
+
+		dac_data[base_address + i].left.sample = ror16((uint32_t)(ccl[i] << 8));
+		dac_data[base_address + i].right.sample = ror16((uint32_t)(ccr[i] << 8));
 
 		// (Использовалось ccl, перепроверить, переделать)расчет индикации громкости входа
-		vol_ind_vector[1] += vol_ind_k[0] * ( abs(ccl[i]) * vol_ind_k[2] - vol_ind_vector[1]);
-		vol_ind_vector[2] += vol_ind_k[0] * ( abs(ccr[i]) * vol_ind_k[2] - vol_ind_vector[2]);
+//		vol_ind_vector[1] += vol_ind_k[0] * ( abs(ccl[i]) * vol_ind_k[2] - vol_ind_vector[1]);
+//		vol_ind_vector[2] += vol_ind_k[0] * ( abs(ccr[i]) * vol_ind_k[2] - vol_ind_vector[2]);
 	}
+
+//	kgp_sdk_libc::memcpy(aux_samples, buf_aux_samples, block_size * 4);
 	//---------------------------------------------End-------------------------------------
 	GPIO_ResetBits(GPIOB, GPIO_Pin_7);
 }
 
 
 //=============================Processing functions=====================================
-void __RAMFUNC__ dummy_processing_stage(float* in_samples, float* out_samples)
+void __RAMFUNC__ bypass_processing_stage(float* in_samples, float* out_samples)
 {
 //	GPIO_ResetBits(GPIOB,GPIO_Pin_7);
 //	GPIO_SetBits(GPIOB,GPIO_Pin_7);
+	for(uint8_t i = 0; i < block_size; i++)
+				out_samples[i] = in_samples[i];
 }
 
 void __RAMFUNC__ gate_processing_stage(float* in_samples, float* out_samples)
@@ -286,6 +258,7 @@ void __RAMFUNC__ preamp_processing_stage(float* in_samples, float* out_samples)
 	{
 		float out_biquad_samples[block_size];
 		arm_biquad_cascade_df1_f32(&preamp_instance, in_samples, out_biquad_samples, block_size);
+
 		for(uint8_t i = 0; i < block_size; i++)
 			out_samples[i] = out_biquad_samples[i] * pream_vol * 3.0f;
 	}
@@ -301,20 +274,42 @@ void __RAMFUNC__ pa_processing_stage(float* in_samples, float* out_samples)
 			for(uint8_t i = 0; i < block_size; i++)
 				out_samples[i] = soft_clip_amp(in_samples[i] * amp_vol) * amp_sla;
 
-			float out_biquad_samples[block_size];
 			arm_fir_f32(&fir_instance, out_samples, out_samples, block_size);
-//			for(uint8_t i = 0; i < block_size; i++)
-//				out_samples[i] = out_biquad_samples[i];
 		}
 	}
+
 	//--------------------------------------Presence-------------------------------------------
 	if(preset_data[pr_on])
 	{
-		float out_biquad_samples[block_size];
 		arm_biquad_cascade_df1_f32(&presence_instance, out_samples, out_samples, block_size);
-//		for(uint8_t i = 0; i < block_size; i++)
-//			out_samples[i] = out_biquad_samples[i];
 	}
+}
+
+void __RAMFUNC__ ir_processing_stage(float* in_samples, float* out_samples)
+{
+	uint8_t aux_smpl_wr_ptr;
+	if(aux_smpl_rd_ptr < block_size) aux_smpl_wr_ptr = block_size;
+	else aux_smpl_wr_ptr = 0;
+
+	for(int i = 0; i < block_size; i++)
+	{
+		to523(in_samples[i] * 0.3f, &aux_samples[aux_smpl_wr_ptr][0]);
+
+		aux_smpl_wr_ptr++;
+
+		//---------------------------------------Cab data or Dry signal-------------------------
+		if(!preset_data[cab_on] || !impulse_avaliable)
+		{
+			// bypass IR
+			out_samples[i] = in_samples[i];
+		}
+		else
+		{
+			out_samples[i] = ir_samples[i];
+		}
+	}
+
+	double_buf_ptr != double_buf_ptr;
 }
 
 void __RAMFUNC__ hpf_processing_stage(float* in_samples, float* out_samples)
@@ -325,6 +320,7 @@ void __RAMFUNC__ hpf_processing_stage(float* in_samples, float* out_samples)
 		for(uint8_t i=0; i<block_size; i++)
 			out_samples[i] = filt_hp(in_samples[i]);
 	}
+	else bypass_processing_stage(in_samples, out_samples);
 }
 
 void __RAMFUNC__ eq_processing_stage(float* in_samples, float* out_samples)
@@ -332,9 +328,9 @@ void __RAMFUNC__ eq_processing_stage(float* in_samples, float* out_samples)
 	//------------------------------------PARAMETRIC-------------------------------------------
 	if(preset_data[eq_on])
 	{
-		float out_biquad_samples[block_size];
 		arm_biquad_cascade_df1_f32(&eq_instance, in_samples, out_samples, block_size);
 	}
+	else bypass_processing_stage(in_samples, out_samples);
 }
 
 void __RAMFUNC__ lpf_processing_stage(float* in_samples, float* out_samples)
@@ -345,9 +341,10 @@ void __RAMFUNC__ lpf_processing_stage(float* in_samples, float* out_samples)
 		for(uint8_t i=0; i<block_size; i++)
 			out_samples[i] = filt_lp(in_samples[i]);
 	}
+	else bypass_processing_stage(in_samples, out_samples);
 }
 
-void __RAMFUNC__ early_processing_stage(float* in_samples, float* out_samples)
+void __RAMFUNC__ early_processing_stage(float* in_samples, float* out_l_samples, float* out_r_samples)
 {
 	for(uint8_t i = 0; i < block_size; i++)
 	{
@@ -365,7 +362,8 @@ void __RAMFUNC__ early_processing_stage(float* in_samples, float* out_samples)
 		}
 		else rev_en1 = 1;
 
-		out_samples[i] = in_samples[i] + ear_outL * ear_vol;
+		out_l_samples[i] = in_samples[i] + ear_outL * ear_vol;
+		out_r_samples[i] = in_samples[i] + ear_outR * ear_vol;// * 8388607.0f; // Не знаю что за множитель и зачем
 	}
 }
 

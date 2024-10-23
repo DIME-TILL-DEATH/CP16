@@ -2,7 +2,7 @@
 
 #include "appdefs.h"
 
-#define block_size 32//8
+#define block_size 16//8
 
 typedef union
 {
@@ -71,17 +71,17 @@ void sig_load(float* cab_data);
 
 void to523(float param_dec , uint8_t* param_hex);
 
-#define DSP_FIR_SIZE 983
+#define DSP_FIR_SIZE 976
 #define DSP_FIR_ADDRESS 0x0001
 
 #define DSP_DATA_ADDRESS 0x0000
 #define DSP_PROGRAMM_ADDRESS 0x0400
-#define DSP_ITF0_ADDRESS 0x0000
+#define DSP_AUXIN_ADDRESS 0x0000
 #define DSP_CTRL_ADDRESS 0x081c
 
 const uint8_t R3_HWCONFIGURATION_IC_1_Default[] =
 {
-		0x00, 0x058, //0x18, 		//2076 - dsp core control
+		0x00, 0x018, //0x18, 		//2076 - dsp core control
 		0x08, 				//2077 - reserved
 		0x00, 0x00,	 		//2078 - serial output control
 		0x00, 	    		//2079 - serial input control
