@@ -25,7 +25,8 @@ typedef void (*processing_func_ptr)(float* in, float* out);
 
 typedef enum
 {
-	CM=0,
+	BYPASS=0,
+	CM,
 	PR,
 	PA,
 	IR,

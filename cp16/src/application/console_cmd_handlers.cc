@@ -1,17 +1,22 @@
 #include "console_handlers.h"
-#include "eeprom.h"
-#include "ADAU/adau1701.h"
+
 #include "cs.h"
+
 #include "math.h"
-#include "DSP/filters.h"
 #include "ff.h"
-#include "DSP/Reverb/reverb.h"
+
 #include "gpio.h"
+#include "eeprom.h"
+
+#include "ADAU/adau1701.h"
+
+#include "preset.h"
 
 #include "DSP/compressor.h"
 #include "DSP/amp_imp.h"
-
+#include "DSP/filters.h"
 #include "DSP/sound_processing.h"
+#include "DSP/Reverb/reverb.h"
 
 extern char __CCM_BSS__ buff[];
 char hex[3] = {0,0,0} ;
@@ -173,42 +178,44 @@ static void read_full_name_command_handler ( TReadLine* rl , TReadLine::const_sy
 	else
 	   console_out_full_nam(err_str, rl, true);
 }
-static void get_state_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
+
+static void get_state_command_handler (TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args, const size_t count)
 {
-	if ( count == 1 )
+	if (count == 1)
 	{
-		for ( size_t i = 0 ; i < pdCount ; i++ )
+		for (size_t i = 0; i < pdCount; i++)
 		{
-			i2hex(preset_data[i],hex);
-			msg_console("%s" , hex ) ;
+			i2hex(preset_data[i], hex);
+			msg_console("%s", hex) ;
 		}
 		msg_console("\n") ;
 		return ;
 	}
 	size_t a = 0;
 	char w;
-	int c ;
+	int c;
 
 	do
 	{
-         rl->RecvChar(c);
-         if (c == '\r')
-          {
-        	 set_parameters();
-    	     msg_console("gsEND\n") ;
-    	     return ;
-            }
-         if(c > 57)c -= 39;
-         w =  (c - '0') << 4 ;
-         rl->RecvChar(c);
-	     if ( c == '\r')
-            {
-          	  msg_console("SYNC ERROR\n") ;
-          	  return ;
-            }
-	     if(c > 57)c -= 39;
-	     w  |=  c - '0' ;
-	     preset_data[a++] = w;
+		rl->RecvChar(c);
+		if (c == '\r')
+		{
+			set_parameters();
+			msg_console("gsEND\n");
+			return;
+		}
+
+		if(c > 57) c -= 39;
+		w =  (c - '0') << 4 ;
+		rl->RecvChar(c);
+		if (c == '\r')
+		{
+			msg_console("SYNC ERROR\n") ;
+			return;
+		}
+		if(c > 57) c -= 39;
+		w  |=  c - '0';
+		preset_data[a++] = w;
 	}
 	while(1);
 }
@@ -958,25 +965,25 @@ static void eq_position_command_handler ( TReadLine* rl , TReadLine::const_symbo
      preset_data[eq_po] = val;
      if(val)
      {
-    	 DSP_set_module_to_processing_stage(CM, 0);
-    	 DSP_set_module_to_processing_stage(EQ, 1);
+    	 DSP_set_module_to_processing_stage(CM, 1);
+    	 DSP_set_module_to_processing_stage(EQ, 2);
+    	 DSP_set_module_to_processing_stage(PR, 3);
+    	 DSP_set_module_to_processing_stage(PA, 4);
+    	 DSP_set_module_to_processing_stage(IR, 5);
+    	 DSP_set_module_to_processing_stage(HP, 6);
+    	 DSP_set_module_to_processing_stage(LP, 7);
+    	 DSP_set_module_to_processing_stage(NG, 8);
+     }
+     else
+     {
+    	 DSP_set_module_to_processing_stage(CM, 1);
     	 DSP_set_module_to_processing_stage(PR, 2);
     	 DSP_set_module_to_processing_stage(PA, 3);
     	 DSP_set_module_to_processing_stage(IR, 4);
     	 DSP_set_module_to_processing_stage(HP, 5);
-    	 DSP_set_module_to_processing_stage(LP, 6);
-    	 DSP_set_module_to_processing_stage(NG, 7);
-     }
-     else
-     {
-    	 DSP_set_module_to_processing_stage(CM, 0);
-    	 DSP_set_module_to_processing_stage(PR, 1);
-    	 DSP_set_module_to_processing_stage(PA, 2);
-    	 DSP_set_module_to_processing_stage(IR, 3);
-    	 DSP_set_module_to_processing_stage(HP, 4);
-    	 DSP_set_module_to_processing_stage(EQ, 5);
-    	 DSP_set_module_to_processing_stage(LP, 6);
-    	 DSP_set_module_to_processing_stage(NG, 7);
+    	 DSP_set_module_to_processing_stage(EQ, 6);
+    	 DSP_set_module_to_processing_stage(LP, 7);
+    	 DSP_set_module_to_processing_stage(NG, 8);
      }
 
      msg_console("%s\n" , hex);

@@ -4,6 +4,8 @@
 #include "ff.h"
 #include "console.h"
 
+#include "preset.h"
+
 
 float cab_data[1024] ;
 uint8_t impulse_avaliable;
@@ -14,25 +16,13 @@ volatile uint32_t flash_adr;
 
 system_parameters_t system_parameters;
 
-#ifdef __PA_VERSION__
-//uint8_t impulse_buffer[3938] = {0,0,0,0x80};
-const uint8_t prog_data_init[128] = {/*eq*/15,15,15,15,15,/*early*/0,0,/*pres_vol*/31,/*on_of*/1,/*delay*/0,0,0,16,16,0,0,25,0,0,0,0,0,0,0,0};
 char name_buf [512];
-#else
-//uint8_t impulse_buffer[3938] = {0,2,0,0x80};
-const uint8_t prog_data_init[128] = {/*eq*/15,15,15,15,15,/*early*/15,1,/*pres_vol*/31,/*on_of*/1,/*delay*/0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-char name_buf [64];
-#endif
-
 
 uint8_t preset_data[128];
 
 uint8_t dir_use[10];
 volatile uint32_t fl_st;
-const uint8_t no_loaded[]="No loaded";
-uint8_t check [] = "  Check folders";
+
 uint8_t bank_pres[2] = {0, 0};
 
 constexpr char volume_label[] = FIRMWARE_NAME;
@@ -150,27 +140,6 @@ static inline void dir_info_wavs_raw(const emb_string& dir_name, TReadLine* rl )
       msg_console("END\n") ;
 }
 #endif
-
-void save_pres(void)
-{
-	FATFS fs;
-	FIL file;
-	UINT f_size;
-	DWORD seek = 0;
-	f_mount ( &fs , "0:",  1);
-	emb_string dir;
-	dir = "/Bank_";
-	dir += (size_t)bank_pres[0];
-	dir += "/Preset_";
-	dir += (size_t)bank_pres[1];
-	dir += "/preset.pan";
-	f_open(&file, dir.c_str() , FA_WRITE);
-	f_lseek (&file , seek);
-	f_write(&file, preset_data , 128 , &f_size);
-	f_sync(&file);
-	f_close(&file);
-	f_mount(0, "0:", 0);
-}
 
 void delete_current_cab(std::emb_string& err_msg, TReadLine* rl)
 {
@@ -501,37 +470,65 @@ bool console_fs_write_file(std::emb_string& err_msg, TReadLine* rl , const char*
 	return res == FR_OK ;
 }
 
-bool load_pres(float* cd, std::emb_string& err_msg,uint8_t val)
-{
-        FATFS fs;
-        FRESULT res ;
-        FIL file;
-        UINT f_size;
-        f_mount ( &fs , "0:",  1);
-        emb_string dir_name;
-        emb_string file_name;
-        dir_name = "/Bank_";
-        dir_name += (size_t)bank_pres[0];
-        dir_name += "/Preset_";
-        dir_name += (size_t)bank_pres[1];
-        if(val)
-        {
-        	file_name = dir_name + "/preset.pan";
-        	f_open(&file, file_name.c_str() , FA_READ);
-        	f_read(&file, preset_data , 128 , &f_size);
-        	f_close(&file);
-        }
 
-        // load WAV file
-        FILINFO fno;
-        DIR dir;
-        char *fn;   /* This function assumes non-Unicode configuration */
-        #if _USE_LFN
-           const size_t sz = _MAX_LFN + 1 ;
-           char* lfn = new char[sz];   /* Buffer to store the LFN */
-           fno.lfname = lfn;
-           fno.lfsize = sz ;
-        #endif
+void save_pres(void)
+{
+	FATFS fs;
+	FIL file;
+	UINT f_size;
+	DWORD seek = 0;
+
+	f_mount (&fs, "0:", 1);
+
+	emb_string dir;
+	dir = "/Bank_";
+	dir += (size_t) bank_pres[0];
+	dir += "/Preset_";
+	dir += (size_t) bank_pres[1];
+	dir += "/preset.pan";
+	f_open(&file, dir.c_str() , FA_WRITE);
+
+	f_lseek (&file , seek);
+	f_write(&file, preset_data, 128 , &f_size);
+	f_sync(&file);
+	f_close(&file);
+	f_mount(0, "0:", 0);
+}
+
+bool load_pres(float* cd, std::emb_string& err_msg, uint8_t val)
+{
+	FATFS fs;
+	FRESULT res;
+	FIL file;
+	UINT f_size;
+
+	f_mount (&fs, "0:", 1);
+
+	emb_string dir_name;
+	emb_string file_name;
+	dir_name = "/Bank_";
+	dir_name += (size_t)bank_pres[0];
+	dir_name += "/Preset_";
+	dir_name += (size_t)bank_pres[1];
+
+	if(val)
+	{
+		file_name = dir_name + "/preset.pan";
+		f_open(&file, file_name.c_str() , FA_READ);
+		f_read(&file, preset_data , 128 , &f_size);
+		f_close(&file);
+	}
+
+	// load WAV file
+	FILINFO fno;
+	DIR dir;
+	char *fn;   /* This function assumes non-Unicode configuration */
+	#if _USE_LFN
+	   const size_t sz = _MAX_LFN + 1 ;
+	   char* lfn = new char[sz];   /* Buffer to store the LFN */
+	   fno.lfname = lfn;
+	   fno.lfsize = sz ;
+	#endif
 
        bool result = false ;
 
@@ -687,9 +684,9 @@ void flash_folder_init(void)
 			if(res != FR_OK)res = f_mkdir(ll_dir.c_str());
 			ll_dir += "/preset.pan" ;
 			res = f_open(&file, ll_dir.c_str() , FA_READ | FA_WRITE | FA_OPEN_ALWAYS) ;
-			if(file.fsize == 0)f_write(&file , prog_data_init , 128 ,  &bytes_readed);
-			//f_read(&file, prog_data , 128 , &f_size);
+			if(file.fsize == 0) f_write(&file, &default_legacy_preset, sizeof(preset_data_legacy_t), &bytes_readed);
 			f_close(&file);
+
 			while(1)
 			{
 				res = f_readdir(&dir, &fno);
@@ -699,8 +696,8 @@ void flash_folder_init(void)
 			z -= 1;
 			f_closedir(&dir);
 		}
-	     if(z)dir_use[i] = 1;
-	     else dir_use[i] = 0;
+		if(z)dir_use[i] = 1;
+		else dir_use[i] = 0;
 	}
 
 	res = f_open(&file, "/system.pan" , FA_READ | FA_WRITE | FA_OPEN_ALWAYS) ;
@@ -733,7 +730,7 @@ void save_sys(void)
 	UINT bytes_written;
 	DWORD seek = 0;
 	f_mount ( &fs , "0:",  1);
-	f_open(&file, "/system.pan" , FA_WRITE);
+	f_open(&file, "/system.pan", FA_WRITE);
 	f_lseek (&file , seek);
 	f_write(&file, &system_parameters, sizeof(system_parameters), &bytes_written);
 	f_sync(&file);

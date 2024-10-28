@@ -1,11 +1,15 @@
 #include "appdefs.h"
-#include "gpio.h"
-#include "cs.h"
 
-#include "ADAU/adau1701.h"
+#include "gpio.h"
 #include "eeprom.h"
 #include "AT45DB321.h"
 #include "debug_led.h"
+
+#include "cs.h"
+
+#include "ADAU/adau1701.h"
+
+#include "preset.h"
 
 #include "DSP/fades.h"
 #include "DSP/filters.h"
@@ -24,7 +28,6 @@ volatile uint32_t key_buf;
 
 extern volatile uint8_t usb_type;
 
-//volatile  float vol_ind_vector[3];
 
 void start_usb(uint8_t type);
 
@@ -38,15 +41,14 @@ void TCSTask::Code()
 {
 	init();
 
+	PRESET_init();
+
 	DSP_init();
 	flash_folder_init();
 
 	adau_init_ic();
 
 	delay_nop(0xffff);
-
-	if(system_parameters.output_mode == BALANCE) sig_invert(1);
-	else sig_invert(0);
 
 	char version_string[FIRMWARE_STRING_SIZE] = {0};
 
@@ -64,16 +66,6 @@ void TCSTask::Code()
 	}
 
 	adau_run();
-
-//	DMA_Cmd(DMA1_Stream3, ENABLE);
-//		DMA_Cmd(DMA1_Stream4, ENABLE);
-//
-//		DMA_ITConfig (DMA1_Stream3, DMA_IT_TC , ENABLE);
-//		DMA_ITConfig (DMA1_Stream3, DMA_IT_HT , ENABLE);
-
-//		NVIC_EnableIRQ(SPI2_IRQn);
-//		NVIC_EnableIRQ(SPI3_IRQn);
-
 
 	while(1)
 	{
@@ -188,6 +180,7 @@ void set_parameters(void)
 
 	float low_pass = powf(195 - preset_data[lop],2.0f)*(19000.0f/powf(195.0f,2.0f))+1000.0f;
 	SetLPF(low_pass);
+
 	float hi_pass = preset_data[hip]*(980.0f/255.0f)+20.0f;
 	SetHPF(hi_pass);
 

@@ -123,6 +123,7 @@ void early1 (void)
   WAP (6006, 1.0f);
   WAP (6009, 0.503937007874016f);
   ear_outR = reverb_accum;
+
   if (early_point ==0) early_point = rev_size;
   early_point -= 1;
 }

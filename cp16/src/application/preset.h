@@ -1,0 +1,170 @@
+/*
+ * preset.h
+ *
+ *  Created on: Oct 28, 2024
+ *      Author: dime
+ */
+
+#ifndef SRC_APPLICATION_PRESET_H_
+#define SRC_APPLICATION_PRESET_H_
+
+#include "DSP/sound_processing.h"
+
+//======================Legacy================================
+enum{
+	/*eq*/ eq1=0, eq2, eq3, eq4, eq5,
+	/*early*/ e_vol, e_t,
+	/*pres_vol*/pres_lev,
+	/*cab_on_off*/cab_on,
+	/*eq_on*/eq_on,
+	/*er_on*/er_on,
+	/*amp_on*/amp_on, a_vol, amp_slave, /*amp type*/a_t,
+	/*preamp*/preamp_on, preamp_vol, preamp_lo, preamp_mi, preamp_hi,
+	/*gate*/gate_on, gate_th, gate_att,
+	/*compressor*/compr_on, sustein, compr_vol,
+	/*eq band freq*/fr1, fr2, fr3, fr4, fr5,
+	/*eq band q*/q1, q2, q3, q4, q5,
+	/*lohi*/lop, hip, hip_on, lop_on,
+	/*presence*/pr_on, pr_vol,
+	/*eq position*/eq_po,
+	/*end*/pdCount
+};
+
+typedef struct
+{
+	uint8_t eq_band_vol[5];
+
+	uint8_t early_volume;
+	uint8_t early_type;
+	uint8_t preset_volume;
+	uint8_t cab_on;
+	uint8_t eq_on;
+	uint8_t early_on;
+
+	uint8_t amp_on;
+	uint8_t amp_volume;
+	uint8_t amp_slave;
+	uint8_t amp_type;
+
+	uint8_t preamp_on;
+	uint8_t preamp_volume;
+	uint8_t preamp_low;
+	uint8_t preamp_mid;
+	uint8_t preamp_high;
+
+	uint8_t gate_on;
+	uint8_t gate_threshold;
+	uint8_t gate_decay;
+
+	uint8_t compressor_on;
+	uint8_t compressor_sustain;
+	uint8_t compressor_volume;
+
+	uint8_t eq_freq[5];
+	uint8_t eq_Q[5];
+
+	uint8_t lp_freq;
+	uint8_t hp_freq;
+
+	uint8_t hp_on;
+	uint8_t lp_on;
+
+	uint8_t presence_on;
+	uint8_t presence_vol;
+
+	uint8_t eq_pre;
+
+}preset_data_legacy_t;
+
+extern preset_data_legacy_t default_legacy_preset;
+
+//=======================New generation=======================
+
+typedef struct
+{
+	uint8_t on;
+	uint8_t type;
+	uint8_t threshold;
+	uint8_t decay;
+	uint8_t reserved[4];
+}gate_data_t;
+
+typedef struct
+{
+	uint8_t on;
+	uint8_t type;
+	uint8_t sustain;
+	uint8_t volume;
+	uint8_t reserved[4];
+}compressor_data_t;
+
+typedef struct
+{
+	uint8_t on;
+	uint8_t type;
+	uint8_t volume;
+	uint8_t low;
+	uint8_t mid;
+	uint8_t high;
+	uint8_t reserved[2];
+}preamp_data_t;
+
+typedef struct
+{
+	uint8_t on;
+	uint8_t type;
+	uint8_t volume;
+	uint8_t slave;
+	uint8_t presence_on;
+	uint8_t presence_vol;
+	uint8_t reserved[2];
+}pa_data_t;
+
+typedef struct
+{
+	uint8_t parametric_on;
+	uint8_t hp_on;
+	uint8_t lp_on;
+
+	uint8_t lp_freq;
+	uint8_t hp_freq;
+
+	uint8_t eq_band_vol[5];
+	uint8_t eq_freq[5];
+	uint8_t eq_Q[5];
+
+	uint8_t reserved[4];
+}eq_t;
+
+typedef struct
+{
+	uint8_t on;
+	uint8_t type;
+	uint8_t volume;
+	uint8_t reserved[5];
+}reverb_data_t;
+
+typedef struct
+{
+	uint8_t name[16];
+
+	DSP_mono_module_type_t modules_order[16];
+	uint8_t reserved[64];
+
+	gate_data_t 		gate;
+	compressor_data_t 	compressor;
+	preamp_data_t		preamp;
+	pa_data_t			power_amp;
+
+	eq_t eq1;
+	eq_t eq2;
+
+	reverb_data_t reverb;
+
+	// IR data
+	uint8_t cab_sim_on;
+}preset_data_t;
+
+void PRESET_init();
+
+#endif /* SRC_APPLICATION_PRESET_H_ */

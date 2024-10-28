@@ -7,6 +7,8 @@
 
 #include "sound_processing.h"
 
+#include "preset.h"
+
 #include "ADAU/adau1701.h"
 
 processing_func_ptr processing_library[NUM_MONO_MODULE_TYPES];
@@ -74,7 +76,7 @@ void DSP_init()
 	compressor_init();
 	compressor_change_preset(0, 0);
 
-
+	processing_library[BYPASS] = bypass_processing_stage;
 	processing_library[CM] = compressor_processing_stage;
 	processing_library[PR] = preamp_processing_stage;
 	processing_library[PA] = pa_processing_stage;
@@ -98,14 +100,14 @@ void DSP_init()
 
 void DSP_set_module_to_processing_stage(DSP_mono_module_type_t module_type, uint8_t stage_num)
 {
-		processing_stage[stage_num] = processing_library[module_type];
+	processing_stage[stage_num] = processing_library[module_type];
 }
 
 //================================Main processing routine=================================
-uint8_t frame_part=0;
+uint8_t __CCM_BSS__ frame_part=0;
 uint8_t __CCM_BSS__ aux_samples[block_size * 2][4];
-uint8_t aux_smpl_rd_ptr=0;
-uint8_t aux_smpl_wr_ptr=0;
+uint8_t __CCM_BSS__ aux_smpl_rd_ptr=0;
+uint8_t __CCM_BSS__ aux_smpl_wr_ptr=0;
 
 bool double_buf_ptr = 0;
 extern "C" void SPI2_IRQHandler()
@@ -133,8 +135,6 @@ float __CCM_BSS__ out_sampleR[block_size];
 
 int32_t __CCM_BSS__ ccl[block_size];
 int32_t __CCM_BSS__ ccr[block_size];
-
-//uint8_t __CCM_BSS__ buf_aux_samples[block_size][4];
 
 
 extern "C" void DMA1_Stream3_IRQHandler()
@@ -165,7 +165,8 @@ extern "C" void DMA1_Stream3_IRQHandler()
 		processing_samples[i] = dc_block(di_samples[i]) * 0.000000119f;
 		ir_samples[i] *= 0.000000119f;
 
-		gate_buf[i] = gate_out(processing_samples[i]);
+		if(preset_data[gate_on]) gate_buf[i] = gate_out(processing_samples[i]);
+		else gate_buf[i] = 1.0f;
 
 		di_samples[i] *= get_fade_coef();
 	}
@@ -212,12 +213,8 @@ extern "C" void DMA1_Stream3_IRQHandler()
 		dac_data[base_address + i].left.sample = ror16((uint32_t)(ccl[i] << 8));
 		dac_data[base_address + i].right.sample = ror16((uint32_t)(ccr[i] << 8));
 
-		// (Использовалось ccl, перепроверить, переделать)расчет индикации громкости входа
-//		vol_ind_vector[1] += vol_ind_k[0] * ( abs(ccl[i]) * vol_ind_k[2] - vol_ind_vector[1]);
-//		vol_ind_vector[2] += vol_ind_k[0] * ( abs(ccr[i]) * vol_ind_k[2] - vol_ind_vector[2]);
 	}
 
-//	kgp_sdk_libc::memcpy(aux_samples, buf_aux_samples, block_size * 4);
 	//---------------------------------------------End-------------------------------------
 	GPIO_ResetBits(GPIOB, GPIO_Pin_7);
 }
@@ -229,7 +226,7 @@ void __RAMFUNC__ bypass_processing_stage(float* in_samples, float* out_samples)
 //	GPIO_ResetBits(GPIOB,GPIO_Pin_7);
 //	GPIO_SetBits(GPIOB,GPIO_Pin_7);
 	for(uint8_t i = 0; i < block_size; i++)
-				out_samples[i] = in_samples[i];
+		out_samples[i] = in_samples[i];
 }
 
 void __RAMFUNC__ gate_processing_stage(float* in_samples, float* out_samples)
@@ -308,8 +305,6 @@ void __RAMFUNC__ ir_processing_stage(float* in_samples, float* out_samples)
 			out_samples[i] = ir_samples[i];
 		}
 	}
-
-	double_buf_ptr != double_buf_ptr;
 }
 
 void __RAMFUNC__ hpf_processing_stage(float* in_samples, float* out_samples)
@@ -355,15 +350,15 @@ void __RAMFUNC__ early_processing_stage(float* in_samples, float* out_l_samples,
 		{
 			switch (preset_data[e_t])
 			{
-				case 0:early1();break;
-				case 1:early2();break;
-				case 2:early3();break;
+				case 0: early1();break;
+				case 1: early2();break;
+				case 2: early3();break;
 			}
 		}
 		else rev_en1 = 1;
 
 		out_l_samples[i] = in_samples[i] + ear_outL * ear_vol;
-		out_r_samples[i] = in_samples[i] + ear_outR * ear_vol;// * 8388607.0f; // Не знаю что за множитель и зачем
+		out_r_samples[i] = in_samples[i] + ear_outR * ear_vol;
 	}
 }
 
@@ -371,10 +366,10 @@ void __RAMFUNC__ early_processing_stage(float* in_samples, float* out_l_samples,
 inline float soft_clip_amp(float in)
 {
 	float aaa = fabsf(in);
-	if(aaa < 0.1618f)aaa *= 4.294115f;
+	if(aaa < 0.1618f) aaa *= 4.294115f;
 	else aaa = 0.81f * ((aaa - 0.11f) / (fabsf(aaa - 0.11f) + 0.033f)) + 0.2f;
 
-	if(in < 0.0f)in = -aaa;
+	if(in < 0.0f) in = -aaa;
 	else in = aaa;
 	return in;
 }
