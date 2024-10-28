@@ -245,16 +245,7 @@ static void master_volume_command_handler ( TReadLine* rl , TReadLine::const_sym
      uint32_t val = kgp_sdk_libc::strtol ( args[1] , &end, 16 );
      preset_data[pres_lev] = val ;
      
-#ifdef __PA_VERSION__  
-     preset_volume = powf(preset_data[pres_lev],2.0f)*(1.0f/powf(31.0f,2.0f));
-#else
-     if(preset_data[cab_on] && impulse_avaliable)
-     {
-		sig_volume(powf(preset_data[pres_lev],2.0f)*(1.0f/powf(31.0f,2.0f)));
-		preset_volume = 1.0f;
-     }
-     else preset_volume = powf(preset_data[pres_lev],2.0f)*(1.0f/powf(31.0f,2.0f));
-#endif
+     processing_params.preset_volume = powf(preset_data[pres_lev],2.0f)*(1.0f/powf(31.0f,2.0f));
 
      msg_console("%s\n" , hex ) ;
 }
@@ -282,7 +273,7 @@ static void preamp_volume_command_handler ( TReadLine* rl , TReadLine::const_sym
 	 char* end ;
      uint32_t val = kgp_sdk_libc::strtol ( args[1] , &end, 16 );
      preset_data[preamp_vol] = val ;
-     pream_vol = powf(preset_data[preamp_vol],2.0f)*(1.0f/powf(31.0f,2.0f));
+     processing_params.pream_vol = powf(preset_data[preamp_vol],2.0f)*(1.0f/powf(31.0f,2.0f));
      msg_console("%s\n" , hex ) ;
 }
 static void preamp_low_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
@@ -608,7 +599,7 @@ static void early_volume_command_handler ( TReadLine* rl , TReadLine::const_symb
 	 char* end ;
      uint32_t val = kgp_sdk_libc::strtol ( args[1] , &end, 16 );
      preset_data[e_vol] = val ;
-     ear_vol = preset_data[e_vol]*(1.0f/31.0f);
+     processing_params.ear_vol = preset_data[e_vol]*(1.0f/31.0f);
 }
 static void early_type_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
 {
@@ -1013,9 +1004,10 @@ static void amp_volume_command_handler ( TReadLine* rl , TReadLine::const_symbol
 	 char* end ;
      uint32_t val = kgp_sdk_libc::strtol ( args[1] , &end, 16 );
      preset_data[a_vol] = val ;
-     amp_vol = powf(preset_data[a_vol],2.0f)*(10.0f/powf(31.0f,2.0f)) + 1.0f;
+     processing_params.amp_vol = powf(preset_data[a_vol],2.0f)*(10.0f/powf(31.0f,2.0f)) + 1.0f;
      msg_console("%s\n" , hex ) ;
 }
+
 static void amp_slave_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
 {
 	 if ( count == 1 )
@@ -1027,7 +1019,7 @@ static void amp_slave_command_handler ( TReadLine* rl , TReadLine::const_symbol_
 	 char* end ;
      uint32_t val = kgp_sdk_libc::strtol ( args[1] , &end, 16 );
      preset_data[amp_slave] = val ;
-     amp_sla = powf(preset_data[amp_slave],4.0f)*(0.99f/powf(31.0f,4.0f)) + 0.01f;
+     processing_params.amp_sla = powf(preset_data[amp_slave],4.0f)*(0.99f/powf(31.0f,4.0f)) + 0.01f;
      msg_console("%s\n" , hex ) ;
 }
 

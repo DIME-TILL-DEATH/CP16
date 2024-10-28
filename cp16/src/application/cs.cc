@@ -150,11 +150,14 @@ void set_parameters(void)
 	gate_par(1 | (preset_data[gate_att] << 8));
 	comp_par(0 | (preset_data[sustein] << 8));
 	comp_par(2 | (preset_data[compr_vol] << 8));
-	preset_volume = powf(preset_data[pres_lev],2.0f)*(1.0f/powf(31.0f,2.0f));
-	pream_vol = powf(preset_data[preamp_vol],2.0f)*(1.0f/powf(31.0f,2.0f));
-	for(uint8_t i = 0 ; i < 3 ; i++)pre_param(i,preset_data[preamp_lo + i]);
-	amp_vol = powf(preset_data[a_vol],2.0f)*(10.0f/powf(31.0f,2.0f)) + 1.0f;
-	amp_sla = powf(preset_data[amp_slave],4.0f)*(0.99f/powf(31.0f,4.0f)) + 0.01f;
+
+	processing_params.preset_volume = powf(preset_data[pres_lev],2.0f)*(1.0f/powf(31.0f,2.0f));
+	processing_params.pream_vol = powf(preset_data[preamp_vol],2.0f)*(1.0f/powf(31.0f,2.0f));
+
+	for(uint8_t i = 0; i < 3; i++) pre_param(i, preset_data[preamp_lo + i]);
+
+	processing_params.amp_vol = powf(preset_data[a_vol],2.0f)*(10.0f/powf(31.0f,2.0f)) + 1.0f;
+	processing_params.amp_sla = powf(preset_data[amp_slave],4.0f)*(0.99f/powf(31.0f,4.0f)) + 0.01f;
 
 	int a = TAPS_PA_FIR - 1;
 	switch(preset_data[a_t])
@@ -185,5 +188,5 @@ void set_parameters(void)
 	SetHPF(hi_pass);
 
 	set_shelf(preset_data[pr_vol]*(31.0f/31.0f));
-	ear_vol = preset_data[e_vol]*(1.0/31.0);
+	processing_params.ear_vol = preset_data[e_vol]*(1.0/31.0);
 }

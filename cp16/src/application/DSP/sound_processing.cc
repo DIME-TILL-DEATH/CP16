@@ -34,11 +34,7 @@ inline float soft_clip_pre(float in);
 inline float dc_block(float in);
 inline float out_clip(float in);
 
-float pream_vol = 1.0f;
-float amp_vol = 1.0f;
-float amp_sla = 1.0f;
-float preset_volume = 1.0f;
-float ear_vol = 0.0f;
+processing_params_t processing_params;
 
 volatile  float vol_ind_vector[3];
 
@@ -96,6 +92,12 @@ void DSP_init()
 	arm_biquad_cascade_df1_init_f32(&eq_instance, eq_stage, coeff_eq, stage_eq);
 	arm_biquad_cascade_df1_init_f32(&presence_instance, presence_stage , coeff_presen, stage_presen);
 	arm_biquad_cascade_df1_init_f32(&preamp_instance, preamp_stage , coeff_preamp, stage_preamp);
+
+	processing_params.pream_vol = 1.0f;
+	processing_params.amp_vol = 1.0f;
+	processing_params.amp_sla = 1.0f;
+	processing_params.preset_volume = 1.0f;
+	processing_params.ear_vol = 0.0f;
 }
 
 void DSP_set_module_to_processing_stage(DSP_mono_module_type_t module_type, uint8_t stage_num)
@@ -200,8 +202,8 @@ extern "C" void DMA1_Stream3_IRQHandler()
 	//----------------------------------Out conversion-----------------------------------------------
 
 
-		ccl[i] = out_clip(out_sampleL[i] * preset_volume) * 8388607.0f;// * get_fade_coef();
-		ccr[i] = out_clip(out_sampleR[i] * preset_volume) * 8388607.0f;// * get_fade_coef();
+		ccl[i] = out_clip(out_sampleL[i] * processing_params.preset_volume) * 8388607.0f;// * get_fade_coef();
+		ccr[i] = out_clip(out_sampleR[i] * processing_params.preset_volume) * 8388607.0f;// * get_fade_coef();
 
 
 		switch(system_parameters.output_mode)
@@ -257,7 +259,7 @@ void __RAMFUNC__ preamp_processing_stage(float* in_samples, float* out_samples)
 		arm_biquad_cascade_df1_f32(&preamp_instance, in_samples, out_biquad_samples, block_size);
 
 		for(uint8_t i = 0; i < block_size; i++)
-			out_samples[i] = out_biquad_samples[i] * pream_vol * 3.0f;
+			out_samples[i] = out_biquad_samples[i] * processing_params.pream_vol * 3.0f;
 	}
 }
 
@@ -269,7 +271,7 @@ void __RAMFUNC__ pa_processing_stage(float* in_samples, float* out_samples)
 		if(preset_data[a_t] != 8)
 		{
 			for(uint8_t i = 0; i < block_size; i++)
-				out_samples[i] = soft_clip_amp(in_samples[i] * amp_vol) * amp_sla;
+				out_samples[i] = soft_clip_amp(in_samples[i] * processing_params.amp_vol) * processing_params.amp_sla;
 
 			arm_fir_f32(&fir_instance, out_samples, out_samples, block_size);
 		}
@@ -357,8 +359,8 @@ void __RAMFUNC__ early_processing_stage(float* in_samples, float* out_l_samples,
 		}
 		else rev_en1 = 1;
 
-		out_l_samples[i] = in_samples[i] + ear_outL * ear_vol;
-		out_r_samples[i] = in_samples[i] + ear_outR * ear_vol;
+		out_l_samples[i] = in_samples[i] + ear_outL * processing_params.ear_vol;
+		out_r_samples[i] = in_samples[i] + ear_outR * processing_params.ear_vol;
 	}
 }
 

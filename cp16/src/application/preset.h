@@ -30,9 +30,11 @@ enum{
 	/*end*/pdCount
 };
 
+#define EQ_BANDS_COUNT 5
+
 typedef struct
 {
-	uint8_t eq_band_vol[5];
+	uint8_t eq_band_vol[EQ_BANDS_COUNT];
 
 	uint8_t early_volume;
 	uint8_t early_type;
@@ -60,8 +62,8 @@ typedef struct
 	uint8_t compressor_sustain;
 	uint8_t compressor_volume;
 
-	uint8_t eq_freq[5];
-	uint8_t eq_Q[5];
+	uint8_t eq_freq[EQ_BANDS_COUNT];
+	uint8_t eq_Q[EQ_BANDS_COUNT];
 
 	uint8_t lp_freq;
 	uint8_t hp_freq;
@@ -129,9 +131,9 @@ typedef struct
 	uint8_t lp_freq;
 	uint8_t hp_freq;
 
-	uint8_t eq_band_vol[5];
-	uint8_t eq_freq[5];
-	uint8_t eq_Q[5];
+	uint8_t band_vol[EQ_BANDS_COUNT];
+	uint8_t freq[EQ_BANDS_COUNT];
+	uint8_t Q[EQ_BANDS_COUNT];
 
 	uint8_t reserved[4];
 }eq_t;
@@ -147,9 +149,10 @@ typedef struct
 typedef struct
 {
 	uint8_t name[16];
-
 	DSP_mono_module_type_t modules_order[16];
-	uint8_t reserved[64];
+	uint8_t volume;
+
+	uint8_t reserved_pre[63];
 
 	gate_data_t 		gate;
 	compressor_data_t 	compressor;
@@ -163,8 +166,10 @@ typedef struct
 
 	// IR data
 	uint8_t cab_sim_on;
+	uint8_t reserved_post[3];
 }preset_data_t;
 
 void PRESET_init();
+void preset_from_legacy(preset_data_t* dst_preset, const preset_data_legacy_t* src_preset);
 
 #endif /* SRC_APPLICATION_PRESET_H_ */

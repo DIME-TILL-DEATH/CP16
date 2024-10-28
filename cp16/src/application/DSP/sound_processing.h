@@ -38,16 +38,19 @@ typedef enum
 	NUM_MONO_MODULE_TYPES
 }DSP_mono_module_type_t;
 
+typedef struct
+{
+	float pream_vol = 1.0f;
+	float amp_vol = 1.0f;
+	float amp_sla = 1.0f;
+	float preset_volume = 1.0f;
+	float ear_vol = 0.0f;
+}processing_params_t;
+
+extern processing_params_t processing_params;
+
 void DSP_init();
 void DSP_set_module_to_processing_stage(DSP_mono_module_type_t module_type, uint8_t stage_num);
-
-extern float preset_volume;
-extern float ear_vol;
-
-extern float amp_vol;
-extern float amp_sla;
-
-extern float pream_vol;
 
 extern float Coeffs[];
 extern float State[];
