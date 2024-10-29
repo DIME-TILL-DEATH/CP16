@@ -8,7 +8,6 @@
 
 
 float cab_data[1024] ;
-uint8_t impulse_avaliable;
 
 volatile uint8_t prog;
 volatile uint8_t prog1;
@@ -17,8 +16,6 @@ volatile uint32_t flash_adr;
 system_parameters_t system_parameters;
 
 char name_buf [512];
-
-uint8_t preset_data[128];
 
 uint8_t dir_use[10];
 volatile uint32_t fl_st;
@@ -470,8 +467,38 @@ bool console_fs_write_file(std::emb_string& err_msg, TReadLine* rl , const char*
 	return res == FR_OK ;
 }
 
+void load_preset()
+{
+	FATFS fs;
 
-void save_pres(void)
+	FIL file;
+	UINT f_size;
+
+	f_mount(&fs, "0:", 1);
+
+	emb_string dir_name;
+	emb_string file_name;
+	dir_name = "/Bank_";
+	dir_name += (size_t)bank_pres[0];
+	dir_name += "/Preset_";
+	dir_name += (size_t)bank_pres[1];
+
+	file_name = dir_name + "/preset.pan";
+	f_open(&file, file_name.c_str() , FA_READ);
+
+	uint8_t legacy_preset_data[128];
+	f_read(&file, legacy_preset_data, 128, &f_size);
+	f_close(&file);
+
+	preset_data_legacy_t* convert_struct = (preset_data_legacy_t*)&legacy_preset_data;
+	preset_from_legacy(&current_preset, convert_struct);
+
+
+
+	f_mount(0, "0:", 0);
+}
+
+void save_preset(void)
 {
 	FATFS fs;
 	FIL file;
@@ -488,21 +515,23 @@ void save_pres(void)
 	dir += "/preset.pan";
 	f_open(&file, dir.c_str() , FA_WRITE);
 
-	f_lseek (&file , seek);
-	f_write(&file, preset_data, 128 , &f_size);
+	uint8_t legacy_preset_data[128];
+	legacy_from_preset((preset_data_legacy_t*)legacy_preset_data, &current_preset);
+
+	f_lseek(&file, seek);
+	f_write(&file, legacy_preset_data, sizeof(preset_data_legacy_t) , &f_size);
 	f_sync(&file);
 	f_close(&file);
+
 	f_mount(0, "0:", 0);
 }
 
-bool load_pres(float* cd, std::emb_string& err_msg, uint8_t val)
+bool load_ir(float* cd, std::emb_string& err_msg)
 {
 	FATFS fs;
 	FRESULT res;
-	FIL file;
-	UINT f_size;
 
-	f_mount (&fs, "0:", 1);
+	f_mount(&fs, "0:", 1);
 
 	emb_string dir_name;
 	emb_string file_name;
@@ -510,14 +539,6 @@ bool load_pres(float* cd, std::emb_string& err_msg, uint8_t val)
 	dir_name += (size_t)bank_pres[0];
 	dir_name += "/Preset_";
 	dir_name += (size_t)bank_pres[1];
-
-	if(val)
-	{
-		file_name = dir_name + "/preset.pan";
-		f_open(&file, file_name.c_str() , FA_READ);
-		f_read(&file, preset_data , 128 , &f_size);
-		f_close(&file);
-	}
 
 	// load WAV file
 	FILINFO fno;

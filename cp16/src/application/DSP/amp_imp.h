@@ -3,6 +3,13 @@
 #ifndef AMP_IMP_H
 #define AMP_IMP_H
 
+#define TAPS_PA_FIR 128//384
+
+extern arm_fir_instance_f32 pa_instance;
+
+void pa_init();
+void pa_update_coefficients(uint8_t amp_type);
+
 static constexpr float PP_6L6[512] =
 {
               1.0f,      0.100327f,     -0.142789f,     0.0346297f,      -0.10225f,     0.0414114f,    -0.0708901f,     0.0346995f,    -0.0434325f,     0.0216546f,    -0.0196959f,    0.00717603f,  -0.000641297f,   -0.00520656f,     0.0126985f,    -0.0133061,

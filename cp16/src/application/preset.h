@@ -169,7 +169,10 @@ typedef struct
 	uint8_t reserved_post[3];
 }preset_data_t;
 
+extern preset_data_t current_preset;
+
 void PRESET_init();
 void preset_from_legacy(preset_data_t* dst_preset, const preset_data_legacy_t* src_preset);
+void legacy_from_preset(preset_data_legacy_t* dst_preset, const preset_data_t* src_preset);
 
 #endif /* SRC_APPLICATION_PRESET_H_ */

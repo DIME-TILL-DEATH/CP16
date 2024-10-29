@@ -11,9 +11,11 @@
 
 #include "preset.h"
 
+#include "DSP/sound_processing.h"
 #include "DSP/fades.h"
 #include "DSP/filters.h"
-#include "DSP/sound_processing.h"
+#include "DSP/amp_imp.h"
+#include "DSP/compressor.h"
 
 
 inline void key_check(void);
@@ -124,16 +126,18 @@ void preset_change(void)
 	fade_out();
 	while(!is_fade_complete());
 
+	load_preset();
+
 	emb_string err_msg;
-	if(load_pres(cab_data, err_msg,1) != true)
+	if(load_ir(cab_data, err_msg) != true)
 	{
-		impulse_avaliable = 0;
+		processing_params.impulse_avaliable = 0;
 		led_pulse_config(1);
 	}
 	else
 	{
-		sig_load(cab_data);
-		impulse_avaliable = 1;
+		dsp_upload_ir(cab_data);
+		processing_params.impulse_avaliable = 1;
 		led_pulse_config(0);
 	}
 	set_parameters();
@@ -142,51 +146,40 @@ void preset_change(void)
 
 void set_parameters(void)
 {
-	if(!preset_data[preamp_vol])preset_data[preamp_vol] = 13;
-	if(!preset_data[amp_slave])preset_data[amp_slave] = 31;
-	if(!preset_data[sustein])preset_data[sustein] = 15;
-	if(!preset_data[compr_vol])preset_data[compr_vol] = 15;
-	gate_par(preset_data[gate_th] << 8);
-	gate_par(1 | (preset_data[gate_att] << 8));
-	comp_par(0 | (preset_data[sustein] << 8));
-	comp_par(2 | (preset_data[compr_vol] << 8));
+	if(!current_preset.preamp.volume) current_preset.preamp.volume = 13;
+	if(!current_preset.power_amp.slave) current_preset.power_amp.slave = 31;
+	if(!current_preset.compressor.sustain) current_preset.compressor.sustain = 15;
+	if(!current_preset.compressor.volume) current_preset.compressor.volume  = 15;
 
-	processing_params.preset_volume = powf(preset_data[pres_lev],2.0f)*(1.0f/powf(31.0f,2.0f));
-	processing_params.pream_vol = powf(preset_data[preamp_vol],2.0f)*(1.0f/powf(31.0f,2.0f));
+	processing_params.preset_volume = powf(current_preset.volume, 2.0f) * (1.0f/powf(31.0f, 2.0f));
 
-	for(uint8_t i = 0; i < 3; i++) pre_param(i, preset_data[preamp_lo + i]);
+	gate_par(	  current_preset.gate.threshold << 8);
+	gate_par(1 | (current_preset.gate.decay << 8));
 
-	processing_params.amp_vol = powf(preset_data[a_vol],2.0f)*(10.0f/powf(31.0f,2.0f)) + 1.0f;
-	processing_params.amp_sla = powf(preset_data[amp_slave],4.0f)*(0.99f/powf(31.0f,4.0f)) + 0.01f;
+	comp_par(0 | (current_preset.compressor.sustain << 8));
+	comp_par(2 | (current_preset.compressor.volume << 8));
 
-	int a = TAPS_PA_FIR - 1;
-	switch(preset_data[a_t])
+	processing_params.pream_vol = powf(current_preset.preamp.volume, 2.0f) * (1.0f/powf(31.0f, 2.0f));
+	preamp_param(PREAMP_LOW, current_preset.preamp.low);
+	preamp_param(PREAMP_MID, current_preset.preamp.mid);
+	preamp_param(PREAMP_HIGH, current_preset.preamp.high);
+
+	processing_params.amp_vol = powf(current_preset.power_amp.volume, 2.0f) * (10.0f/powf(31.0f, 2.0f)) + 1.0f;
+	processing_params.amp_slave = powf(current_preset.power_amp.slave, 4.0f) * (0.99f/powf(31.0f, 4.0f)) + 0.01f;
+	pa_update_coefficients(current_preset.power_amp.type);
+	set_shelf(current_preset.power_amp.presence_vol * (31.0f/31.0f));
+
+	for(uint8_t i = 0 ; i < 5 ; i++)
 	{
-		case 0:for(int i = 0 ; i < TAPS_PA_FIR ; i++)Coeffs[a--] = PP_6L6[i];break;
-		case 1:for(int i = 0 ; i < TAPS_PA_FIR ; i++)Coeffs[a--] = PP_EL34[i];break;
-		case 2:for(int i = 0 ; i < TAPS_PA_FIR ; i++)Coeffs[a--] = SE_6L6[i];break;
-		case 3:for(int i = 0 ; i < TAPS_PA_FIR ; i++)Coeffs[a--] = SE_EL34[i];break;
-		case 4:for(int i = 0 ; i < TAPS_PA_FIR ; i++)Coeffs[a--] = tc_1[i];break;
-		case 5:for(int i = 0 ; i < TAPS_PA_FIR ; i++)Coeffs[a--] = fender[i];break;
-		case 6:for(int i = 0 ; i < TAPS_PA_FIR ; i++)Coeffs[a--] = jcm800[i];break;
-		case 7:for(int i = 0 ; i < TAPS_PA_FIR ; i++)Coeffs[a--] = lc50[i];break;
-		case 9:for(int i = 0 ; i < TAPS_PA_FIR ; i++)Coeffs[a--] = mes_mod[i];break;
-		case 10:for(int i = 0 ; i < TAPS_PA_FIR ; i++)Coeffs[a--] = mes_vint[i];break;
-		case 11:for(int i = 0 ; i < TAPS_PA_FIR ; i++)Coeffs[a--] = Pr0_Re0_5150[i];break;
-		case 12:for(int i = 0 ; i < TAPS_PA_FIR ; i++)Coeffs[a--] = Pr5_Re5_5150[i];break;
-		case 13:for(int i = 0 ; i < TAPS_PA_FIR ; i++)Coeffs[a--] = Pr8_Re7_5150[i];break;
-		case 14:for(int i = 0 ; i < TAPS_PA_FIR ; i++)Coeffs[a--] = Pr9_Re8_5150[i];break;
+		filt_ini(i, current_preset.eq1.freq, current_preset.eq1.Q);
+		set_filt(i, current_preset.eq1.band_vol[i]);
 	}
 
-	for(uint8_t i = 0 ; i < 5 ; i++) filt_ini(i , preset_data + fr1 , preset_data + q1);
-	for(uint8_t i = 0 ; i < 5 ; i++) set_filt(i , preset_data[eq1 + i]);
-
-	float low_pass = powf(195 - preset_data[lop],2.0f)*(19000.0f/powf(195.0f,2.0f))+1000.0f;
+	float low_pass = powf(195 - current_preset.eq1.lp_freq, 2.0f) * (19000.0f/powf(195.0f, 2.0f)) + 1000.0f;
 	SetLPF(low_pass);
 
-	float hi_pass = preset_data[hip]*(980.0f/255.0f)+20.0f;
+	float hi_pass = current_preset.eq1.hp_freq * (980.0f/255.0f) + 20.0f;
 	SetHPF(hi_pass);
 
-	set_shelf(preset_data[pr_vol]*(31.0f/31.0f));
-	processing_params.ear_vol = preset_data[e_vol]*(1.0/31.0);
+	processing_params.ear_vol = current_preset.reverb.volume * (1.0/31.0);
 }

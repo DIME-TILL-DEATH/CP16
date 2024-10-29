@@ -67,7 +67,7 @@ void adau_transmit(uint16_t address, uint8_t* data, uint32_t size);
 
 void sig_invert(uint8_t val);
 void sig_reset(bool state);
-void sig_load(float* cab_data);
+void dsp_upload_ir(float* cab_data);
 
 void to523(float param_dec , uint8_t* param_hex);
 

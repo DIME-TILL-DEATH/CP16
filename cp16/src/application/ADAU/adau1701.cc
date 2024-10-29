@@ -303,7 +303,7 @@ void to523(float param_dec , uint8_t* param_hex)
 }
 
 uint8_t converted_impulse_buffer[DSP_FIR_SIZE * 4];
-void sig_load (float* cab_data)
+void dsp_upload_ir (float* cab_data)
 {
 	for(size_t i = 0 ; i < DSP_FIR_SIZE ; i++)
 	{

@@ -9,6 +9,7 @@
 
 
 preset_data_legacy_t default_legacy_preset;
+preset_data_t current_preset;
 
 void PRESET_init()
 {
@@ -102,3 +103,47 @@ void preset_from_legacy(preset_data_t* dst_preset, const preset_data_legacy_t* s
 	dst_preset->reverb.volume = src_preset->early_volume;
 }
 
+void legacy_from_preset(preset_data_legacy_t* dst_preset, const preset_data_t* src_preset)
+{
+	dst_preset->preset_volume = src_preset->volume;
+
+	dst_preset->gate_on = src_preset->gate.on;
+	dst_preset->gate_threshold = src_preset->gate.threshold;
+	dst_preset->gate_decay = src_preset->gate.decay;
+
+	dst_preset->compressor_on = src_preset->compressor.on;
+	dst_preset->compressor_sustain = src_preset->compressor.sustain;
+	dst_preset->compressor_volume = src_preset->compressor.volume;
+
+	dst_preset->preamp_on = src_preset->preamp.on;
+	dst_preset->preamp_volume = src_preset->preamp.volume;
+	dst_preset->preamp_low = src_preset->preamp.low;
+	dst_preset->preamp_mid = src_preset->preamp.mid;
+	dst_preset->preamp_high = src_preset->preamp.high;
+
+	dst_preset->amp_on = src_preset->power_amp.on;
+	dst_preset->amp_volume = src_preset->power_amp.volume;
+	dst_preset->amp_slave = src_preset->power_amp.slave;
+	dst_preset->amp_type = src_preset->power_amp.type;
+
+	dst_preset->presence_on = src_preset->power_amp.presence_on;
+	dst_preset->presence_vol = src_preset->power_amp.presence_vol;
+
+	dst_preset->eq_on = src_preset->eq1.parametric_on;
+	for(int i=0; i<5; i++)
+	{
+		dst_preset->eq_band_vol[i] = src_preset->eq1.band_vol[i];
+		dst_preset->eq_freq[i] = src_preset->eq1.freq[i];
+		dst_preset->eq_Q[i] = src_preset->eq1.Q[i];
+	}
+	dst_preset->hp_on = src_preset->eq1.hp_on;
+	dst_preset->hp_freq = src_preset->eq1.hp_freq;
+	dst_preset->lp_on = src_preset->eq1.lp_on;
+	dst_preset->lp_freq = src_preset->eq1.lp_freq;
+
+	dst_preset->cab_on = src_preset->cab_sim_on;
+
+	dst_preset->early_on = src_preset->reverb.on;
+	dst_preset->early_type = src_preset->reverb.type;
+	dst_preset->early_volume = src_preset->reverb.volume;
+}

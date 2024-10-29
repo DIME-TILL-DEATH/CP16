@@ -26,7 +26,8 @@ uint16_t imp_count = 0;
 // 1 это загрузка импульса - данные идут семплами(по 3 байта начиная с младшева)
 
 volatile uint32_t buff_size = rev_size * sizeof(float);
-volatile uint32_t stream_pos ;
+volatile uint32_t stream_pos;
+
 static void current_cabinet_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
 {
 	std::emb_string err_str ;
@@ -55,7 +56,7 @@ static void current_cabinet_command_handler ( TReadLine* rl , TReadLine::const_s
 	    		   FRESULT res ;
 	    		   FIL f;
 	    		   UINT bw ;
-	    	       UINT f_size;
+
 	    	       res = f_mount ( &fs , "0:",  1);
 	    	       if ( res != FR_OK )
 	    	         {
@@ -141,9 +142,11 @@ static void current_cabinet_command_handler ( TReadLine* rl , TReadLine::const_s
 	    	        			cab_data[imp_count] = convert ( (uint8_t*)buff1 ) ;
 	    	        		}
                   		  }
-	    	        	  sig_load(cab_data);
-	    	        	  impulse_avaliable = 1;
-	    	        	  preset_data[cab_on] = 1;
+
+	    	        	  dsp_upload_ir(cab_data);
+	    	        	  processing_params.impulse_avaliable = 1;
+	    	        	  current_preset.cab_sim_on = 1;
+
 	    	        	  imp_count = 0;
 	  	    	    	  rev_en = 0;
 	  	    	    	  rev_en1 = 0;
@@ -165,11 +168,13 @@ static void current_cabinet_command_handler ( TReadLine* rl , TReadLine::const_s
 	}
   msg_console("invalid args count\n" ) ;
 }
+
 static void read_name_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
 {
 	std::emb_string err_str ;
 	console_out_currnt_nam(err_str, rl);
 }
+
 static void read_full_name_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
 {
 	std::emb_string err_str ;
@@ -181,14 +186,17 @@ static void read_full_name_command_handler ( TReadLine* rl , TReadLine::const_sy
 
 static void get_state_command_handler (TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args, const size_t count)
 {
+	uint8_t legacy_preset_data[128];
+
 	if (count == 1)
 	{
 		for (size_t i = 0; i < pdCount; i++)
 		{
-			i2hex(preset_data[i], hex);
-			msg_console("%s", hex) ;
+			legacy_from_preset((preset_data_legacy_t*)legacy_preset_data, &current_preset);
+			i2hex(legacy_preset_data[i], hex);
+			msg_console("%s", hex);
 		}
-		msg_console("\n") ;
+		msg_console("\n");
 		return ;
 	}
 	size_t a = 0;
@@ -215,276 +223,298 @@ static void get_state_command_handler (TReadLine* rl , TReadLine::const_symbol_t
 		}
 		if(c > 57) c -= 39;
 		w  |=  c - '0';
-		preset_data[a++] = w;
+		legacy_preset_data[a++] = w;
+
+		preset_from_legacy(&current_preset, (preset_data_legacy_t*)legacy_preset_data);
 	}
 	while(1);
 }
 
-static void cabinet_enable_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
+inline void default_param_handler(uint8_t* param_ptr, TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
 {
-	 if ( count == 1 )
+	 if(count == 1)
 	 {
-		i2hex( preset_data[cab_on],hex);
-		msg_console("%s\n" , hex ) ;
-		return ;
+		 i2hex(*param_ptr, hex);
+		 msg_console("%s\n", hex);
+		 return;
 	 }
-	 char* end ;
-	 uint32_t val = kgp_sdk_libc::strtol ( args[1] , &end, 16 );
-	 preset_data[cab_on] = val ;
-	 msg_console("%s\n" , hex ) ;
-}
-static void master_volume_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
-{
-	 if ( count == 1 )
-	 {
-		 i2hex( preset_data[pres_lev],hex);
-		 msg_console("%s\n" , hex ) ;
-		 return ;
-	 }
-	 char* end ;
-     uint32_t val = kgp_sdk_libc::strtol ( args[1] , &end, 16 );
-     preset_data[pres_lev] = val ;
-     
-     processing_params.preset_volume = powf(preset_data[pres_lev],2.0f)*(1.0f/powf(31.0f,2.0f));
-
-     msg_console("%s\n" , hex ) ;
-}
-static void preamp_on_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
-{
-	 if ( count == 1 )
-	 {
-		 i2hex( preset_data[preamp_on],hex);
-		 msg_console("%s\n" , hex ) ;
-		 return ;
-	 }
-	 char* end ;
-     uint32_t val = kgp_sdk_libc::strtol ( args[1] , &end, 16 );
-     preset_data[preamp_on] = val ;
-     msg_console("%s\n" , hex ) ;
-}
-static void preamp_volume_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
-{
-	 if ( count == 1 )
-	 {
-		 i2hex( preset_data[preamp_vol],hex);
-		 msg_console("%s\n" , hex ) ;
-		 return ;
-	 }
-	 char* end ;
-     uint32_t val = kgp_sdk_libc::strtol ( args[1] , &end, 16 );
-     preset_data[preamp_vol] = val ;
-     processing_params.pream_vol = powf(preset_data[preamp_vol],2.0f)*(1.0f/powf(31.0f,2.0f));
-     msg_console("%s\n" , hex ) ;
-}
-static void preamp_low_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
-{
-	 if ( count == 1 )
-	 {
-		 i2hex( preset_data[preamp_lo],hex);
-		 msg_console("%s\n" , hex ) ;
-		 return ;
-	 }
-	 char* end ;
-     uint8_t val = kgp_sdk_libc::strtol ( args[1] , &end, 16 );
-     preset_data[preamp_lo] = val ;
-     pre_param(0,val);
-     msg_console("%s\n" , hex ) ;
-}
-static void preamp_mid_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
-{
-	 if ( count == 1 )
-	 {
-		 i2hex( preset_data[preamp_mi],hex);
-		 msg_console("%s\n" , hex ) ;
-		 return ;
-	 }
-	 char* end ;
-     uint32_t val = kgp_sdk_libc::strtol ( args[1] , &end, 16 );
-     preset_data[preamp_mi] = val ;
-     pre_param(1,val);
-     msg_console("%s\n" , hex ) ;
-}
-static void preamp_high_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
-{
-	 if ( count == 1 )
-	 {
-		 i2hex( preset_data[preamp_hi] ,hex);
-		 msg_console("%s\n" , hex ) ;
-		 return ;
-	 }
-	 char* end ;
-     uint32_t val = kgp_sdk_libc::strtol ( args[1] , &end, 16 );
-     preset_data[preamp_hi] = val ;
-     pre_param(2,val);
-     msg_console("%s\n" , hex ) ;
+	 char* end;
+     uint8_t val = kgp_sdk_libc::strtol (args[1], &end, 16);
+     *param_ptr = val;
+     msg_console("%s\n", hex);
 }
 
+static void cabinet_enable_command_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
+{
+	 default_param_handler(&current_preset.cab_sim_on, rl, args, count);
+}
 
-static void presence_on_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
+static void master_volume_command_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
 {
-	 if ( count == 1 )
-	 {
-		 i2hex(preset_data[pr_on], hex);
-		 msg_console("%s\n" , hex);
-		 return ;
-	 }
-	 char* end ;
-     uint32_t val = kgp_sdk_libc::strtol ( args[1] , &end, 16 );
-     preset_data[pr_on] = val ;
-     msg_console("%s\n" , hex ) ;
+     default_param_handler(&current_preset.volume, rl, args, count);
+     processing_params.preset_volume = powf(current_preset.volume, 2.0f)*(1.0f/powf(31.0f, 2.0f));
 }
-static void presence_volume_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
+
+static void preamp_on_command_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
 {
-	 if ( count == 1 )
-	 {
-		 i2hex( preset_data[pr_vol],hex);
-		 msg_console("%s\n" , hex ) ;
-		 return ;
-	 }
-	 char* end ;
-     uint32_t val = kgp_sdk_libc::strtol ( args[1] , &end, 16 );
-     preset_data[pr_vol] = val ;
-#ifdef __PA_VESRION__
-     set_shelf(preset_data[pr_vol]*(31.0f/31.0f));
-#else
-     set_shelf(preset_data[pr_vol]*(25.0f/31.0f));
-#endif
-     msg_console("%s\n" , hex ) ;
+     default_param_handler(&current_preset.preamp.on, rl, args, count);
 }
-static void lpf_on_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
+
+static void preamp_volume_command_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
 {
-	 if ( count == 1 )
-	 {
-		 i2hex( preset_data[lop_on],hex);
-		 msg_console("%s\n" , hex ) ;
-		 return ;
-	 }
-	 char* end ;
-     uint32_t val = kgp_sdk_libc::strtol ( args[1] , &end, 16 );
-     preset_data[lop_on] = val ;
-     msg_console("%s\n" , hex ) ;
+     default_param_handler(&current_preset.preamp.volume, rl, args, count);
+     processing_params.pream_vol = powf(current_preset.preamp.volume, 2.0f) * (1.0f/powf(31.0f, 2.0f));
 }
-static void lpf_volume_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
+
+static void preamp_low_command_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
 {
-	 if ( count == 1 )
-	 {
-		 i2hex( preset_data[lop],hex);
-		 msg_console("%s\n" , hex ) ;
-		 return ;
-	 }
-	 char* end ;
-     uint32_t val = kgp_sdk_libc::strtol ( args[1] , &end, 16 );
-     preset_data[lop] = val ;
-     float lopas = powf(195 - preset_data[lop],2.0f)*(19000.0f/powf(195.0f,2.0f))+1000.0f;
-     SetLPF(lopas);
-     msg_console("%s\n" , hex ) ;
+     default_param_handler(&current_preset.preamp.low, rl, args, count);
+     preamp_param(PREAMP_LOW, current_preset.preamp.low);
 }
-static void hpf_on_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
+
+static void preamp_mid_command_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
 {
-	 if ( count == 1 )
-	 {
-		 i2hex( preset_data[hip_on],hex);
-		 msg_console("%s\n" , hex ) ;
-		 return ;
-	 }
-	 char* end ;
-     uint32_t val = kgp_sdk_libc::strtol ( args[1] , &end, 16 );
-     preset_data[hip_on] = val ;
-     msg_console("%s\n" , hex ) ;
+     default_param_handler(&current_preset.preamp.mid, rl, args, count);
+     preamp_param(PREAMP_MID, current_preset.preamp.mid);
 }
-static void hpf_volume_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
+
+static void preamp_high_command_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
 {
-	 if ( count == 1 )
-	 {
-		 i2hex( preset_data[hip],hex);
-		 msg_console("%s\n" , hex ) ;
-		 return ;
-	 }
-	 char* end ;
-     uint32_t val = kgp_sdk_libc::strtol ( args[1] , &end, 16 );
-     preset_data[hip] = val ;
-     float hipas = preset_data[hip]*(980.0f/255.0f) + 20.0f;
-     SetHPF(hipas);
-     msg_console("%s\n" , hex ) ;
+     default_param_handler(&current_preset.preamp.high, rl, args, count);
+     preamp_param(PREAMP_HIGH, current_preset.preamp.high);
 }
+
+static void presence_on_command_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
+{
+     default_param_handler(&current_preset.power_amp.presence_on, rl, args, count);
+}
+
+static void presence_volume_command_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
+{
+     default_param_handler(&current_preset.power_amp.presence_vol, rl, args, count);
+     set_shelf(current_preset.power_amp.presence_vol); // in RV was *(25.0f/31.0f));
+}
+
+static void lpf_on_command_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
+{
+     default_param_handler(&current_preset.eq1.lp_on, rl, args, count);
+}
+
+static void lpf_volume_command_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
+{
+     default_param_handler(&current_preset.eq1.lp_freq, rl, args, count);
+     float lopas = powf(195 - current_preset.eq1.lp_freq, 2.0f)*(19000.0f/powf(195.0f,2.0f))+1000.0f;
+	 SetLPF(lopas);
+}
+
+static void hpf_on_command_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
+{
+     default_param_handler(&current_preset.eq1.hp_on, rl, args, count);
+}
+
+static void hpf_volume_command_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
+{
+	default_param_handler(&current_preset.eq1.hp_freq, rl, args, count);
+	float hipas = current_preset.eq1.hp_freq*(980.0f/255.0f) + 20.0f;
+	SetHPF(hipas);
+}
+
 static void eq_on_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
 {
-	 if ( count == 1 )
-	 {
-		 i2hex( preset_data[eq_on],hex);
-		 msg_console("%s\n" , hex ) ;
-		 return ;
-	 }
-	 char* end ;
-     uint32_t val = kgp_sdk_libc::strtol ( args[1] , &end, 16 );
-     preset_data[eq_on] = val ;
+     default_param_handler(&current_preset.eq1.parametric_on, rl, args, count);
 }
-static void eq_volume_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count)
+
+static void eq_volume_command_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
 {
-	 uint8_t a = args[1][0] - 48;
-	 if ( count == 2 )
+	 uint8_t band_num = args[1][0] - 48;
+	 if (count == 2)
 	 {
-		 i2hex( preset_data[a],hex);
-		 msg_console("%s\n" , hex ) ;
-		 return ;
+		 i2hex(current_preset.eq1.band_vol[band_num], hex);
+		 msg_console("%s\n" , hex);
+		 return;
 	 }
-	 if ( count == 3  )
+
+	 if (count == 3 )
 	 {
 		 char* end ;
 	     uint32_t val = kgp_sdk_libc::strtol ( args[2] , &end, 16 );
-	     preset_data[a] = val ;
-	     filt_ini(a , preset_data + fr1 , preset_data + q1);
-	     set_filt(a,preset_data[a]);
+	     current_preset.eq1.band_vol[band_num] = val;
+
+	     filt_ini(band_num, current_preset.eq1.freq, current_preset.eq1.Q);
+	     set_filt(band_num, current_preset.eq1.band_vol[band_num]);
 	 }
 }
-static void eq_frec_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count)
+
+static void eq_freq_command_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
 {
-	 uint8_t a = args[1][0] - 48;
-	 uint8_t aa = args[1][0] - 48 + fr1;
-	 int8_t b = preset_data[aa];
-	 uint8_t c = abs(b);
-	 if ( count == 2 )
+	 uint8_t band_num = args[1][0] - 48;
+	 int8_t freq_val = current_preset.eq1.freq[band_num];
+	 uint8_t u_freq_val = abs(freq_val);
+
+	 if(count == 2)
 	 {
 		 char hex[4] = {0,0,0,0} ;
-		 i2hex( c ,hex + 1);
-		 if(b < 0)hex[0] = '-';
+		 i2hex(u_freq_val, hex + 1);
+
+		 if(freq_val < 0)hex[0] = '-';
 		 else hex[0] = ' ';
-		 msg_console("%s\n" , hex ) ;
-		 return ;
+
+		 msg_console("%s\n" , hex );
+		 return;
 	 }
-	 if ( count == 3  )
+
+	 if(count == 3)
 	 {
-		 char* end ;
-		 int32_t val = kgp_sdk_libc::strtol ( args[2] , &end, 16 );
-	     preset_data[aa] = val ;
-	     filt_ini(a , preset_data + fr1 , preset_data + q1);
-	     set_filt(a,preset_data[a]);
+		 char* end;
+		 int32_t val = kgp_sdk_libc::strtol(args[2], &end, 16);
+		 current_preset.eq1.freq[band_num] = val;
+
+		 filt_ini(band_num, current_preset.eq1.freq, current_preset.eq1.Q);
+		 set_filt(band_num, current_preset.eq1.band_vol[band_num]);
 	 }
 }
-static void eq_q_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count)
+
+static void eq_q_command_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
 {
-	 uint8_t a = args[1][0] - 48;
-	 uint8_t aa = args[1][0] - 48 + q1;
-	 int8_t b = preset_data[aa];
-	 uint8_t c = abs(b);
-	 if ( count == 2 )
-	 {
-		 char hex[4] = {0,0,0,0} ;
-		 i2hex( c ,hex + 1);
-		 if(b < 0)hex[0] = '-';
-		 else hex[0] = ' ';
-		 msg_console("%s\n" , hex ) ;
-		 return ;
-	 }
-	 if ( count == 3  )
-	 {
-		 char* end ;
-		 int32_t val = kgp_sdk_libc::strtol ( args[2] , &end, 16 );
-	     preset_data[aa] = val ;
-	     filt_ini(a , preset_data + fr1 , preset_data + q1);
-	     set_filt(a,preset_data[a]);
-	 }
+	uint8_t band_num = args[1][0] - 48;
+	int8_t Q_val = current_preset.eq1.Q[band_num];
+	uint8_t u_Q_val = abs(Q_val);
+
+	if(count == 2)
+	{
+		char hex[4] = {0,0,0,0} ;
+		i2hex(u_Q_val, hex + 1);
+
+		if(Q_val < 0)hex[0] = '-';
+		else hex[0] = ' ';
+
+		msg_console("%s\n" , hex );
+		return;
+	}
+
+	if (count == 3)
+	{
+		char* end;
+		int32_t val = kgp_sdk_libc::strtol(args[2], &end, 16);
+		current_preset.eq1.Q[band_num] = val;
+
+		filt_ini(band_num, current_preset.eq1.freq, current_preset.eq1.Q);
+		set_filt(band_num, current_preset.eq1.band_vol[band_num]);
+	}
 }
+
+static void eq_position_command_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
+{
+	 if(count == 1)
+	 {
+		 i2hex(0, hex);
+		 msg_console("%s\n" , hex );
+		 return;
+	 }
+
+	 char* end;
+     uint32_t val = kgp_sdk_libc::strtol(args[1], &end, 16);
+     if(val)
+     {
+    	 DSP_set_module_to_processing_stage(BYPASS, 0);
+    	 DSP_set_module_to_processing_stage(CM, 1);
+    	 DSP_set_module_to_processing_stage(EQ, 2);
+    	 DSP_set_module_to_processing_stage(PR, 3);
+    	 DSP_set_module_to_processing_stage(PA, 4);
+    	 DSP_set_module_to_processing_stage(IR, 5);
+    	 DSP_set_module_to_processing_stage(HP, 6);
+    	 DSP_set_module_to_processing_stage(LP, 7);
+    	 DSP_set_module_to_processing_stage(NG, 8);
+     }
+     else
+     {
+    	 DSP_set_module_to_processing_stage(BYPASS, 0);
+    	 DSP_set_module_to_processing_stage(CM, 1);
+    	 DSP_set_module_to_processing_stage(PR, 2);
+    	 DSP_set_module_to_processing_stage(PA, 3);
+    	 DSP_set_module_to_processing_stage(IR, 4);
+    	 DSP_set_module_to_processing_stage(HP, 5);
+    	 DSP_set_module_to_processing_stage(EQ, 6);
+    	 DSP_set_module_to_processing_stage(LP, 7);
+    	 DSP_set_module_to_processing_stage(NG, 8);
+     }
+
+     msg_console("%s\n" , hex);
+}
+
+static void early_on_command_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
+{
+     default_param_handler(&current_preset.reverb.on, rl, args, count);
+}
+
+static void early_volume_command_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
+{
+     default_param_handler(&current_preset.reverb.volume, rl, args, count);
+     processing_params.ear_vol = current_preset.reverb.volume * (1.0f/31.0f);
+}
+
+static void early_type_command_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
+{
+     default_param_handler(&current_preset.reverb.type, rl, args, count);
+}
+
+static void gate_on_off_command_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
+{
+    default_param_handler(&current_preset.gate.on, rl, args, count);
+}
+
+static void gate_threshold_command_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
+{
+    default_param_handler(&current_preset.gate.threshold, rl, args, count);
+    gate_par(current_preset.gate.threshold << 8);
+}
+
+static void gate_decay_command_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
+{
+    default_param_handler(&current_preset.gate.decay, rl, args, count);
+    gate_par(1 | (current_preset.gate.decay << 8));
+}
+
+static void compressor_on_off_command_handler (TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
+{
+    default_param_handler(&current_preset.compressor.on, rl, args, count);
+}
+
+static void compressor_sustain_command_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
+{
+    default_param_handler(&current_preset.compressor.sustain, rl, args, count);
+    comp_par(0 | (current_preset.compressor.sustain << 8));
+}
+
+static void compressor_volume_command_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
+{
+    default_param_handler(&current_preset.compressor.volume, rl, args, count);
+    comp_par(2 | (current_preset.compressor.volume << 8));
+}
+
+static void amp_on_command_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
+{
+     default_param_handler(&current_preset.power_amp.on, rl, args, count);
+}
+
+static void amp_volume_command_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
+{
+     default_param_handler(&current_preset.power_amp.volume, rl, args, count);
+     processing_params.amp_vol = powf(current_preset.power_amp.volume, 2.0f) * (10.0f/powf(31.0f, 2.0f)) + 1.0f;
+}
+
+static void amp_slave_command_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
+{
+     default_param_handler(&current_preset.power_amp.slave, rl, args, count);
+     processing_params.amp_slave = powf(current_preset.power_amp.slave, 4.0f) * (0.99f/powf(31.0f, 4.0f)) + 0.01f;
+}
+
+static void amp_type_command_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
+{
+     default_param_handler(&current_preset.power_amp.type, rl, args, count);
+     pa_update_coefficients(current_preset.power_amp.type);
+}
+
 
 static void change_bank_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
 {
@@ -496,9 +526,10 @@ static void change_bank_command_handler ( TReadLine* rl , TReadLine::const_symbo
 
      i2hex( bank_pres[0],hex);
 
-     if(impulse_avaliable)hex[0] = 49;
+     if(processing_params.impulse_avaliable) hex[0] = 49;
      msg_console("%s\n" , hex ) ;
 }
+
 static void change_pres_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
 {
 	 char* end ;
@@ -508,60 +539,48 @@ static void change_pres_command_handler ( TReadLine* rl , TReadLine::const_symbo
      preset_change();
 
 	 i2hex( bank_pres[1],hex);
-	 if(impulse_avaliable)hex[0] = 49;
+	 if(processing_params.impulse_avaliable) hex[0] = 49;
 	 msg_console("%s\n" , hex ) ;
 }
 
-static void get_mode_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
+static void get_mode_command_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
 {
-	 if (count == 1)
-	 {
-//		 i2hex( sys_para[2], hex);
-		 i2hex(system_parameters.output_mode, hex);
-		 msg_console("%s\n" , hex ) ;
-		 return ;
-	 }
-	 char* end ;
-     uint32_t val = kgp_sdk_libc::strtol(args[1], &end, 16 );
-//     sys_para[2] = val;
-     system_parameters.output_mode = val;
-//
-
-
-#ifdef __PA_VERSION__
-//     if(sys_para[2] == 2) sig_invert(1);
-     if(system_parameters.output_mode == LINE) sig_invert(1);
-     else sig_invert(0);
-#endif
-
+     default_param_handler(&system_parameters.output_mode, rl, args, count);
      save_sys();
 }
 
-static void get_amtid_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
+static void get_amtid_command_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
 {
 	i2hex(AMT_DEV_ID, hex);
 
-	msg_console("%s", hex );
+	msg_console("%s", hex);
 	msg_console("\n");
 	msg_console("END\n");
 }
-static void get_amtver_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
+
+static void get_amtver_command_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
 {
-	msg_console("%s\n" , ver ) ;
+	msg_console("%s\n", ver);
 	msg_console("END\n") ;
 }
-static void esc_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
+
+static void esc_command_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
 {
 	preset_change();
-	msg_console("END\n") ;
+	msg_console("END\n");
 }
-static void load_current_cab_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
+
+static void load_current_cab_command_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
 {
 	emb_string err_msg;
-	if(load_pres(cab_data,err_msg,0) != true)impulse_avaliable = 0;
-	else {
-		sig_load(cab_data);
-		impulse_avaliable = 1;
+	if(load_ir(cab_data, err_msg) != true)
+	{
+		processing_params.impulse_avaliable = 0;
+	}
+	else
+	{
+		dsp_upload_ir(cab_data);
+		processing_params.impulse_avaliable = 1;
 	}
 	msg_console("END\n") ;
 }
@@ -575,129 +594,9 @@ static void delete_current_cab_command_handler ( TReadLine* rl , TReadLine::cons
 }
 */
 
-
-static void early_on_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
+static void save_pres_command_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
 {
-	 if ( count == 1 )
-	 {
-		 i2hex( preset_data[er_on],hex);
-		 msg_console("%s\n" , hex ) ;
-		 return ;
-	 }
-	 char* end ;
-     uint32_t val = kgp_sdk_libc::strtol ( args[1] , &end, 16 );
-     preset_data[er_on] = val ;
-}
-static void early_volume_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
-{
-	 if ( count == 1 )
-	 {
-		 i2hex( preset_data[e_vol],hex);
-		 msg_console("%s\n" , hex ) ;
-		 return ;
-	 }
-	 char* end ;
-     uint32_t val = kgp_sdk_libc::strtol ( args[1] , &end, 16 );
-     preset_data[e_vol] = val ;
-     processing_params.ear_vol = preset_data[e_vol]*(1.0f/31.0f);
-}
-static void early_type_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
-{
-	 if ( count == 1 )
-	 {
-		 i2hex( preset_data[e_t],hex);
-		 msg_console("%s\n" , hex ) ;
-		 return ;
-	 }
-	 char* end ;
-     uint32_t val = kgp_sdk_libc::strtol ( args[1] , &end, 16 );
-     preset_data[e_t] = val ;
-}
-static void gate_on_off_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
-{
-	 if ( count == 1 )
-	 {
-		 i2hex( preset_data[gate_on],hex);
-		 msg_console("%s\n" , hex ) ;
-		 return ;
-	 }
-	 char* end ;
-    uint32_t val = kgp_sdk_libc::strtol ( args[1] , &end, 16 );
-    preset_data[gate_on] = val ;
-    msg_console("%s\n" , hex ) ;
-}
-static void gate_threshold_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
-{
-	 if ( count == 1 )
-	 {
-		 i2hex( preset_data[gate_th],hex);
-		 msg_console("%s\n" , hex ) ;
-		 return ;
-	 }
-	 char* end ;
-    uint32_t val = kgp_sdk_libc::strtol ( args[1] , &end, 16 );
-    preset_data[gate_th] = val ;
-    gate_par(preset_data[gate_th] << 8);
-    msg_console("%s\n" , hex ) ;
-}
-static void gate_decay_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
-{
-	 if ( count == 1 )
-	 {
-		 i2hex( preset_data[gate_att],hex);
-		 msg_console("%s\n" , hex ) ;
-		 return ;
-	 }
-	 char* end ;
-    uint32_t val = kgp_sdk_libc::strtol ( args[1] , &end, 16 );
-    preset_data[gate_att] = val ;
-    gate_par(1 | (preset_data[gate_att] << 8));
-    msg_console("%s\n" , hex ) ;
-}
-static void compreccor_on_off_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
-{
-	 if ( count == 1 )
-	 {
-		 i2hex( preset_data[compr_on],hex);
-		 msg_console("%s\n" , hex ) ;
-		 return ;
-	 }
-	 char* end ;
-    uint32_t val = kgp_sdk_libc::strtol ( args[1] , &end, 16 );
-    preset_data[compr_on] = val ;
-    msg_console("%s\n" , hex ) ;
-}
-static void compreccor_sustein_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
-{
-	 if ( count == 1 )
-	 {
-		 i2hex( preset_data[sustein],hex);
-		 msg_console("%s\n" , hex ) ;
-		 return ;
-	 }
-	 char* end ;
-    uint32_t val = kgp_sdk_libc::strtol ( args[1] , &end, 16 );
-    preset_data[sustein] = val ;
-    comp_par(0 | (preset_data[sustein] << 8));
-    msg_console("%s\n" , hex ) ;
-}
-static void compreccor_volume_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
-{
-	 if ( count == 1 )
-	 {
-		 i2hex( preset_data[compr_vol],hex);
-		 msg_console("%s\n" , hex ) ;
-		 return ;
-	 }
-	 char* end ;
-    uint32_t val = kgp_sdk_libc::strtol ( args[1] , &end, 16 );
-    preset_data[compr_vol] = val ;
-    comp_par(2 | (preset_data[compr_vol] << 8));
-    msg_console("%s\n" , hex ) ;
-}
-static void save_pres_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
-{
-	save_pres();
+	save_preset();
 	msg_console("END\n") ;
 }
 
@@ -732,15 +631,8 @@ static void fs_format_command_handler ( TReadLine* rl , TReadLine::const_symbol_
 	console_fs_format(err_str, rl);
 }
 //------------------------------------------------------------------------------
-//static void fs_delete_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
-//{
-//	std::emb_string err_str ;
-//	console_fs_delete_file(err_str, rl);
-//}
-//------------------------------------------------------------------------------
 static void fw_update_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
 {
-
 	std::emb_string err_msg  ;
 	if ( console_fs_write_file(err_msg, rl , "0:/firmware"))
 	{
@@ -942,120 +834,6 @@ static void preset_wavs_info_command_handler ( TReadLine* rl , TReadLine::const_
 }
 */
 
-static void eq_position_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
-{
-	 if (count == 1)
-	 {
-		 i2hex( preset_data[eq_po],hex);
-		 msg_console("%s\n" , hex ) ;
-		 return;
-	 }
-
-	 char* end ;
-     uint32_t val = kgp_sdk_libc::strtol(args[1], &end, 16);
-     preset_data[eq_po] = val;
-     if(val)
-     {
-    	 DSP_set_module_to_processing_stage(CM, 1);
-    	 DSP_set_module_to_processing_stage(EQ, 2);
-    	 DSP_set_module_to_processing_stage(PR, 3);
-    	 DSP_set_module_to_processing_stage(PA, 4);
-    	 DSP_set_module_to_processing_stage(IR, 5);
-    	 DSP_set_module_to_processing_stage(HP, 6);
-    	 DSP_set_module_to_processing_stage(LP, 7);
-    	 DSP_set_module_to_processing_stage(NG, 8);
-     }
-     else
-     {
-    	 DSP_set_module_to_processing_stage(CM, 1);
-    	 DSP_set_module_to_processing_stage(PR, 2);
-    	 DSP_set_module_to_processing_stage(PA, 3);
-    	 DSP_set_module_to_processing_stage(IR, 4);
-    	 DSP_set_module_to_processing_stage(HP, 5);
-    	 DSP_set_module_to_processing_stage(EQ, 6);
-    	 DSP_set_module_to_processing_stage(LP, 7);
-    	 DSP_set_module_to_processing_stage(NG, 8);
-     }
-
-     msg_console("%s\n" , hex);
-}
-
-static void amp_on_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
-{
-	 if ( count == 1 )
-	 {
-		 i2hex( preset_data[amp_on],hex);
-		 msg_console("%s\n" , hex ) ;
-		 return ;
-	 }
-	 char* end ;
-     uint32_t val = kgp_sdk_libc::strtol ( args[1] , &end, 16 );
-     preset_data[amp_on] = val ;
-     msg_console("%s\n" , hex ) ;
-}
-static void amp_volume_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
-{
-	 if ( count == 1 )
-	 {
-		 i2hex( preset_data[a_vol],hex);
-		 msg_console("%s\n" , hex ) ;
-		 return ;
-	 }
-	 char* end ;
-     uint32_t val = kgp_sdk_libc::strtol ( args[1] , &end, 16 );
-     preset_data[a_vol] = val ;
-     processing_params.amp_vol = powf(preset_data[a_vol],2.0f)*(10.0f/powf(31.0f,2.0f)) + 1.0f;
-     msg_console("%s\n" , hex ) ;
-}
-
-static void amp_slave_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
-{
-	 if ( count == 1 )
-	 {
-		 i2hex( preset_data[amp_slave],hex);
-		 msg_console("%s\n" , hex ) ;
-		 return ;
-	 }
-	 char* end ;
-     uint32_t val = kgp_sdk_libc::strtol ( args[1] , &end, 16 );
-     preset_data[amp_slave] = val ;
-     processing_params.amp_sla = powf(preset_data[amp_slave],4.0f)*(0.99f/powf(31.0f,4.0f)) + 0.01f;
-     msg_console("%s\n" , hex ) ;
-}
-
-static void amp_type_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
-{
-	 if ( count == 1 )
-	 {
-		 i2hex( preset_data[a_t],hex);
-		 msg_console("%s\n" , hex ) ;
-		 return ;
-	 }
-	 char* end ;
-     uint32_t val = kgp_sdk_libc::strtol ( args[1] , &end, 16 );
-     preset_data[a_t] = val ;
-     int a = TAPS_PA_FIR -1;
-     extern float Coeffs[];
-     switch(val){
-     case 0:for(int i = 0 ; i < TAPS_PA_FIR ; i++)Coeffs[a--] = PP_6L6[i];break;
-     case 1:for(int i = 0 ; i < TAPS_PA_FIR ; i++)Coeffs[a--] = PP_EL34[i];break;
-     case 2:for(int i = 0 ; i < TAPS_PA_FIR ; i++)Coeffs[a--] = SE_6L6[i];break;
-     case 3:for(int i = 0 ; i < TAPS_PA_FIR ; i++)Coeffs[a--] = SE_EL34[i];break;
-     case 4:for(int i = 0 ; i < TAPS_PA_FIR ; i++)Coeffs[a--] = tc_1[i];break;
-     case 5:for(int i = 0 ; i < TAPS_PA_FIR ; i++)Coeffs[a--] = fender[i];break;
-     case 6:for(int i = 0 ; i < TAPS_PA_FIR ; i++)Coeffs[a--] = jcm800[i];break;
-     case 7:for(int i = 0 ; i < TAPS_PA_FIR ; i++)Coeffs[a--] = lc50[i];break;
-     case 9:for(int i = 0 ; i < TAPS_PA_FIR ; i++)Coeffs[a--] = mes_mod[i];break;
-     case 10:for(int i = 0 ; i < TAPS_PA_FIR ; i++)Coeffs[a--] = mes_vint[i];break;
-     case 11:for(int i = 0 ; i < TAPS_PA_FIR ; i++)Coeffs[a--] = Pr0_Re0_5150[i];break;
-     case 12:for(int i = 0 ; i < TAPS_PA_FIR ; i++)Coeffs[a--] = Pr5_Re5_5150[i];break;
-     case 13:for(int i = 0 ; i < TAPS_PA_FIR ; i++)Coeffs[a--] = Pr8_Re7_5150[i];break;
-     case 14:for(int i = 0 ; i < TAPS_PA_FIR ; i++)Coeffs[a--] = Pr9_Re8_5150[i];break;
-     }
-     msg_console("END\n") ;
-}
-
-
 void ConsoleSetCmdHandlers(TReadLine* rl)
 {
   SetConsoleCmdDefaultHandlers(rl);
@@ -1085,7 +863,7 @@ void ConsoleSetCmdHandlers(TReadLine* rl)
   rl->AddCommandHandler("hv", hpf_volume_command_handler);
   rl->AddCommandHandler("eqo", eq_on_command_handler);
   rl->AddCommandHandler("eqv", eq_volume_command_handler);
-  rl->AddCommandHandler("eqf", eq_frec_command_handler);
+  rl->AddCommandHandler("eqf", eq_freq_command_handler);
   rl->AddCommandHandler("eqq", eq_q_command_handler);
   rl->AddCommandHandler("chb", change_bank_command_handler);
   rl->AddCommandHandler("chp", change_pres_command_handler);
@@ -1100,13 +878,14 @@ void ConsoleSetCmdHandlers(TReadLine* rl)
   rl->AddCommandHandler("go", gate_on_off_command_handler);
   rl->AddCommandHandler("gt", gate_threshold_command_handler);
   rl->AddCommandHandler("gd", gate_decay_command_handler);
-  rl->AddCommandHandler("co", compreccor_on_off_command_handler);
-  rl->AddCommandHandler("cs", compreccor_sustein_command_handler);
-  rl->AddCommandHandler("cv", compreccor_volume_command_handler);
+  rl->AddCommandHandler("co", compressor_on_off_command_handler);
+  rl->AddCommandHandler("cs", compressor_sustain_command_handler);
+  rl->AddCommandHandler("cv", compressor_volume_command_handler);
 
 
   rl->AddCommandHandler("amtdev", get_amtid_command_handler);
   rl->AddCommandHandler("amtver", get_amtver_command_handler);
+
   rl->AddCommandHandler("rns", read_full_name_command_handler);
   rl->AddCommandHandler("sw4", sw4_command_handler);
 
@@ -1122,14 +901,11 @@ void ConsoleSetCmdHandlers(TReadLine* rl)
   rl->AddCommandHandler("sw1", sw1_command_handler);
 
   rl->AddCommandHandler("fsf", fs_format_command_handler);
-//  rl->AddCommandHandler("fsd", fs_delete_command_handler);
   rl->AddCommandHandler("fwu", fw_update_command_handler);
 
 #if 0
   rl->AddCommandHandler("preset_wavs_delete", preset_wavs_delete_command_handler); // удаляет все *.wav в директории текущего пресета или в том на который указывает параметр
 #endif
-
-  //rl->AddCommandHandler("preset_wavs_info",   preset_wavs_info_command_handler);   //
 
   rl->AddCommandHandler("iio", ind_in_out_command_handler);
 

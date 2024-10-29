@@ -4,7 +4,7 @@
 
 #include "compressor.h"
 
-#define  MIN_GAIN  0.00001f        // -100dB  This will help prevent evaluation of denormal numbers
+#define MIN_GAIN  0.00001f        // -100dB  This will help prevent evaluation of denormal numbers
 #define LOG_2  0.693147f
 #define LOG_10 2.302585f
 #define samp_rate 46875.0f
@@ -287,11 +287,14 @@ void gate_par(uint32_t val)
 {
 	uint32_t va = val >> 8;
 	val &= 0xff;
-	switch(val & 0xff){
+
+	switch(val & 0xff)
+	{
 	case 0:Gate_Change(0,-((31 - va) * (70.0f/31.0f) + 17.0f));break;
 	case 1:Gate_Change(1, va * (1270.0f/31.0f) + 100);break;
 	}
 }
+
 void comp_par(uint32_t val)
 {
 	uint32_t va = val >> 8;

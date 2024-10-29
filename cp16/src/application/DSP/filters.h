@@ -4,18 +4,7 @@
 
 #define FILT_PI    3.14159265358979323846f
 
-extern float eq_coef[5][5];
 
-extern float eq_1_buf[5];
-extern float eq_1_coef[5];
-extern float eq_2_buf[5];
-extern float eq_2_coef[5];
-extern float eq_3_buf[5];
-extern float eq_3_coef[5];
-extern float eq_4_buf[5];
-extern float eq_4_coef[5];
-extern float eq_5_buf[5];
-extern float eq_5_coef[5];
 extern float pres_buf[5];
 extern float Coeffs_b[5];
 
@@ -39,7 +28,14 @@ extern float freq[5];
 extern float freq1[5];
 extern volatile float filt_q;
 
-void pre_param(uint8_t num,uint8_t val);
+typedef enum
+{
+	PREAMP_LOW = 0,
+	PREAMP_MID,
+	PREAMP_HIGH
+}preamp_param_t;
+
+void preamp_param(preamp_param_t num, uint8_t val);
 
 inline void SetLPF(float fCut)
 {
@@ -112,7 +108,7 @@ extern float coeff_eq[];
 extern float coeff_presen[];
 extern float coeff_preamp[];
 
-inline void set_filt (uint8_t num,uint8_t filt_gain)
+inline void set_filt (uint8_t num, uint8_t filt_gain)
 {
 	float gain;
 	if(filt_gain < 15)gain = -(15.0f - filt_gain);
@@ -120,18 +116,18 @@ inline void set_filt (uint8_t num,uint8_t filt_gain)
 	float A = powf(10.0f, gain /40.0f);
 	float a0 = 1.0f + filt_alpha[num]/A;
 
-	// зачем 2 набора?
+	// TODO зачем 2 набора?
 	coeff_eq[0 + num*5] = (1 + filt_alpha[num] * A)/a0;
 	coeff_eq[1 + num*5] = (-2.0 * filt_cos[num])/a0;
 	coeff_eq[2 + num*5] = (1 - filt_alpha[num] * A)/a0;
 	coeff_eq[3 + num*5] = -coeff_eq[1 + num*5];
 	coeff_eq[4 + num*5] = -(1 - filt_alpha[num]/A)/a0;
 
-	eq_coef[num][0] = (1.0f + filt_alpha[num] * A)/a0;
-	eq_coef[num][1] = (-2.0f * filt_cos[num])/a0;
-	eq_coef[num][2] = (1.0f - filt_alpha[num] * A)/a0;
-	eq_coef[num][3] = eq_coef[num][1];
-	eq_coef[num][4] = (1.0f - filt_alpha[num]/A)/a0;
+//	eq_coef[num][0] = (1.0f + filt_alpha[num] * A)/a0;
+//	eq_coef[num][1] = (-2.0f * filt_cos[num])/a0;
+//	eq_coef[num][2] = (1.0f - filt_alpha[num] * A)/a0;
+//	eq_coef[num][3] = eq_coef[num][1];
+//	eq_coef[num][4] = (1.0f - filt_alpha[num]/A)/a0;
 }
 
 
@@ -148,15 +144,15 @@ inline float proc_shelf(float in)
 	return out;
 }
 
-inline float biquad (float in)
-{
-	float out = filt_proc(in , (float*)eq_1_buf , (float*)eq_coef[0]);
-	out = filt_proc(out , (float*)eq_2_buf , (float*)eq_coef[1]);
-	out = filt_proc(out , (float*)eq_3_buf , (float*)eq_coef[2]);
-	out = filt_proc(out , (float*)eq_4_buf , (float*)eq_coef[3]);
-	out = filt_proc(out , (float*)eq_5_buf , (float*)eq_coef[4]);
-	return out;
-}
+//inline float biquad (float in)
+//{
+//	float out = filt_proc(in , (float*)eq_1_buf , (float*)eq_coef[0]);
+//	out = filt_proc(out , (float*)eq_2_buf , (float*)eq_coef[1]);
+//	out = filt_proc(out , (float*)eq_3_buf , (float*)eq_coef[2]);
+//	out = filt_proc(out , (float*)eq_4_buf , (float*)eq_coef[3]);
+//	out = filt_proc(out , (float*)eq_5_buf , (float*)eq_coef[4]);
+//	return out;
+//}
 
 
 inline void filt_set(float gain , float* adr , float q_fac , float freq)
@@ -218,15 +214,15 @@ inline void set_shelf_hi(float gain , float* adr , float slope , float freq)
 	adr[3] = -(2.0f*((A-1.0f)-(A+1.0f)*cos_))/a0;  				// A1
 }
 
-inline void pre_param(uint8_t num,uint8_t val)
+inline void preamp_param(preamp_param_t num,uint8_t val)
 {
 	int8_t va = val;
 	va += 64;
 	switch(num){
-	case 0:if(va < 64)filt_set(va * (19.0f/63.0f) - 12.0f , coeff_preamp , 0.39f , 78.0f);
+	case PREAMP_LOW:if(va < 64)filt_set(va * (19.0f/63.0f) - 12.0f , coeff_preamp , 0.39f , 78.0f);
 		   else filt_set((va - 63) * (2.0f/64.0f) + 7.0f , coeff_preamp , 0.39f , 78.0f);
 	break;
-	case 1:if(va < 64)
+	case PREAMP_MID:if(va < 64)
 		   {
 		       filt_set(0.0f , coeff_preamp + 20 , 0.49f , 460.0f);
 			   filt_set(va * (6.0f/63.0f) - 6.0f, coeff_preamp + 25 , 1.1f , 604.0f);
@@ -236,7 +232,7 @@ inline void pre_param(uint8_t num,uint8_t val)
 			   filt_set((va - 63) * (3.0f/64.0f), coeff_preamp + 25 , 0.44f , 800.0f);
 		   }
     break;
-	case 2:if(va < 64)
+	case PREAMP_HIGH:if(va < 64)
 		   {
 			   set_shelf_hi(va * (16.11f/63.0f) , coeff_preamp + 15 , 0.3f , 6000.0f);
 			   filt_set(va * -(4.0f/63.0f) , coeff_preamp + 5 , 0.71f , 602.0f);

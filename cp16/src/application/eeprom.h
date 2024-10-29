@@ -26,10 +26,7 @@ typedef struct
 
 extern system_parameters_t system_parameters;
 extern float cab_data[] ;
-extern uint16_t early_type;
-extern volatile uint8_t prog;
-extern volatile uint8_t prog1;
-extern uint8_t preset_data[];
+
 extern uint8_t impulse_buffer[];
 extern char name_buf[];
 
@@ -77,21 +74,16 @@ inline void next_preset(uint8_t dir , bank_pres_field_t bpf)
 };
 
 extern uint8_t dir_use[];
-extern uint8_t impulse_avaliable;
 
-void eepr_write (uint8_t nu);
-void eepr_read_prog(uint8_t nu);
-void eepr_read_imya(uint8_t nu);
 void save_sys(void);
-void prog_to_temp(void);
-void temp_to_prog(void);
-void temp1_to_prog(void);
-void prog_to_temp1(void);
+
 void flash_folder_init(void);
-bool load_pres(float* cd, std::emb_string& err_msg,uint8_t val);
-void save_pres(void);
-bool console_out_currnt_cab(std::emb_string& err_msg, TReadLine* rl);
+void load_preset();
+void save_preset();
+bool load_ir(float* cd, std::emb_string& err_msg);
+
 void delete_current_cab(std::emb_string& err_msg, TReadLine* rl);
+bool console_out_currnt_cab(std::emb_string& err_msg, TReadLine* rl);
 bool console_out_currnt_nam(std::emb_string& err_msg, TReadLine* rl );
 bool console_out_full_nam(std::emb_string& err_msg, TReadLine* rl, bool interface2 );
 bool console_fs_format(std::emb_string& err_msg, TReadLine* rl );

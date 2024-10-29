@@ -11,6 +11,12 @@
 
 #include "ADAU/adau1701.h"
 
+#include "fades.h"
+#include "DSP/filters.h"
+#include "compressor.h"
+#include "amp_imp.h"
+#include "Reverb/reverb.h"
+
 processing_func_ptr processing_library[NUM_MONO_MODULE_TYPES];
 processing_func_ptr processing_stage[NUM_MONO_MODULE_TYPES];
 
@@ -41,9 +47,6 @@ volatile  float vol_ind_vector[3];
 float __CCM_BSS__ coeff_preamp[preamp_stage * 5];
 float __CCM_BSS__ stage_preamp[preamp_stage * 4];
 
-float __CCM_BSS__ Coeffs[TAPS_PA_FIR];
-float __CCM_BSS__ State[TAPS_PA_FIR + block_size -1];
-
 float __CCM_BSS__ coeff_eq[eq_stage * 5];
 float __CCM_BSS__ stage_eq[eq_stage * 4];
 
@@ -51,8 +54,6 @@ float __CCM_BSS__ coeff_presen[presence_stage * 5];
 float __CCM_BSS__ stage_presen[presence_stage * 4];
 
 float __CCM_BSS__ gate_buf[block_size];
-
-arm_fir_instance_f32 fir_instance;
 
 arm_biquad_casd_df1_inst_f32 preamp_instance;
 arm_biquad_casd_df1_inst_f32 eq_instance;
@@ -87,7 +88,8 @@ void DSP_init()
 		processing_stage[i] = processing_library[i];
 	}
 
-	arm_fir_init_f32(&fir_instance, TAPS_PA_FIR, Coeffs, State, block_size);
+	pa_init();
+
 
 	arm_biquad_cascade_df1_init_f32(&eq_instance, eq_stage, coeff_eq, stage_eq);
 	arm_biquad_cascade_df1_init_f32(&presence_instance, presence_stage , coeff_presen, stage_presen);
@@ -95,9 +97,11 @@ void DSP_init()
 
 	processing_params.pream_vol = 1.0f;
 	processing_params.amp_vol = 1.0f;
-	processing_params.amp_sla = 1.0f;
+	processing_params.amp_slave = 1.0f;
 	processing_params.preset_volume = 1.0f;
 	processing_params.ear_vol = 0.0f;
+
+	processing_params.impulse_avaliable = 0;
 }
 
 void DSP_set_module_to_processing_stage(DSP_mono_module_type_t module_type, uint8_t stage_num)
@@ -167,7 +171,7 @@ extern "C" void DMA1_Stream3_IRQHandler()
 		processing_samples[i] = dc_block(di_samples[i]) * 0.000000119f;
 		ir_samples[i] *= 0.000000119f;
 
-		if(preset_data[gate_on]) gate_buf[i] = gate_out(processing_samples[i]);
+		if(current_preset.gate.on) gate_buf[i] = gate_out(processing_samples[i]);
 		else gate_buf[i] = 1.0f;
 
 		di_samples[i] *= get_fade_coef();
@@ -233,7 +237,7 @@ void __RAMFUNC__ bypass_processing_stage(float* in_samples, float* out_samples)
 
 void __RAMFUNC__ gate_processing_stage(float* in_samples, float* out_samples)
 {
-	if(preset_data[gate_on])
+	if(current_preset.gate.on)
 	{
 		//-------------------------------GATE processs(threshold on start)-------------------
 		for(uint8_t i = 0; i < block_size; i++)
@@ -244,7 +248,7 @@ void __RAMFUNC__ gate_processing_stage(float* in_samples, float* out_samples)
 void __RAMFUNC__ compressor_processing_stage(float* in_samples, float* out_samples)
 {
 	//------------------------------------Compressor-----------------------------------------
-	if(preset_data[compr_on])
+	if(current_preset.compressor.on)
 	{
 		for(uint8_t i = 0; i < block_size; i++)
 			out_samples[i] = compr_out(in_samples[i]);
@@ -253,7 +257,7 @@ void __RAMFUNC__ compressor_processing_stage(float* in_samples, float* out_sampl
 
 void __RAMFUNC__ preamp_processing_stage(float* in_samples, float* out_samples)
 {
-	if(preset_data[preamp_on])
+	if(current_preset.preamp.on)
 	{
 		float out_biquad_samples[block_size];
 		arm_biquad_cascade_df1_f32(&preamp_instance, in_samples, out_biquad_samples, block_size);
@@ -266,19 +270,19 @@ void __RAMFUNC__ preamp_processing_stage(float* in_samples, float* out_samples)
 void __RAMFUNC__ pa_processing_stage(float* in_samples, float* out_samples)
 {
 	//--------------------------------------Amplifier----------------------------------------
-	if(preset_data[amp_on])
+	if(current_preset.power_amp.on)
 	{
-		if(preset_data[a_t] != 8)
+		if(current_preset.power_amp.type != 8)
 		{
 			for(uint8_t i = 0; i < block_size; i++)
-				out_samples[i] = soft_clip_amp(in_samples[i] * processing_params.amp_vol) * processing_params.amp_sla;
+				out_samples[i] = soft_clip_amp(in_samples[i] * processing_params.amp_vol) * processing_params.amp_slave;
 
-			arm_fir_f32(&fir_instance, out_samples, out_samples, block_size);
+			arm_fir_f32(&pa_instance, out_samples, out_samples, block_size);
 		}
 	}
 
 	//--------------------------------------Presence-------------------------------------------
-	if(preset_data[pr_on])
+	if(current_preset.power_amp.presence_on)
 	{
 		arm_biquad_cascade_df1_f32(&presence_instance, out_samples, out_samples, block_size);
 	}
@@ -297,7 +301,7 @@ void __RAMFUNC__ ir_processing_stage(float* in_samples, float* out_samples)
 		aux_smpl_wr_ptr++;
 
 		//---------------------------------------Cab data or Dry signal-------------------------
-		if(!preset_data[cab_on] || !impulse_avaliable)
+		if(!current_preset.cab_sim_on || !processing_params.impulse_avaliable)
 		{
 			// bypass IR
 			out_samples[i] = in_samples[i];
@@ -312,7 +316,7 @@ void __RAMFUNC__ ir_processing_stage(float* in_samples, float* out_samples)
 void __RAMFUNC__ hpf_processing_stage(float* in_samples, float* out_samples)
 {
 	//---------------------------------------HPF-----------------------------------------------
-	if(preset_data[hip_on])
+	if(current_preset.eq1.hp_on)
 	{
 		for(uint8_t i=0; i<block_size; i++)
 			out_samples[i] = filt_hp(in_samples[i]);
@@ -323,7 +327,7 @@ void __RAMFUNC__ hpf_processing_stage(float* in_samples, float* out_samples)
 void __RAMFUNC__ eq_processing_stage(float* in_samples, float* out_samples)
 {
 	//------------------------------------PARAMETRIC-------------------------------------------
-	if(preset_data[eq_on])
+	if(current_preset.eq1.parametric_on)
 	{
 		arm_biquad_cascade_df1_f32(&eq_instance, in_samples, out_samples, block_size);
 	}
@@ -333,7 +337,7 @@ void __RAMFUNC__ eq_processing_stage(float* in_samples, float* out_samples)
 void __RAMFUNC__ lpf_processing_stage(float* in_samples, float* out_samples)
 {
 	//---------------------------------------LPF-----------------------------------------------
-	if(preset_data[lop_on])
+	if(current_preset.eq1.lp_on)
 	{
 		for(uint8_t i=0; i<block_size; i++)
 			out_samples[i] = filt_lp(in_samples[i]);
@@ -345,12 +349,12 @@ void __RAMFUNC__ early_processing_stage(float* in_samples, float* out_l_samples,
 {
 	for(uint8_t i = 0; i < block_size; i++)
 	{
-		if(preset_data[er_on]) reverb_accum = in_samples[i] * 0.7f;
+		if(current_preset.reverb.on) reverb_accum = in_samples[i] * 0.7f;
 		else reverb_accum = 0.0f;
 
 		if(!rev_en)
 		{
-			switch (preset_data[e_t])
+			switch (current_preset.reverb.type)
 			{
 				case 0: early1();break;
 				case 1: early2();break;
