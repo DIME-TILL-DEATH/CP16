@@ -483,18 +483,25 @@ void load_preset()
 	dir_name += "/Preset_";
 	dir_name += (size_t)bank_pres[1];
 
-	file_name = dir_name + "/preset.pan";
-	f_open(&file, file_name.c_str() , FA_READ);
+	file_name = dir_name + "/preset.pa2";
 
-	uint8_t legacy_preset_data[128];
-	f_read(&file, legacy_preset_data, 128, &f_size);
+	if(f_open(&file, file_name.c_str(), FA_READ) != FR_OK)
+	{
+		file_name = dir_name + "/preset.pan";
+		f_open(&file, file_name.c_str(), FA_READ);
+
+		uint8_t legacy_preset_data[128];
+		f_read(&file, legacy_preset_data, 128, &f_size);
+
+		preset_data_legacy_t* convert_struct = (preset_data_legacy_t*)&legacy_preset_data;
+		preset_from_legacy(&current_preset, convert_struct);
+	}
+	else
+	{
+		f_read(&file, &current_preset, sizeof(preset_data_t), &f_size);
+	}
+
 	f_close(&file);
-
-	preset_data_legacy_t* convert_struct = (preset_data_legacy_t*)&legacy_preset_data;
-	preset_from_legacy(&current_preset, convert_struct);
-
-
-
 	f_mount(0, "0:", 0);
 }
 
@@ -507,19 +514,31 @@ void save_preset(void)
 
 	f_mount (&fs, "0:", 1);
 
-	emb_string dir;
-	dir = "/Bank_";
-	dir += (size_t) bank_pres[0];
-	dir += "/Preset_";
-	dir += (size_t) bank_pres[1];
-	dir += "/preset.pan";
-	f_open(&file, dir.c_str() , FA_WRITE);
+	emb_string dir_name;
+	emb_string file_name;
+	dir_name = "/Bank_";
+	dir_name += (size_t) bank_pres[0];
+	dir_name += "/Preset_";
+	dir_name += (size_t) bank_pres[1];
+	file_name = dir_name + "/preset.pan";
+
+	// write legacy data. backward compatibility
+	f_open(&file, file_name.c_str(), FA_WRITE);
 
 	uint8_t legacy_preset_data[128];
 	legacy_from_preset((preset_data_legacy_t*)legacy_preset_data, &current_preset);
 
 	f_lseek(&file, seek);
 	f_write(&file, legacy_preset_data, sizeof(preset_data_legacy_t) , &f_size);
+	f_sync(&file);
+	f_close(&file);
+
+	// write gen2 data
+	file_name = dir_name + "/preset.pa2";
+	f_open(&file, file_name.c_str(), FA_READ | FA_WRITE | FA_OPEN_ALWAYS) ;
+
+	f_lseek(&file, seek);
+	f_write(&file, &current_preset, sizeof(preset_data_t) , &f_size);
 	f_sync(&file);
 	f_close(&file);
 

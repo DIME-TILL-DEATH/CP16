@@ -1,19 +1,6 @@
 #include "appdefs.h"
 #include "filters.h"
 
-//float eq_coef[5][5];
-
-//float eq_1_buf[5];
-//float eq_1_coef[5];
-//float eq_2_buf[5];
-//float eq_2_coef[5];
-//float eq_3_buf[5];
-//float eq_3_coef[5];
-//float eq_4_buf[5];
-//float eq_4_coef[5];
-//float eq_5_buf[5];
-//float eq_5_coef[5];
-
 float pres_buf[5];
 float Coeffs_b[5];
 
@@ -33,7 +20,7 @@ float a11;
 float b1;
 float b11;
 
-float freq[5] = {120.0,360.0,800.0,2000.0,6000.0};
+float freq[5] = {120.0, 360.0, 800.0, 2000.0, 6000.0};
 float freq1[5];
 volatile float filt_q;
 

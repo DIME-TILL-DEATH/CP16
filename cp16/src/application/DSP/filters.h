@@ -61,12 +61,14 @@ inline void SetHPF(float fCut)
 inline void filt_ini(uint8_t num , uint8_t* adr , uint8_t* adr1)
 {
   float w0;
+
   switch (num){
   case 0:case 1:freq1[num] = (int8_t)adr[num] + freq[num];break;
   case 2:freq1[num] = (int8_t)adr[num]*2 + freq[num];break;
   case 3:freq1[num] = (int8_t)adr[num]*10 + freq[num];break;
   case 4:freq1[num] = (int8_t)adr[num]*50 + freq[num];break;
   }
+
   w0 = 2.0f * FILT_PI * freq1[num] / 48000.0f;
   filt_sin[num] = sinf(w0);
   filt_cos[num] = cosf(w0);
@@ -108,26 +110,54 @@ extern float coeff_eq[];
 extern float coeff_presen[];
 extern float coeff_preamp[];
 
-inline void set_filt (uint8_t num, uint8_t filt_gain)
+typedef enum
+{
+	PEAKING=0,
+	LOW_SHELF,
+	HIGH_SHELF
+}band_type_t;
+
+inline void set_filt(uint8_t band_num, uint8_t filt_gain, band_type_t band_type)
 {
 	float gain;
-	if(filt_gain < 15)gain = -(15.0f - filt_gain);
+	if(filt_gain < 15) gain = -(15.0f - filt_gain);
 	else gain = -(15.0f - filt_gain);
-	float A = powf(10.0f, gain /40.0f);
-	float a0 = 1.0f + filt_alpha[num]/A;
 
-	// TODO зачем 2 набора?
-	coeff_eq[0 + num*5] = (1 + filt_alpha[num] * A)/a0;
-	coeff_eq[1 + num*5] = (-2.0 * filt_cos[num])/a0;
-	coeff_eq[2 + num*5] = (1 - filt_alpha[num] * A)/a0;
-	coeff_eq[3 + num*5] = -coeff_eq[1 + num*5];
-	coeff_eq[4 + num*5] = -(1 - filt_alpha[num]/A)/a0;
+	float A = powf(10.0f, gain/40.0f);
 
-//	eq_coef[num][0] = (1.0f + filt_alpha[num] * A)/a0;
-//	eq_coef[num][1] = (-2.0f * filt_cos[num])/a0;
-//	eq_coef[num][2] = (1.0f - filt_alpha[num] * A)/a0;
-//	eq_coef[num][3] = eq_coef[num][1];
-//	eq_coef[num][4] = (1.0f - filt_alpha[num]/A)/a0;
+	switch(band_type)
+	{
+		case PEAKING:
+		{
+			float a0 = 1.0f + filt_alpha[band_num]/A;
+			coeff_eq[0 + band_num*5] = (1 + filt_alpha[band_num] * A)/a0;
+			coeff_eq[1 + band_num*5] = (-2.0 * filt_cos[band_num])/a0;
+			coeff_eq[2 + band_num*5] = (1 - filt_alpha[band_num] * A)/a0;
+			coeff_eq[3 + band_num*5] = -coeff_eq[1 + band_num*5]; //-coeff_eq[1 + band_num*5];
+			coeff_eq[4 + band_num*5] = -(1 - filt_alpha[band_num]/A)/a0; //-(1 - filt_alpha[band_num]/A)/a0;
+			break;
+		}
+		case LOW_SHELF:
+		{
+			float a0 = (A+1) + (A-1)*filt_cos[band_num] + 2*sqrt(A)*filt_alpha[band_num];
+			coeff_eq[0 + band_num*5] = A * ((A + 1) - (A - 1)*filt_cos[band_num] + 2*sqrt(A)*filt_alpha[band_num])/a0;
+			coeff_eq[1 + band_num*5] = 2 * A * ((A - 1) - (A + 1)*filt_cos[band_num])/a0;
+			coeff_eq[2 + band_num*5] = A * ((A + 1) - (A - 1)*filt_cos[band_num] - 2*sqrt(A)*filt_alpha[band_num])/a0;
+			coeff_eq[3 + band_num*5] = -2 * ((A - 1) + (A + 1)*filt_cos[band_num])/a0;
+			coeff_eq[4 + band_num*5] = ((A + 1) + (A - 1)*filt_cos[band_num] + 2*sqrt(A)*filt_alpha[band_num])/a0;
+			break;
+		}
+		case HIGH_SHELF:
+		{
+			float a0 = (A+1) - (A-1)*filt_cos[band_num] + 2*sqrt(A)*filt_alpha[band_num];
+			coeff_eq[0 + band_num*5] = A * ((A + 1) + (A - 1)*filt_cos[band_num] + 2*sqrt(A)*filt_alpha[band_num])/a0;
+			coeff_eq[1 + band_num*5] = -2 * A * ((A - 1) + (A + 1)*filt_cos[band_num])/a0;
+			coeff_eq[2 + band_num*5] = A * ((A + 1) + (A - 1)*filt_cos[band_num] - 2*sqrt(A)*filt_alpha[band_num])/a0;
+			coeff_eq[3 + band_num*5] = 2 * ((A - 1) - (A + 1)*filt_cos[band_num])/a0;
+			coeff_eq[4 + band_num*5] = ((A + 1) - (A - 1)*filt_cos[band_num] - 2*sqrt(A)*filt_alpha[band_num])/a0;
+			break;
+		}
+	}
 }
 
 

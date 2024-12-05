@@ -172,7 +172,7 @@ void set_parameters(void)
 	for(uint8_t i = 0 ; i < 5 ; i++)
 	{
 		filt_ini(i, current_preset.eq1.freq, current_preset.eq1.Q);
-		set_filt(i, current_preset.eq1.band_vol[i]);
+		set_filt(i, current_preset.eq1.band_vol[i], (band_type_t)current_preset.eq1.band_type[i]);
 	}
 
 	float low_pass = powf(195 - current_preset.eq1.lp_freq, 2.0f) * (19000.0f/powf(195.0f, 2.0f)) + 1000.0f;

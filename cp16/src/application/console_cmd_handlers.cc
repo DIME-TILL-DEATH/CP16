@@ -341,7 +341,7 @@ static void eq_volume_command_handler(TReadLine* rl, TReadLine::const_symbol_typ
 	     current_preset.eq1.band_vol[band_num] = val;
 
 	     filt_ini(band_num, current_preset.eq1.freq, current_preset.eq1.Q);
-	     set_filt(band_num, current_preset.eq1.band_vol[band_num]);
+	     set_filt(band_num, current_preset.eq1.band_vol[band_num], (band_type_t)current_preset.eq1.band_type[band_num]);
 	 }
 }
 
@@ -370,7 +370,7 @@ static void eq_freq_command_handler(TReadLine* rl, TReadLine::const_symbol_type_
 		 current_preset.eq1.freq[band_num] = val;
 
 		 filt_ini(band_num, current_preset.eq1.freq, current_preset.eq1.Q);
-		 set_filt(band_num, current_preset.eq1.band_vol[band_num]);
+		 set_filt(band_num, current_preset.eq1.band_vol[band_num], (band_type_t)current_preset.eq1.band_type[band_num]);
 	 }
 }
 
@@ -399,7 +399,7 @@ static void eq_q_command_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr
 		current_preset.eq1.Q[band_num] = val;
 
 		filt_ini(band_num, current_preset.eq1.freq, current_preset.eq1.Q);
-		set_filt(band_num, current_preset.eq1.band_vol[band_num]);
+		set_filt(band_num, current_preset.eq1.band_vol[band_num], (band_type_t)current_preset.eq1.band_type[band_num]);
 	}
 }
 
@@ -834,6 +834,30 @@ static void preset_wavs_info_command_handler ( TReadLine* rl , TReadLine::const_
 }
 */
 
+//====================================GEN 2 commands====================================
+static void eq1_band_type_command_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
+{
+	 uint8_t band_num = args[1][0] - 48;
+	 if(count == 2)
+	 {
+		 i2hex(current_preset.eq1.band_type[band_num], hex );
+
+		 msg_console("%s\n" , hex );
+		 return;
+	 }
+
+	 if(count == 3)
+	 {
+		 char* end;
+		 int32_t val = kgp_sdk_libc::strtol(args[2], &end, 16);
+		 current_preset.eq1.band_type[band_num] = val;
+
+		 filt_ini(band_num, current_preset.eq1.freq, current_preset.eq1.Q);
+		 set_filt(band_num, current_preset.eq1.band_vol[band_num], (band_type_t)current_preset.eq1.band_type[band_num]);
+	 }
+}
+//======================================================================================
+
 void ConsoleSetCmdHandlers(TReadLine* rl)
 {
   SetConsoleCmdDefaultHandlers(rl);
@@ -909,6 +933,8 @@ void ConsoleSetCmdHandlers(TReadLine* rl)
 
   rl->AddCommandHandler("iio", ind_in_out_command_handler);
 
+//====================================GEN 2 commands====================================
+  rl->AddCommandHandler("eq1_bt", eq1_band_type_command_handler);
 }
 
 //------------------------------------------------------------------------------
