@@ -30,7 +30,9 @@ extern float cab_data[] ;
 extern uint8_t impulse_buffer[];
 extern char name_buf[];
 
-extern uint8_t bank_pres[];enum  bank_pres_field_t { bpf_bank=0, bpf_preset=1 } ;
+extern uint8_t bank_pres[];
+
+enum  bank_pres_field_t { bpf_bank=0, bpf_preset=1 } ;
 
 inline uint8_t encode_preset( const uint8_t bank, const uint8_t preset )
 {
@@ -60,19 +62,6 @@ inline void decode_preset_dir( const uint8_t val, emb_string& preset_dir_name)
 	preset_dir_name += (size_t)preset;
 }
 
-inline void next_preset(uint8_t dir , bank_pres_field_t bpf)
-{
-    if(dir)
-    {
-	     bank_pres[bpf]++;
-	     bank_pres[bpf] &= 3;
-    }
-    else {
-  	  if(bank_pres[bpf] > 0)bank_pres[bpf]--;
-  	  else bank_pres[bpf] = 3;
-    }
-};
-
 extern uint8_t dir_use[];
 
 void save_sys(void);
@@ -85,7 +74,7 @@ bool load_ir(float* cd, std::emb_string& err_msg);
 void delete_current_cab(std::emb_string& err_msg, TReadLine* rl);
 bool console_out_currnt_cab(std::emb_string& err_msg, TReadLine* rl);
 bool console_out_currnt_nam(std::emb_string& err_msg, TReadLine* rl );
-bool console_out_full_nam(std::emb_string& err_msg, TReadLine* rl, bool interface2 );
+bool console_rns_out(std::emb_string& err_msg, TReadLine* rl, bool interface2 );
 bool console_fs_format(std::emb_string& err_msg, TReadLine* rl );
 bool console_fs_write_file(std::emb_string& err_msg, TReadLine* rl , const char* file_name);
 bool console_fs_delete_file(std::emb_string& err_msg, TReadLine* rl , const char* file_name);
@@ -95,7 +84,8 @@ bool console_fs_preset_load_wav_file_tmp(std::emb_string& err_msg, TReadLine* rl
 bool console_fs_preset_store_wav_file_tmp(std::emb_string& err_msg, TReadLine* rl , uint8_t preset);
 
 void console_dir_remove_wavs(const emb_string& dir_name );
-//void console_dir_wavs_info(const emb_string& dir_name, TReadLine* rl);
+
+bool get_dir_wav_names(const std::emb_string& dirPath, list<std::emb_string>& fileNamesList, TReadLine* rl);
 
 void save_map0(const uint8_t bank_preset);
 void load_map0(uint8_t& bank_preset);

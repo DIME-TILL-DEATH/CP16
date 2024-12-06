@@ -94,23 +94,23 @@ class TReadLine
 		bool echo ;
 
 	public:
-			inline TReadLine () { echo = true; } ;
+			inline TReadLine () { echo = false; }; //true; } ;
 			inline ~TReadLine() { symbol_handler_map.clear(); } ;
 			int Init(size_t history_depth , size_t line_len );
 			void Process();
 			void inline AddCommandHandler( const_symbol_type_ptr_t command , command_handler_t handler )
-				{
-					command_handler_map.insert ( command_map_pair_t(command,handler) ) ;
-				}
+			{
+				command_handler_map.insert ( command_map_pair_t(command,handler) ) ;
+			}
 			void inline RemoveCommandHandler( const_symbol_type_ptr_t command )
-				{
-					command_handler_map.erase ( command_handler_map.find(command)) ;
-				}
+			{
+				command_handler_map.erase ( command_handler_map.find(command)) ;
+			}
 			void inline GetCommandHandlerMapIterator( command_handler_map_iterator_t& begin, command_handler_map_iterator_t& end )
-				{
-					begin = command_handler_map.begin() ;
-					end = command_handler_map.end();
-				}
+			{
+				begin = command_handler_map.begin() ;
+				end = command_handler_map.end();
+			}
 
 			inline void Enable( state_fnc enable ) { this->enable = enable ; }
 			inline state_fnc Enable() {  return enable ; }

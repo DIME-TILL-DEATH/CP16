@@ -53,7 +53,8 @@ void __attribute__ ((noinline)) TReadLine::MakeArgv( symbol_type_ptr_t s, const_
 
 void TReadLine::enter(TReadLine* rl )
 {
-	rl->send_char ( '\r' ) ;
+	if(rl->echo) rl->send_char('\r');
+
 	symbol_type_ptr_t command_line = *(rl->current) ;
 
         // обновление списка истории
@@ -219,27 +220,26 @@ void TReadLine::Process()
 {
 	int c;
 	while ( recv_char(c) != -1 )
-      {
-	    // call handler for symbol c
-            symbol_handler_map_t::iterator it = symbol_handler_map.find(c) ;
-            if ( it != symbol_handler_map.end())
-            	{
-            	    take();
-                    (*it).second( this ) ;
-                    give();
-            	}
+	{
+		// call handler for symbol c
+		symbol_handler_map_t::iterator it = symbol_handler_map.find(c) ;
+		if ( it != symbol_handler_map.end())
 		{
-			if ( c < 32 ) return ;
-			if (echo)
-			    send_char (c) ;
-			if ( pos < length )
-				{
-					(*current)[pos++] = c ;
-					(*current)[pos] = 0 ;
-				}
-
+			take();
+			(*it).second( this ) ;
+			give();
 		}
-     }
+
+		if ( c < 32 ) return ;
+		if (echo)
+			send_char (c) ;
+
+		if ( pos < length )
+		{
+			(*current)[pos++] = c ;
+			(*current)[pos] = 0 ;
+		}
+	}
 }
 //--------------------------------------------------------------------------
 int TReadLine::SendBuf( const_symbol_type_ptr_t buf , size_t size )

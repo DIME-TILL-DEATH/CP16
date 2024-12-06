@@ -5,6 +5,7 @@
 #include "console.h"
 
 #include "preset.h"
+#include <list.h>
 
 
 float cab_data[1024] ;
@@ -24,7 +25,7 @@ uint8_t bank_pres[2] = {0, 0};
 
 constexpr char volume_label[] = FIRMWARE_NAME;
 
-float convert ( uint8_t* in )
+float convert(uint8_t* in)
 {
     int32_t d = 0;
     float out ;
@@ -32,45 +33,46 @@ float convert ( uint8_t* in )
     d |=(in[1])<<16;
     d |=(in[2])<<24;
 
-    d = d / 256 ;
-    out = d/8388607.0f ;
-    return out ;
+    d = d / 256;
+    out = d/8388607.0f;
+    return out;
 }
 
-static inline bool dir_get_wav( const emb_string& dir_name,  std::emb_string& wav_file_name )
+static inline bool dir_get_wav( const emb_string& dir_name,  std::emb_string& wav_file_name)
 {
-  FILINFO fno;
-  DIR dir;
-  char *fn;   /* This function assumes non-Unicode configuration */
-  #if _USE_LFN
-    const size_t sz = _MAX_LFN + 1 ;
-    char* lfn = new char[sz];   /* Buffer to store the LFN */
-    fno.lfname = lfn;
-    fno.lfsize = sz ;
-  #endif
+	FILINFO fno;
+	DIR dir;
+	char *fn;   /* This function assumes non-Unicode configuration */
 
-  bool result = false ;
+#if _USE_LFN
+	const size_t sz = _MAX_LFN + 1;
+	char* lfn = new char[sz];   /* Buffer to store the LFN */
+	fno.lfname = lfn;
+	fno.lfsize = sz;
+#endif
 
-  FRESULT res = f_opendir(&dir, dir_name.c_str());                       /* Open the directory */
-  if (res == FR_OK)
-	  {
-		  for (;;)
-		  {
-			  res = f_readdir(&dir, &fno);                   /* Read a directory item */
-			  if (res != FR_OK || fno.fname[0] == 0)
-			  {
-				  result = false ;  /* Break on error or end of dir */
-				  break ;
-			  }
+	bool result = false ;
 
-       	      #if _USE_LFN
-                 fn = *fno.lfname ? fno.lfname : fno.fname;
-                 uint32_t i = 0;
-                 while(fn[i])name_buf[i] = fn[i++];
-                 name_buf[i] = 0;
-       	      #else
-                 fn = fno.fname;
-       	      #endif
+	FRESULT res = f_opendir(&dir, dir_name.c_str());                       /* Open the directory */
+	if (res == FR_OK)
+	{
+		for (;;)
+		{
+			res = f_readdir(&dir, &fno);                   /* Read a directory item */
+			if (res != FR_OK || fno.fname[0] == 0)
+			{
+				result = false ;  /* Break on error or end of dir */
+				break ;
+			}
+
+			#if _USE_LFN
+				fn = *fno.lfname ? fno.lfname : fno.fname;
+				uint32_t i = 0;
+				while(fn[i]) name_buf[i] = fn[i++];
+				name_buf[i] = 0;
+			#else
+				fn = fno.fname;
+			#endif
               if ( fno.fattrib & AM_DIR)
                    continue ;
               else
@@ -103,47 +105,18 @@ static inline bool dir_get_wav( const emb_string& dir_name,  std::emb_string& wa
 static inline void dir_remove_wavs_raw(const emb_string& dir_name )
 {
 	  emb_string  wav_to_delete ;
-	  FRESULT res ;
 	  while ( dir_get_wav(dir_name, wav_to_delete ))
 	  {
-		  res = f_unlink((dir_name + "/" + wav_to_delete).c_str());
+		  f_unlink((dir_name + "/" + wav_to_delete).c_str());
 	  }
 }
-
-#if 0
-static inline void dir_info_wavs_raw(const emb_string& dir_name, TReadLine* rl )
-{
-
-	emb_string  wav_to_info ;
-	  FRESULT res ;
-
-	  DIR dir;         /* Directory object */
-	  FILINFO fno;    /* File information */
-
-	  res = f_opendir(&dir, dir_name.c_str());
-
-
-	  res = f_readdir (&dir, &fno );
-
-	  while (res == FR_OK && fno.fname[0])
-	  {
-		      msg_console("%s ", fno.fname);
-		      char size_str[16] ;
-		      kgp_sdk_libc::uitoa(fno.fsize, size_str, 10);
-		      msg_console("%s\n", size_str);
-		      res = f_readdir (&dir, &fno );               /* Search for next item */
-	  }
-	  f_closedir(&dir);
-      msg_console("END\n") ;
-}
-#endif
 
 void delete_current_cab(std::emb_string& err_msg, TReadLine* rl)
 {
 	FATFS fs;
 	FRESULT res ;
-	FIL file;
-	UINT f_size;
+//	FIL file;
+//	UINT f_size;
 	f_mount ( &fs , "0:",  1);
 		        emb_string dir_name;
 		        emb_string file_name;
@@ -163,7 +136,7 @@ void delete_current_cab(std::emb_string& err_msg, TReadLine* rl)
 		           fno.lfsize = sz ;
 		        #endif
 
-		       bool result = false ;
+//		       bool result = false ;
 
 		       res = f_opendir(&dir, dir_name.c_str());                       /* Open the directory */
 		        if (res == FR_OK)
@@ -215,7 +188,7 @@ bool console_out_currnt_cab(std::emb_string& err_msg, TReadLine* rl )
 	FATFS fs;
 	FRESULT res ;
 	FIL file;
-	UINT f_size;
+//	UINT f_size;
 	res = f_mount ( &fs , "0:",  1);
 
     emb_string dir_name;
@@ -269,8 +242,8 @@ bool console_out_currnt_nam(std::emb_string& err_msg, TReadLine* rl )
 	FATFS fs;
 	        FRESULT res ;
 	        bool result;
-	        FIL file;
-	        UINT f_size;
+//	        FIL file;
+//	        UINT f_size;
 	        f_mount ( &fs , "0:",  1);
 	        emb_string dir_name;
 	        dir_name = "/Bank_";
@@ -302,74 +275,117 @@ bool console_out_currnt_nam(std::emb_string& err_msg, TReadLine* rl )
 	        return result ;
 }
 
-bool console_out_full_nam(std::emb_string& err_msg, TReadLine* rl, bool interface2 )
+bool console_rns_out(std::emb_string& err_msg, TReadLine* rl, bool interface2)
 {
+	msg_console("%s\r", "rns");
 	FATFS fs;
 	extern char hex[3];
-	        FIL file;
-	        UINT f_size;
-	        f_mount ( &fs , "0:",  1);
-	        emb_string dir_name;
-	        emb_string file_name;
-	        uint8_t cab_fl;
-	        bool result;
-	        for(uint8_t i = 0 ; i < 4 ; i++)
-	        {
-	          for(uint8_t y = 0 ; y < 4 ; y++)
-	          {
-	        	  dir_name = "/Bank_";
-	        	  dir_name += (size_t)i;
-	        	  dir_name += "/Preset_";
-	        	  dir_name += (size_t)y;
-	        	  file_name = dir_name + "/preset.pan";
-	              f_open(&file, file_name.c_str() , FA_READ);
-	              f_lseek (&file, 8);
-	              f_read(&file, &cab_fl , 1 , &f_size);
-	              f_close(&file);
+	FIL file;
+	UINT f_size;
+	f_mount ( &fs , "0:",  1);
+	emb_string dir_name;
+	emb_string file_name;
+	uint8_t cab_fl;
+	bool result;
+	for(uint8_t b = 0; b < 4; b++)
+	{
+		for(uint8_t p = 0; p < 4; p++)
+		{
+			dir_name = "/Bank_";
+			dir_name += (size_t)b;
+			dir_name += "/Preset_";
+			dir_name += (size_t)p;
+			file_name = dir_name + "/preset.pan";
+			f_open(&file, file_name.c_str() , FA_READ);
+			f_lseek (&file, 8);
+			f_read(&file, &cab_fl , 1 , &f_size);
+			f_close(&file);
 
-	           if ( interface2 )
-	           {
-	              i2hex( (i << 4) | y , hex);
-	              msg_console("%s\n" , hex ) ; // вывод индекса пресета
-	           }
-	        	  result = dir_get_wav( dir_name,  file_name ) ;
+			if ( interface2 )
+			{
+				i2hex( (b << 4) | p , hex);
+				msg_console("%s\n" , hex ) ; // вывод индекса пресета
+			}
+			result = dir_get_wav( dir_name,  file_name ) ;
 
-	        	  if (!result)
-	        	  {
-	        		  if ( interface2 )  msg_console("\t") ;
-                      msg_console("*\n") ;
-	        	  }
-	        	  else
-	        	  {
+			if (!result)
+			{
+				if ( interface2 )  msg_console("\t") ;
+				msg_console("*\n") ;
+			}
+			else
+			{
 
-	    		      if ( interface2 )
-	    		    	{
-		        		  FIL file ;
-		        		  f_open(&file, (dir_name + "/" + file_name).c_str() , FA_READ);
-		    		      char size_str[16] ;
-		    		      kgp_sdk_libc::uitoa(f_size(&file), size_str, 10);
-	    		    	  msg_console("\t%s %s\n" , file_name.c_str(), size_str ) ;
-	    		    	}
-	        		  else
-	        		    {
-		        		  msg_console("%s\n" , file_name.c_str() ) ;
-	        		    }
-	        		  f_close(&file);
-	        	  }
+			if ( interface2 )
+			{
+				FIL file ;
+				f_open(&file, (dir_name + "/" + file_name).c_str() , FA_READ);
+				char size_str[16] ;
+				kgp_sdk_libc::uitoa(f_size(&file), size_str, 10);
+				msg_console("\t%s %s\n" , file_name.c_str(), size_str ) ;
+				}
+				else
+				{
+				  msg_console("%s\n" , file_name.c_str() ) ;
+				}
+				f_close(&file);
+			}
 
+			i2hex(cab_fl,hex);
+			if (interface2) msg_console("\t" , hex ) ;
+			msg_console("%s\n" , hex ) ;
+		}
+	}
+	msg_console("END\n") ;
 
+	f_mount(0, "0:", 0);
+	return result ;
+}
 
+bool get_dir_wav_names(const std::emb_string& dirPath, list<std::emb_string>& fileNamesList, TReadLine* rl)
+{
+	FATFS fs;
+	f_mount (&fs, "0:", 1);
 
-	        	  i2hex(cab_fl,hex);
-	        	  if (interface2) msg_console("\t" , hex ) ;
-	        	  msg_console("%s\n" , hex ) ;
-	          }
-	        }
+	FRESULT res;
 
-	        msg_console("END\n") ;
+	DIR dir;         /* Directory object */
+	FILINFO fileInfo;    /* File information */
+#if _USE_LFN
+    const size_t sz = _MAX_LFN + 1 ;
+    char* lfn = new char[sz];   /* Buffer to store the LFN */
+    fileInfo.lfname = lfn;
+    fileInfo.lfsize = sz ;
+#endif
 
-	         f_mount(0, "0:", 0);
-	         return result ;
+	res = f_opendir(&dir, dirPath.c_str());
+	if(res != FR_OK)
+	{
+		f_mount(0, "0:", 0);
+		return false;
+	}
+	res = f_readdir(&dir, &fileInfo);
+
+	while(res == FR_OK && fileInfo.fname[0])
+	{
+	#if _USE_LFN
+		char* fn  = *fileInfo.lfname ? fileInfo.lfname : fileInfo.fname;
+	#else
+		char* fn = fileInfo.fname;
+	#endif
+
+		emb_string reversedName = fn ;
+	    reverse(reversedName.begin(),reversedName.end()) ;
+		if (reversedName.find("vaw.") == 0)
+		{
+			fileNamesList.push_back(fn);
+		}
+
+		res = f_readdir(&dir, &fileInfo);               /* Search for next item */
+	}
+	f_closedir(&dir);
+	f_mount(0, "0:", 0);
+	return true;
 }
 
 bool console_fs_format(std::emb_string& err_msg, TReadLine* rl )
@@ -705,7 +721,12 @@ void flash_folder_init(void)
 		f_mount(&fs, "0:", 1);
 	}
 
-	emb_string hl_dir ;
+	emb_string hl_dir;
+	hl_dir = "/ir_library";
+	res = f_opendir(&dir, hl_dir.c_str());
+	f_closedir(&dir);
+	if(res != FR_OK) res = f_mkdir(hl_dir.c_str());
+
 	for(size_t i = 0 ; i < 4 ; i++)
 	{
 		hl_dir = "/Bank_";
@@ -755,11 +776,6 @@ void flash_folder_init(void)
 #endif
 
 	f_close(&file);
-
-	res = f_opendir(&dir, "/tmp_preset");
-	f_closedir(&dir);
-	if(res != FR_OK)res = f_mkdir("/tmp_preset");
-
 	f_mount(0, "0:", 0);
 }
 
@@ -790,7 +806,7 @@ bool console_fs_preset_copy_wav_file(std::emb_string& err_msg, TReadLine* rl , u
 
   bool result = false ;
   FATFS fs;
-  FRESULT res ;
+  FRESULT res;
 
   f_mount ( &fs , "0:",  1);
 
@@ -995,8 +1011,8 @@ bool console_fs_preset_load_wav_file_tmp(std::emb_string& err_msg, TReadLine* rl
 	  bool result = false ;
 	  FATFS fs;
 	  FRESULT res ;
-	  FIL file;
-	  UINT f_size;
+//	  FIL file;
+//	  UINT f_size;
 	  f_mount ( &fs , "0:",  1);
 
 	  FIL f_src ;
@@ -1038,7 +1054,7 @@ bool console_fs_preset_load_wav_file_tmp(std::emb_string& err_msg, TReadLine* rl
 	  // load WAV file
 	  FILINFO fno_src, fno_dst;
 	  DIR dir_src, dir_dst ;
-	  char *fn;   /* This function assumes non-Unicode configuration */
+//	  char *fn;   /* This function assumes non-Unicode configuration */
 	  #if _USE_LFN
 	     const size_t sz = _MAX_LFN + 1 ;
 	     char* lfn = new char[sz];   /* Buffer to store the LFN */
@@ -1107,16 +1123,6 @@ void console_dir_remove_wavs(const emb_string& dir_name )
 	  dir_remove_wavs_raw(dir_name) ;
 	  f_mount(0, "0:", 0);
 }
-
-/*
-void console_dir_wavs_info(const emb_string& dir_name, TReadLine* rl)
-{
-	  FATFS fs;
-	  f_mount ( &fs , "0:",  1);
-	  dir_info_wavs_raw(dir_name, rl) ;
-	  f_mount(0, "0:", 0);
-}
-*/
 
 
 void save_map0(const uint8_t bank_preset)

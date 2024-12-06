@@ -59,7 +59,7 @@ TConsoleTask::TConsoleTask(/*readline_io_t* readline_io,*/ const size_t rx_queue
 	  read_line->SetCommandNotFound(undefind_command_handler) ;
 
 	  // call user defined handler setter
-	  ConsoleSetCmdHandlers(read_line);
+	  consoleSetCmdHandlers(read_line);
 
 	  read_line->SetPromt("") ;
 

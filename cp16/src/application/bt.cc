@@ -19,15 +19,14 @@ size_t uart_send_buf( const char* buf , size_t size )
 
 char* uart_send_string( const char* s )
 {
-        size_t length = kgp_sdk_libc::strlen(s)  ;
+        size_t length = kgp_sdk_libc::strlen(s);
 
         if (!length)
           return (char*)s ;
-        uart_send_buf( s , length ) ;
+        uart_send_buf(s , length);
+
         return (char*)s ;
 }
-
-
 
 //---------------------------------------------------------------------------
 int uart_recv_char (int& c)

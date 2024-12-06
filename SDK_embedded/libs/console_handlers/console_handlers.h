@@ -4,6 +4,6 @@
 #include "readline.h"
 #include "console.h"
 
-void SetConsoleCmdDefaultHandlers(TReadLine* rl);
+void setConsoleCmdDefaultHandlers(TReadLine* rl);
 
 #endif

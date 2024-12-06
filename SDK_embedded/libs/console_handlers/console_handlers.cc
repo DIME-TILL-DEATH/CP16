@@ -317,7 +317,7 @@ static void flash_erase_command_handler ( TReadLine* rl , TReadLine::const_symbo
       NVIC_SystemReset();
 }
 //------------------------------------------------------------------------------
-void SetConsoleCmdDefaultHandlers(TReadLine* rl)
+void setConsoleCmdDefaultHandlers(TReadLine* rl)
 {
 	rl->AddCommandHandler("help" , help_command_handler);
 	rl->AddCommandHandler("reset" , reset_command_handler);
