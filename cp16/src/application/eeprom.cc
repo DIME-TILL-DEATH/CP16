@@ -522,52 +522,28 @@ void EEPROM_getPresetCabPath(uint8_t bank, uint8_t preset, ir_path_data_t& outCa
 	dirName += (size_t)preset; //bank_pres[1];
 
 	// load WAV file
-	FILINFO fno;
-	init_file_info(fno);
+	FILINFO fileInfo;
+	init_file_info(fileInfo);
 	DIR dir;
-	res = f_opendir(&dir, dirName.c_str());
-	if (res == FR_OK)
+
+	f_opendir(&dir, dirName.c_str());
+	res = f_findfirst(&dir, &fileInfo, dirName.c_str() , "*.wav");
+	if(res == FR_OK)
 	{
-		for (;;)
-		{
-			res = f_readdir(&dir, &fno);  /* Read a directory item */
-			if (res != FR_OK || fno.fname[0] == 0)
-			{
-				break;  /* Break on error or end of dir */
-			}
-
-		#if _USE_LFN
-			char *fn = *fno.lfname ? fno.lfname : fno.fname;
-		#else
-			char* fn = fno.fname;
-		#endif
-
-			if(fno.fattrib & AM_DIR) continue;  /* It is a directory */
-			else
-			{
-				emb_string irFilePath = fn;
-				reverse(irFilePath.begin(), irFilePath.end());
-				if (irFilePath.find("vaw.") == 0)
-				{
-					outCabPath.irFileName = fn;
-					outCabPath.irLinkPath = dirName;
-					f_closedir(&dir);
-					f_mount(0, "0:", 0);
-					return;
-				}
-				else
-				{
-					outCabPath.irFileName.clear();
-					outCabPath.irLinkPath.clear();
-					f_closedir(&dir);
-					f_mount(0, "0:", 0);
-					return;
-				}
-			}
-		}
+	#if _USE_LFN
+		char* fn  = *fileInfo.lfname ? fileInfo.lfname : fileInfo.fname;
+	#else
+		char* fn = fileInfo.fname;
+	#endif
+		outCabPath.irFileName = fn;
+		outCabPath.irLinkPath = dirName;
+	}
+	else
+	{
+		outCabPath.irFileName.clear();
+		outCabPath.irLinkPath.clear();
 	}
 }
-
 
 bool EEPROM_getDirWavNames(const std::emb_string& dirPath, list<std::emb_string>& fileNamesList, TReadLine* rl)
 {

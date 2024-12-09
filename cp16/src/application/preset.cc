@@ -22,7 +22,7 @@ void PRESET_init()
 	default_legacy_preset.eq_band_vol[3] = 15;
 	default_legacy_preset.eq_band_vol[4] = 15;
 
-	default_legacy_preset.preset_volume = 31;
+	default_legacy_preset.preset_volume = 20;
 
 	default_legacy_preset.cab_on = 1;
 
