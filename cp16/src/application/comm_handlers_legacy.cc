@@ -169,18 +169,24 @@ static void current_cabinet_comm_handler(TReadLine* rl, TReadLine::const_symbol_
 
 static void read_name_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
 {
-	msg_console("%s\r", args[0]);
-	std::emb_string err_str ;
-	console_out_currnt_nam(err_str, rl);
+	ir_path_data_t path_data;
+	EEPROM_getPresetCabPath(bank_pres[0], bank_pres[1], path_data);
+	msg_console("%s\r%s\n", args[0], path_data.irFileName.c_str());
 }
 
 static void rns_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
 {
-	std::emb_string err_str ;
-	if(count == 1)
-		console_rns_out(err_str, rl, false);
-	else
-		console_rns_out(err_str, rl, true);
+	msg_console("rns\r");
+	for(int b = 0; b<4; b++)
+		for(int p = 0; p<4; p++)
+		{
+			save_data_t load_data;
+			ir_path_data_t link_data;
+			EEPROM_loadPreset(b, p, load_data, link_data);
+			EEPROM_getPresetCabPath(b, p, link_data);
+			msg_console("%s\n0%d\n", link_data.irFileName.c_str(), load_data.parametersData.cab_sim_on);
+		}
+	msg_console("END\n");
 }
 
 static void get_state_comm_handler (TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args, const size_t count)
@@ -256,12 +262,12 @@ static void eq_volume_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_p
 		 {
 			 char* end ;
 			 uint32_t val = kgp_sdk_libc::strtol ( args[2] , &end, 16 );
-			 current_preset.eq1.band_vol[band_num] = val;
+			 current_preset.eq1.gain[band_num] = val;
 
 			 filt_ini(band_num, current_preset.eq1.freq, current_preset.eq1.Q);
-			 set_filt(band_num, current_preset.eq1.band_vol[band_num], (band_type_t)current_preset.eq1.band_type[band_num]);
+			 set_filt(band_num, current_preset.eq1.gain[band_num], (band_type_t)current_preset.eq1.band_type[band_num]);
 		 }
-		 i2hex(current_preset.eq1.band_vol[band_num], hex);
+		 i2hex(current_preset.eq1.gain[band_num], hex);
 		 msg_console("%s %d %s\r\n", args[0], band_num, hex);
 	}
 }
@@ -279,7 +285,7 @@ static void eq_freq_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr
 			 current_preset.eq1.freq[band_num] = val;
 
 			 filt_ini(band_num, current_preset.eq1.freq, current_preset.eq1.Q);
-			 set_filt(band_num, current_preset.eq1.band_vol[band_num], (band_type_t)current_preset.eq1.band_type[band_num]);
+			 set_filt(band_num, current_preset.eq1.gain[band_num], (band_type_t)current_preset.eq1.band_type[band_num]);
 		 }
 		 i2hex(current_preset.eq1.freq[band_num], hex);
 		 msg_console("%s %d %s\r\n", args[0], band_num, hex);
@@ -299,7 +305,7 @@ static void eq_q_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t*
 			current_preset.eq1.Q[band_num] = val;
 
 			filt_ini(band_num, current_preset.eq1.freq, current_preset.eq1.Q);
-			set_filt(band_num, current_preset.eq1.band_vol[band_num], (band_type_t)current_preset.eq1.band_type[band_num]);
+			set_filt(band_num, current_preset.eq1.gain[band_num], (band_type_t)current_preset.eq1.band_type[band_num]);
 		}
 		i2hex(current_preset.eq1.Q[band_num], hex);
 		msg_console("%s %d %s\r\n", args[0], band_num, hex);
@@ -356,16 +362,9 @@ static void esc_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* 
 static void load_current_cab_command_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
 {
 	msg_console("%s\r\n", args[0]);
-	emb_string err_msg;
-	if(load_ir(cab_data, err_msg) != true)
-	{
-		processing_params.impulse_avaliable = 0;
-	}
-	else
-	{
-		dsp_upload_ir(cab_data);
-		processing_params.impulse_avaliable = 1;
-	}
+	ir_path_data_t link_data;
+	EEPROM_getPresetCabPath(bank_pres[0], bank_pres[1], link_data);
+	CS_activateIr(link_data.irLinkPath + "/" + link_data.irFileName);
 	msg_console("END\n") ;
 }
 

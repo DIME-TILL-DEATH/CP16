@@ -46,7 +46,7 @@ void TCSTask::Code()
 	PRESET_init();
 
 	DSP_init();
-	flash_folder_init();
+	EEPROM_folderInit();
 
 	adau_init_ic();
 
@@ -64,7 +64,7 @@ void TCSTask::Code()
 		kgp_sdk_libc::memset(system_parameters.firmware_version, 0, FIRMWARE_STRING_SIZE);
 		kgp_sdk_libc::strcpy(system_parameters.firmware_version, version_string);
 
-		save_sys();
+		EEPROM_saveSys();
 	}
 
 	adau_run();
@@ -126,10 +126,25 @@ void preset_change(void)
 	fade_out();
 	while(!is_fade_complete());
 
-	load_preset();
+	kgp_sdk_libc::memset(current_preset_name, 0, sizeof(PRESET_NAME_LENGTH));
 
+	save_data_t load_data;
+
+	EEPROM_loadPreset(bank_pres[0], bank_pres[1], load_data, current_ir_link);
+	kgp_sdk_libc::memcpy(&current_preset, &load_data.parametersData, sizeof(preset_data_t));
+	kgp_sdk_libc::memcpy(current_preset_name, load_data.name, sizeof(PRESET_NAME_LENGTH));
+
+	ir_path_data_t link_data;
+	EEPROM_getPresetCabPath(bank_pres[0], bank_pres[1], link_data);
+	CS_activateIr(link_data.irLinkPath + "/" + link_data.irFileName);
+	set_parameters();
+	fade_in();
+}
+
+void CS_activateIr(const emb_string& irFilePath)
+{
 	emb_string err_msg;
-	if(load_ir(cab_data, err_msg) != true)
+	if(EEPROM_loadIr(cab_data, irFilePath, err_msg) != true)
 	{
 		processing_params.impulse_avaliable = 0;
 		led_pulse_config(1);
@@ -140,8 +155,6 @@ void preset_change(void)
 		processing_params.impulse_avaliable = 1;
 		led_pulse_config(0);
 	}
-	set_parameters();
-	fade_in();
 }
 
 void set_parameters(void)
@@ -172,7 +185,7 @@ void set_parameters(void)
 	for(uint8_t i = 0 ; i < 5 ; i++)
 	{
 		filt_ini(i, current_preset.eq1.freq, current_preset.eq1.Q);
-		set_filt(i, current_preset.eq1.band_vol[i], (band_type_t)current_preset.eq1.band_type[i]);
+		set_filt(i, current_preset.eq1.gain[i], (band_type_t)current_preset.eq1.band_type[i]);
 	}
 
 	float low_pass = powf(195 - current_preset.eq1.lp_freq, 2.0f) * (19000.0f/powf(195.0f, 2.0f)) + 1000.0f;

@@ -34,49 +34,50 @@ enum{
 
 typedef struct
 {
-	uint8_t eq_band_vol[EQ_BANDS_COUNT];
+    uint8_t eq_band_vol[EQ_BANDS_COUNT];
 
-	uint8_t early_volume;
-	uint8_t early_type;
-	uint8_t preset_volume;
-	uint8_t cab_on;
-	uint8_t eq_on;
-	uint8_t early_on;
+    uint8_t early_volume;
+    uint8_t early_type;
+    uint8_t preset_volume;
+    uint8_t cab_on;
+    uint8_t eq_on;
+    uint8_t early_on;
 
-	uint8_t amp_on;
-	uint8_t amp_volume;
-	uint8_t amp_slave;
-	uint8_t amp_type;
+    uint8_t amp_on;
+    uint8_t amp_volume;
+    uint8_t amp_slave;
+    uint8_t amp_type;
 
-	uint8_t preamp_on;
-	uint8_t preamp_volume;
-	uint8_t preamp_low;
-	uint8_t preamp_mid;
-	uint8_t preamp_high;
+    uint8_t preamp_on;
+    uint8_t preamp_volume;
+    uint8_t preamp_low;
+    uint8_t preamp_mid;
+    uint8_t preamp_high;
 
-	uint8_t gate_on;
-	uint8_t gate_threshold;
-	uint8_t gate_decay;
+    uint8_t gate_on;
+    uint8_t gate_threshold;
+    uint8_t gate_decay;
 
-	uint8_t compressor_on;
-	uint8_t compressor_sustain;
-	uint8_t compressor_volume;
+    uint8_t compressor_on;
+    uint8_t compressor_sustain;
+    uint8_t compressor_volume;
 
-	uint8_t eq_freq[EQ_BANDS_COUNT];
-	uint8_t eq_Q[EQ_BANDS_COUNT];
+    uint8_t eq_freq[EQ_BANDS_COUNT];
+    uint8_t eq_Q[EQ_BANDS_COUNT];
 
-	uint8_t lp_freq;
-	uint8_t hp_freq;
+    uint8_t lp_freq;
+    uint8_t hp_freq;
 
-	uint8_t hp_on;
-	uint8_t lp_on;
+    uint8_t hp_on;
+    uint8_t lp_on;
 
-	uint8_t presence_on;
-	uint8_t presence_vol;
+    uint8_t presence_on;
+    uint8_t presence_vol;
 
-	uint8_t eq_pre;
+    uint8_t eq_pre;
 
 }preset_data_legacy_t;
+
 
 extern preset_data_legacy_t default_legacy_preset;
 
@@ -84,92 +85,109 @@ extern preset_data_legacy_t default_legacy_preset;
 
 typedef struct
 {
-	uint8_t on;
-	uint8_t type;
-	uint8_t threshold;
-	uint8_t decay;
-	uint8_t reserved[4];
+    uint8_t on;
+    uint8_t type;
+    uint8_t threshold;
+    uint8_t decay;
+    uint8_t reserved[4];
 }gate_data_t;
 
 typedef struct
 {
-	uint8_t on;
-	uint8_t type;
-	uint8_t sustain;
-	uint8_t volume;
-	uint8_t reserved[4];
+    uint8_t on;
+    uint8_t type;
+    uint8_t sustain;
+    uint8_t volume;
+    uint8_t reserved[4];
 }compressor_data_t;
 
 typedef struct
 {
-	uint8_t on;
-	uint8_t type;
-	uint8_t volume;
-	uint8_t low;
-	uint8_t mid;
-	uint8_t high;
-	uint8_t reserved[2];
+    uint8_t on;
+    uint8_t type;
+    uint8_t volume;
+    uint8_t low;
+    uint8_t mid;
+    uint8_t high;
+    uint8_t reserved[2];
 }preamp_data_t;
 
 typedef struct
 {
-	uint8_t on;
-	uint8_t type;
-	uint8_t volume;
-	uint8_t slave;
-	uint8_t presence_on;
-	uint8_t presence_vol;
-	uint8_t reserved[2];
+    uint8_t on;
+    uint8_t type;
+    uint8_t volume;
+    uint8_t slave;
+    uint8_t presence_on;
+    uint8_t presence_vol;
+    uint8_t depth;
+    uint8_t reserved[1];
 }pa_data_t;
 
 typedef struct
 {
-	uint8_t parametric_on;
-	uint8_t hp_on;
-	uint8_t lp_on;
+    uint8_t parametric_on;
+    uint8_t hp_on;
+    uint8_t lp_on;
 
-	uint8_t lp_freq;
-	uint8_t hp_freq;
+    uint8_t lp_freq;
+    uint8_t hp_freq;
 
-	uint8_t band_vol[EQ_BANDS_COUNT];
-	uint8_t freq[EQ_BANDS_COUNT];
-	uint8_t Q[EQ_BANDS_COUNT];
-	uint8_t band_type[EQ_BANDS_COUNT];
+    int8_t gain[EQ_BANDS_COUNT];
+//    uint16_t freq[EQ_BANDS_COUNT];
+    uint8_t freq[EQ_BANDS_COUNT];
+    uint8_t reserv[EQ_BANDS_COUNT];
 
-	uint8_t reserved[7];
-}eq_t;
+    uint8_t Q[EQ_BANDS_COUNT]; //    int8_t Q[EQ_BANDS_COUNT];
+    uint8_t band_type[EQ_BANDS_COUNT];
+    uint8_t band_on[EQ_BANDS_COUNT];
+
+    uint8_t reserved[5];
+}eq_t; //42
 
 typedef struct
 {
-	uint8_t on;
-	uint8_t type;
-	uint8_t volume;
-	uint8_t reserved[5];
+    uint8_t on;
+    uint8_t type;
+    uint8_t volume;
+    uint8_t reserved[5];
 }reverb_data_t;
 
 typedef struct
 {
-	uint8_t name[16];
-	DSP_mono_module_type_t modules_order[16];
-	uint8_t volume;
+    uint8_t modules_order[14];
+    uint8_t volume;
+    uint8_t cab_sim_on;
 
-	uint8_t reserved_pre[63];
+    gate_data_t 		gate;
+    compressor_data_t 	compressor;
+    preamp_data_t		preamp;
+    pa_data_t			power_amp;
 
-	gate_data_t 		gate;
-	compressor_data_t 	compressor;
-	preamp_data_t		preamp;
-	pa_data_t			power_amp;
+    eq_t eq1;
+    eq_t eq2;
 
-	eq_t eq1;
-	eq_t eq2;
+    // Tremolo, phaser, flanger, chorus, WAH
+    uint8_t reserved[22];
 
-	reverb_data_t reverb;
-
-	// IR data
-	uint8_t cab_sim_on;
-	uint8_t reserved_post[3];
+    reverb_data_t reverb;
 }preset_data_t;
 
+#define PRESET_NAME_LENGTH 32
+typedef struct
+{
+    char name[PRESET_NAME_LENGTH];
+    preset_data_t parametersData;
+}save_data_t;
+
+typedef struct
+{
+	std::emb_string irFileName;
+	std::emb_string irLinkPath;
+}ir_path_data_t;
+
+extern char current_preset_name[PRESET_NAME_LENGTH];
+extern ir_path_data_t current_ir_link;
 extern preset_data_t current_preset;
 
 void PRESET_init();

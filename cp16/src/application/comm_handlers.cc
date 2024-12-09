@@ -3,7 +3,6 @@
 
 #include "cs.h"
 
-#include "math.h"
 #include "ff.h"
 
 #include "gpio.h"
@@ -19,6 +18,23 @@
 #include "DSP/sound_processing.h"
 #include "DSP/Reverb/reverb.h"
 
+void getDataPartFromStream(TReadLine* rl, char* buf, int* dataSize, int maxSize)
+{
+	kgp_sdk_libc::memset(buf, 0, maxSize);
+	int streamPos = 0;
+	do
+	{
+		int c;
+		rl->RecvChar(c);
+		if (c == '\r' || c == '\n')
+		{
+			if(dataSize)
+				*dataSize = streamPos;
+			return;
+		}
+		buf[streamPos++] = c;
+	}while(streamPos < maxSize);
+}
 
 static void amtid_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
 {
@@ -32,6 +48,21 @@ static void amtver_command_handler(TReadLine* rl, TReadLine::const_symbol_type_p
 {
 	msg_console("%s\r%s\n", args[0], ver);
 	msg_console("END\n");
+}
+
+static void preset_list_command_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
+{
+	msg_console("plist");
+	for(int b = 0; b<4; b++)
+		for(int p = 0; p<4; p++)
+		{
+			save_data_t load_data;
+			ir_path_data_t link_data;
+			EEPROM_loadPreset(b, p, load_data, link_data);
+			EEPROM_getPresetCabPath(b, p, link_data);
+			msg_console("\r%s|0%d|%s", link_data.irFileName.c_str(), load_data.parametersData.cab_sim_on, load_data.name);
+		}
+	msg_console("\n");
 }
 
 static void get_mode_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
@@ -48,7 +79,7 @@ static void get_mode_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_pt
 
 		i2hex(system_parameters.output_mode, hex);
 		msg_console("%s\r%s\n", args[0], hex);
-		save_sys();
+		EEPROM_saveSys();
 	}
 }
 
@@ -64,10 +95,50 @@ static void get_bp_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_
 	msg_console("\n");
 }
 
+static void pname_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
+{
+	if(count>1)
+	{
+		std::emb_string command = args[1];
+
+		if(command == "set")
+		{
+			int recievedBytes;
+			getDataPartFromStream(rl, current_preset_name, &recievedBytes, PRESET_NAME_LENGTH);
+		}
+		msg_console("pname\r%s\n", current_preset_name);
+	}
+}
+
+static void state_comm_handler (TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args, const size_t count)
+{
+	msg_console("%s", args[0]);
+	if(count>1)
+	{
+		std::emb_string command = args[1];
+
+		msg_console(" %s", args[1]);
+		if(command == "set")
+		{
+
+		}
+	}
+	msg_console("\r");
+	char hex[3] = {0,0,0} ;
+	char buffer[sizeof(preset_data_t)];
+	kgp_sdk_libc::memcpy(buffer, &current_preset, sizeof(preset_data_t));
+	for (size_t i = 0; i < sizeof(preset_data_t); i++)
+	{
+		i2hex(buffer[i], hex);
+		msg_console("%s", hex);
+	}
+	msg_console("\n");
+}
+
 static void save_pres_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
 {
 	msg_console("%s\r\n", args[0]);
-	save_preset();
+	EEPROM_savePreset();
 	msg_console("END\n") ;
 }
 
@@ -85,7 +156,7 @@ static void ls_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* a
 	std::emb_string dirPath(args[1]);
 	list<std::emb_string> fileNamesList;
 
-	if(get_dir_wav_names(dirPath, fileNamesList, rl))
+	if(EEPROM_getDirWavNames(dirPath, fileNamesList, rl))
 	{
 		if(fileNamesList.empty())
 		{
@@ -103,6 +174,43 @@ static void ls_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* a
 	else
 	{
 		msg_console(" OPEN_DIR_FAILED\r\n");
+	}
+}
+
+static void ir_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
+{
+	msg_console("ir ");
+	if(count < 2)
+	{
+		msg_console("error\rCOMMAND_INCORRECT\r\n");
+		return;
+	}
+	std::emb_string command = args[1];
+
+	const int bufferSize = 512;
+	char dataBuffer[bufferSize];
+
+	if(command == "info")
+	{
+		ir_path_data_t irPathData;
+		DWORD irSize;
+		EEPROM_getCurrentIrInfo(irPathData, irSize);
+		msg_console("info\r%s\r%s\r%d\n", irPathData.irLinkPath.c_str(), irPathData.irFileName.c_str(), irSize);
+	}
+
+	if(command == "link")
+	{
+		int recievedSize = 0;
+		getDataPartFromStream(rl, dataBuffer, &recievedSize, bufferSize);
+		current_ir_link.irFileName = dataBuffer;
+		getDataPartFromStream(rl, dataBuffer, &recievedSize, bufferSize);
+		current_ir_link.irLinkPath = dataBuffer;
+
+		// TODO check file exist
+		emb_string irFilePath = current_ir_link.irLinkPath + "/" + current_ir_link.irFileName;
+		CS_activateIr(irFilePath);
+
+		msg_console("link\r%s\r%s\n", current_ir_link.irFileName.c_str(), current_ir_link.irLinkPath.c_str());
 	}
 }
 //===============================================PARAMETERS COMM HANDLERS========================================================
@@ -275,7 +383,7 @@ static void eq1_band_type_command_handler(TReadLine* rl, TReadLine::const_symbol
 		 current_preset.eq1.band_type[band_num] = val;
 
 		 filt_ini(band_num, current_preset.eq1.freq, current_preset.eq1.Q);
-		 set_filt(band_num, current_preset.eq1.band_vol[band_num], (band_type_t)current_preset.eq1.band_type[band_num]);
+		 set_filt(band_num, current_preset.eq1.gain[band_num], (band_type_t)current_preset.eq1.band_type[band_num]);
 	 }
 }
 
@@ -320,12 +428,12 @@ static void fw_update_command_handler ( TReadLine* rl , TReadLine::const_symbol_
 
 static void programm_change_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
 {
-	char* end ;
+	char* end;
 
-	if (count >1)
+	if(count > 1)
 	{
 		uint32_t val = kgp_sdk_libc::strtol (args[1], &end, 16);
-		if (end != args[1])
+		if(end != args[1])
 		{
 			decode_preset(bank_pres, val);
 			preset_change();
@@ -334,7 +442,7 @@ static void programm_change_comm_handler(TReadLine* rl, TReadLine::const_symbol_
 			return;
 		}
 	}
-	msg_console("PARAM_ERROR\n") ;
+	msg_console("pc\rPARAM_ERROR\n") ;
 }
 
 static void preset_wav_copy_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
@@ -417,13 +525,20 @@ void consoleSetCmdHandlers(TReadLine* rl)
 	rl->AddCommandHandler("amtdev", amtid_comm_handler);
 	rl->AddCommandHandler("amtver", amtver_command_handler);
 
+	rl->AddCommandHandler("plist", preset_list_command_handler);
+
 	rl->AddCommandHandler("gm", get_mode_comm_handler);
 	rl->AddCommandHandler("gb", get_bp_comm_handler);
+
+	rl->AddCommandHandler("pname", pname_comm_handler);
+
+	rl->AddCommandHandler("state", state_comm_handler);
 
 	rl->AddCommandHandler("pc", programm_change_comm_handler);
 	rl->AddCommandHandler("sp", save_pres_comm_handler);
 
 	rl->AddCommandHandler("ls", ls_comm_handler);
+	rl->AddCommandHandler("ir", ir_comm_handler);
 
 	// *****************params comm handlers********
 	rl->AddCommandHandler("ce", cabinet_enable_comm_handler);

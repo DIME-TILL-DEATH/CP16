@@ -7,9 +7,10 @@
 
 #include "preset.h"
 
-
+char current_preset_name[PRESET_NAME_LENGTH];
 preset_data_legacy_t default_legacy_preset;
 preset_data_t current_preset;
+ir_path_data_t current_ir_link;
 
 void PRESET_init()
 {
@@ -36,11 +37,11 @@ void preset_from_legacy(preset_data_t* dst_preset, const preset_data_legacy_t* s
 	kgp_sdk_libc::memset(dst_preset, 0, sizeof(preset_data_t));
 
 	// EQ2 to default values (non zero)
-	dst_preset->eq2.band_vol[0] = 15;
-	dst_preset->eq2.band_vol[1] = 15;
-	dst_preset->eq2.band_vol[2] = 15;
-	dst_preset->eq2.band_vol[3] = 15;
-	dst_preset->eq2.band_vol[4] = 15;
+	dst_preset->eq2.gain[0] = 15;
+	dst_preset->eq2.gain[1] = 15;
+	dst_preset->eq2.gain[2] = 15;
+	dst_preset->eq2.gain[3] = 15;
+	dst_preset->eq2.gain[4] = 15;
 
 	if(src_preset->eq_pre)
 	{
@@ -87,7 +88,7 @@ void preset_from_legacy(preset_data_t* dst_preset, const preset_data_legacy_t* s
 	dst_preset->eq1.parametric_on = src_preset->eq_on;
 	for(int i=0; i<5; i++)
 	{
-		dst_preset->eq1.band_vol[i] = src_preset->eq_band_vol[i];
+		dst_preset->eq1.gain[i] = src_preset->eq_band_vol[i];
 		dst_preset->eq1.freq[i] = src_preset->eq_freq[i];
 		dst_preset->eq1.Q[i] = src_preset->eq_Q[i];
 	}
@@ -132,7 +133,7 @@ void legacy_from_preset(preset_data_legacy_t* dst_preset, const preset_data_t* s
 	dst_preset->eq_on = src_preset->eq1.parametric_on;
 	for(int i=0; i<5; i++)
 	{
-		dst_preset->eq_band_vol[i] = src_preset->eq1.band_vol[i];
+		dst_preset->eq_band_vol[i] = src_preset->eq1.gain[i];
 		dst_preset->eq_freq[i] = src_preset->eq1.freq[i];
 		dst_preset->eq_Q[i] = src_preset->eq1.Q[i];
 	}

@@ -2,6 +2,7 @@
 
 #include "appdefs.h"
 #include "console.h"
+#include "preset.h"
 
 enum
 {
@@ -64,28 +65,28 @@ inline void decode_preset_dir( const uint8_t val, emb_string& preset_dir_name)
 
 extern uint8_t dir_use[];
 
-void save_sys(void);
+void EEPROM_folderInit(void);
+void EEPROM_loadPreset(uint8_t bank, uint8_t preset, save_data_t& save_data, ir_path_data_t ir_link);
+void EEPROM_savePreset();
 
-void flash_folder_init(void);
-void load_preset();
-void save_preset();
-bool load_ir(float* cd, std::emb_string& err_msg);
+void EEPROM_saveSys(void);
+
+bool EEPROM_getPresetIrLink(uint8_t bank, uint8_t preset, ir_path_data_t& outIrLink);
+void EEPROM_getPresetCabPath(uint8_t bank, uint8_t preset, ir_path_data_t& outCabPath);
+bool EEPROM_loadIr(float* cabData, const std::emb_string& irFilePath, std::emb_string& err_msg);
+void EEPROM_getCurrentIrInfo(ir_path_data_t& outIrData, uint32_t& resultSize);
+bool EEPROM_getDirWavNames(const std::emb_string& dirPath, list<std::emb_string>& fileNamesList, TReadLine* rl);
+
 
 void delete_current_cab(std::emb_string& err_msg, TReadLine* rl);
 bool console_out_currnt_cab(std::emb_string& err_msg, TReadLine* rl);
-bool console_out_currnt_nam(std::emb_string& err_msg, TReadLine* rl );
-bool console_rns_out(std::emb_string& err_msg, TReadLine* rl, bool interface2 );
 bool console_fs_format(std::emb_string& err_msg, TReadLine* rl );
 bool console_fs_write_file(std::emb_string& err_msg, TReadLine* rl , const char* file_name);
-bool console_fs_delete_file(std::emb_string& err_msg, TReadLine* rl , const char* file_name);
+bool EEPROM_delete_file(const char* file_name);
 
 bool console_fs_preset_copy_wav_file(std::emb_string& err_msg, TReadLine* rl , uint8_t preset_src, uint8_t preset_dst); // копирование wav одного bank/preset в другой
-bool console_fs_preset_load_wav_file_tmp(std::emb_string& err_msg, TReadLine* rl , uint8_t preset);
-bool console_fs_preset_store_wav_file_tmp(std::emb_string& err_msg, TReadLine* rl , uint8_t preset);
 
 void console_dir_remove_wavs(const emb_string& dir_name );
-
-bool get_dir_wav_names(const std::emb_string& dirPath, list<std::emb_string>& fileNamesList, TReadLine* rl);
 
 void save_map0(const uint8_t bank_preset);
 void load_map0(uint8_t& bank_preset);
