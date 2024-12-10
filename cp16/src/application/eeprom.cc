@@ -346,7 +346,7 @@ bool console_fs_write_file(std::emb_string& err_msg, TReadLine* rl , const char*
 	return res == FR_OK ;
 }
 
-void EEPROM_loadPreset(uint8_t bank, uint8_t preset, save_data_t& loaded_data, ir_path_data_t ir_link)
+void EEPROM_loadPreset(uint8_t bank, uint8_t preset, save_data_t& loaded_data, ir_path_data_t& ir_link)
 {
 	FATFS fs;
 
@@ -439,6 +439,7 @@ void EEPROM_savePreset(void)
 		file_name = dir_name + "/ir.lnk";
 		f_open(&file, file_name.c_str(), FA_READ | FA_WRITE | FA_OPEN_ALWAYS);
 		f_puts(current_ir_link.irFileName.c_str(), &file);
+		f_puts("\n", &file);
 		f_puts(current_ir_link.irLinkPath.c_str(), &file);
 		f_sync(&file);
 		f_close(&file);
@@ -471,7 +472,9 @@ bool EEPROM_getPresetIrLink(uint8_t bank, uint8_t preset, ir_path_data_t& outIrL
 		ir_path_data_t linkData;
 		res = f_lseek (&file, 0) ;
 		f_gets(buf, 256, &file);
+		buf[kgp_sdk_libc::strcspn(buf, "\n")] = 0;
 		linkData.irFileName = buf;
+
 		f_gets(buf, 256, &file);
 		linkData.irLinkPath = buf;
 		f_close(&file);
@@ -484,7 +487,7 @@ bool EEPROM_getPresetIrLink(uint8_t bank, uint8_t preset, ir_path_data_t& outIrL
 			outIrLink.irFileName = linkData.irFileName;
 			outIrLink.irLinkPath = linkData.irLinkPath;
 			f_close(&file);
-			result = true; // file exists
+			result = true; // wav file exists
 		}
 	}
 	f_mount(0, "0:", 0);
@@ -586,7 +589,7 @@ bool EEPROM_getDirWavNames(const std::emb_string& dirPath, list<std::emb_string>
 	return true;
 }
 
-void EEPROM_getCurrentIrInfo(ir_path_data_t& outIrData, uint32_t& resultSize)
+void EEPROM_getCurrentIrInfo(ir_path_data_t& outIrData, int32_t& resultSize)
 {
 	FATFS fs;
 	f_mount (&fs, "0:",  1);
@@ -615,7 +618,7 @@ void EEPROM_getCurrentIrInfo(ir_path_data_t& outIrData, uint32_t& resultSize)
 		init_file_info(fileInfo);
 
 		f_opendir(&dir, dirName.c_str());
-		res = f_findfirst(&dir, &fileInfo, dirName.c_str() , "*.wav");
+		res = f_findfirst(&dir, &fileInfo, dirName.c_str(), "*.wav");
 		if(res == FR_OK)
 		{
 		#if _USE_LFN
@@ -624,7 +627,7 @@ void EEPROM_getCurrentIrInfo(ir_path_data_t& outIrData, uint32_t& resultSize)
 			char* fn = fileInfo.fname;
 		#endif
 			outIrData.irFileName = fn;
-			outIrData.irLinkPath = dirName;
+			outIrData.irLinkPath.clear();
 			resultSize = fileInfo.fsize;
 		}
 		else

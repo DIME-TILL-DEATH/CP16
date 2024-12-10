@@ -66,7 +66,7 @@ inline void decode_preset_dir( const uint8_t val, emb_string& preset_dir_name)
 extern uint8_t dir_use[];
 
 void EEPROM_folderInit(void);
-void EEPROM_loadPreset(uint8_t bank, uint8_t preset, save_data_t& save_data, ir_path_data_t ir_link);
+void EEPROM_loadPreset(uint8_t bank, uint8_t preset, save_data_t& save_data, ir_path_data_t& ir_link);
 void EEPROM_savePreset();
 
 void EEPROM_saveSys(void);
@@ -74,7 +74,7 @@ void EEPROM_saveSys(void);
 bool EEPROM_getPresetIrLink(uint8_t bank, uint8_t preset, ir_path_data_t& outIrLink);
 void EEPROM_getPresetCabPath(uint8_t bank, uint8_t preset, ir_path_data_t& outCabPath);
 bool EEPROM_loadIr(float* cabData, const std::emb_string& irFilePath, std::emb_string& err_msg);
-void EEPROM_getCurrentIrInfo(ir_path_data_t& outIrData, uint32_t& resultSize);
+void EEPROM_getCurrentIrInfo(ir_path_data_t& outIrData, int32_t& resultSize);
 bool EEPROM_getDirWavNames(const std::emb_string& dirPath, list<std::emb_string>& fileNamesList, TReadLine* rl);
 
 

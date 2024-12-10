@@ -1,5 +1,7 @@
 #include "console_handlers.h"
 
+#include "comm_handlers_legacy.h"
+
 #include "cs.h"
 
 #include "math.h"
@@ -237,6 +239,30 @@ static void get_state_comm_handler (TReadLine* rl , TReadLine::const_symbol_type
 	while(1);
 }
 
+static void lpf_on_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
+{
+     default_param_handler(&current_preset.eq1.lp_on, rl, args, count);
+}
+
+static void lpf_volume_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
+{
+     default_param_handler(&current_preset.eq1.lp_freq, rl, args, count);
+     float lopas = powf(195 - current_preset.eq1.lp_freq, 2.0f)*(19000.0f/powf(195.0f,2.0f))+1000.0f;
+	 SetLPF(lopas);
+}
+
+static void hpf_on_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
+{
+     default_param_handler(&current_preset.eq1.hp_on, rl, args, count);
+}
+
+static void hpf_volume_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
+{
+	default_param_handler(&current_preset.eq1.hp_freq, rl, args, count);
+	float hipas = current_preset.eq1.hp_freq*(980.0f/255.0f) + 20.0f;
+	SetHPF(hipas);
+}
+
 static void eq_on_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
 {
      if(count > 0)
@@ -264,7 +290,7 @@ static void eq_volume_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_p
 			 uint32_t val = kgp_sdk_libc::strtol ( args[2] , &end, 16 );
 			 current_preset.eq1.gain[band_num] = val;
 
-			 filt_ini(band_num, current_preset.eq1.freq, current_preset.eq1.Q);
+			 filterInit(band_num, current_preset.eq1.freq[band_num], current_preset.eq1.Q[band_num]);
 			 set_filt(band_num, current_preset.eq1.gain[band_num], (band_type_t)current_preset.eq1.band_type[band_num]);
 		 }
 		 i2hex(current_preset.eq1.gain[band_num], hex);
@@ -282,9 +308,9 @@ static void eq_freq_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr
 		 {
 			 char* end;
 			 int32_t val = kgp_sdk_libc::strtol(args[2], &end, 16);
-			 current_preset.eq1.freq[band_num] = val;
+			 current_preset.eq1.freq[band_num] = convertLegacyFreq(band_num, val);
 
-			 filt_ini(band_num, current_preset.eq1.freq, current_preset.eq1.Q);
+			 filterInit(band_num, current_preset.eq1.freq[band_num], current_preset.eq1.Q[band_num]);
 			 set_filt(band_num, current_preset.eq1.gain[band_num], (band_type_t)current_preset.eq1.band_type[band_num]);
 		 }
 		 i2hex(current_preset.eq1.freq[band_num], hex);
@@ -304,7 +330,7 @@ static void eq_q_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t*
 			int32_t val = kgp_sdk_libc::strtol(args[2], &end, 16);
 			current_preset.eq1.Q[band_num] = val;
 
-			filt_ini(band_num, current_preset.eq1.freq, current_preset.eq1.Q);
+			filterInit(band_num, current_preset.eq1.freq[band_num], current_preset.eq1.Q[band_num]);
 			set_filt(band_num, current_preset.eq1.gain[band_num], (band_type_t)current_preset.eq1.band_type[band_num]);
 		}
 		i2hex(current_preset.eq1.Q[band_num], hex);
@@ -437,6 +463,11 @@ void set_legacy_handlers(TReadLine* rl)
 	rl->AddCommandHandler("eqv", eq_volume_comm_handler);
 	rl->AddCommandHandler("eqf", eq_freq_comm_handler);
 	rl->AddCommandHandler("eqq", eq_q_comm_handler);
+
+	rl->AddCommandHandler("lo", lpf_on_comm_handler);
+	rl->AddCommandHandler("lv", lpf_volume_comm_handler);
+	rl->AddCommandHandler("ho", hpf_on_comm_handler);
+	rl->AddCommandHandler("hv", hpf_volume_comm_handler);
 
 	// *********************service comms*******************
 	rl->AddCommandHandler("pwsd", preset_wavs_delete_command_handler); // удаляет все *.wav в директории текущего пресета или в том на который указывает параметр

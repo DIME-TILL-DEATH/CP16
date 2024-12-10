@@ -37,6 +37,8 @@ typedef enum
 
 void preamp_param(preamp_param_t num, uint8_t val);
 
+uint16_t convertLegacyFreq(uint8_t bandNum, uint8_t freqVal);
+
 inline void SetLPF(float fCut)
 {
     float w = 2.0f * 48000.0f;
@@ -58,22 +60,32 @@ inline void SetHPF(float fCut)
     b11 = (w - fCut) * Norm;
 }
 
-inline void filt_ini(uint8_t num , uint8_t* adr , uint8_t* adr1)
+//inline void filt_ini(uint8_t num , uint8_t* adr , uint8_t* adr1)
+//{
+//  float w0;
+//
+//  switch (num){
+//  case 0:case 1:freq1[num] = (int8_t)adr[num] + freq[num];break;
+//  case 2:freq1[num] = (int8_t)adr[num]*2 + freq[num];break;
+//  case 3:freq1[num] = (int8_t)adr[num]*10 + freq[num];break;
+//  case 4:freq1[num] = (int8_t)adr[num]*50 + freq[num];break;
+//  }
+//
+//  w0 = 2.0f * FILT_PI * freq1[num] / 48000.0f;
+//  filt_sin[num] = sinf(w0);
+//  filt_cos[num] = cosf(w0);
+//  filt_q =  powf(200 - ((int8_t)adr1[num] + 100) , 3.0f)*(5.0f/powf(200.0f , 3.0f)) + 0.225f;
+//  filt_alpha[num] = filt_sin[num]/2.0*filt_q;
+//}
+
+inline void filterInit(uint8_t bandNum, uint16_t freq, int8_t q)
 {
-  float w0;
-
-  switch (num){
-  case 0:case 1:freq1[num] = (int8_t)adr[num] + freq[num];break;
-  case 2:freq1[num] = (int8_t)adr[num]*2 + freq[num];break;
-  case 3:freq1[num] = (int8_t)adr[num]*10 + freq[num];break;
-  case 4:freq1[num] = (int8_t)adr[num]*50 + freq[num];break;
-  }
-
-  w0 = 2.0f * FILT_PI * freq1[num] / 48000.0f;
-  filt_sin[num] = sinf(w0);
-  filt_cos[num] = cosf(w0);
-  filt_q =  powf(200 - ((int8_t)adr1[num] + 100) , 3.0f)*(5.0f/powf(200.0f , 3.0f)) + 0.225f;
-  filt_alpha[num] = filt_sin[num]/2.0*filt_q;
+	  float w0;
+	  w0 = 2.0f * FILT_PI * freq / 48000.0f;
+	  filt_sin[bandNum] = sinf(w0);
+	  filt_cos[bandNum] = cosf(w0);
+	  filt_q =  powf(200 - (q + 100) , 3.0f)*(5.0f/powf(200.0f , 3.0f)) + 0.225f;
+	  filt_alpha[bandNum] = filt_sin[bandNum]/2.0*filt_q;
 }
 
 inline float filt_proc(float in , float* buf , float* coef)

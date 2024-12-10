@@ -17,6 +17,8 @@
 #include "DSP/amp_imp.h"
 #include "DSP/compressor.h"
 
+char loadedCab[256]; // debug data
+
 
 inline void key_check(void);
 
@@ -148,12 +150,16 @@ void CS_activateIr(const emb_string& irFilePath)
 	{
 		processing_params.impulse_avaliable = 0;
 		led_pulse_config(1);
+
+		kgp_sdk_libc::memset(loadedCab, 0, 256); // debug info
 	}
 	else
 	{
 		dsp_upload_ir(cab_data);
 		processing_params.impulse_avaliable = 1;
 		led_pulse_config(0);
+
+		kgp_sdk_libc::memcpy(loadedCab, irFilePath.c_str(), sizeof(irFilePath));
 	}
 }
 
@@ -184,7 +190,7 @@ void set_parameters(void)
 
 	for(uint8_t i = 0 ; i < 5 ; i++)
 	{
-		filt_ini(i, current_preset.eq1.freq, current_preset.eq1.Q);
+		filterInit(i, current_preset.eq1.freq[i], current_preset.eq1.Q[i]);
 		set_filt(i, current_preset.eq1.gain[i], (band_type_t)current_preset.eq1.band_type[i]);
 	}
 

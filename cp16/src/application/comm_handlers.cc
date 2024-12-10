@@ -18,7 +18,9 @@
 #include "DSP/sound_processing.h"
 #include "DSP/Reverb/reverb.h"
 
-void getDataPartFromStream(TReadLine* rl, char* buf, int* dataSize, int maxSize)
+emb_string uploadingIrPath;
+
+uint16_t getDataPartFromStream(TReadLine* rl, char* buf, int maxSize)
 {
 	kgp_sdk_libc::memset(buf, 0, maxSize);
 	int streamPos = 0;
@@ -28,9 +30,7 @@ void getDataPartFromStream(TReadLine* rl, char* buf, int* dataSize, int maxSize)
 		rl->RecvChar(c);
 		if (c == '\r' || c == '\n')
 		{
-			if(dataSize)
-				*dataSize = streamPos;
-			return;
+			return streamPos;
 		}
 		buf[streamPos++] = c;
 	}while(streamPos < maxSize);
@@ -103,8 +103,7 @@ static void pname_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t
 
 		if(command == "set")
 		{
-			int recievedBytes;
-			getDataPartFromStream(rl, current_preset_name, &recievedBytes, PRESET_NAME_LENGTH);
+			getDataPartFromStream(rl, current_preset_name, PRESET_NAME_LENGTH);
 		}
 		msg_console("pname\r%s\n", current_preset_name);
 	}
@@ -193,17 +192,16 @@ static void ir_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* a
 	if(command == "info")
 	{
 		ir_path_data_t irPathData;
-		DWORD irSize;
+		int32_t irSize;
 		EEPROM_getCurrentIrInfo(irPathData, irSize);
 		msg_console("info\r%s\r%s\r%d\n", irPathData.irLinkPath.c_str(), irPathData.irFileName.c_str(), irSize);
 	}
 
 	if(command == "link")
 	{
-		int recievedSize = 0;
-		getDataPartFromStream(rl, dataBuffer, &recievedSize, bufferSize);
+		getDataPartFromStream(rl, dataBuffer, bufferSize);
 		current_ir_link.irFileName = dataBuffer;
-		getDataPartFromStream(rl, dataBuffer, &recievedSize, bufferSize);
+		getDataPartFromStream(rl, dataBuffer, bufferSize);
 		current_ir_link.irLinkPath = dataBuffer;
 
 		// TODO check file exist
@@ -212,24 +210,102 @@ static void ir_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* a
 
 		msg_console("link\r%s\r%s\n", current_ir_link.irFileName.c_str(), current_ir_link.irLinkPath.c_str());
 	}
-}
-//===============================================PARAMETERS COMM HANDLERS========================================================
-inline void default_param_handler(uint8_t* param_ptr, TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
-{
-	char hex[3] = {0,0,0};
-	if(count > 0)
-	{
-		if(count == 2)
-		{
-			char* end;
-			uint8_t val = kgp_sdk_libc::strtol(args[1], &end, 16);
-			*param_ptr = val;
-		}
 
-		i2hex(*param_ptr, hex);
-		msg_console("%s %s\n", args[0], hex);
+	if(command == "start_upload")
+	{
+		char buffer[128];
+		emb_string fileName, filePath;
+		getDataPartFromStream(rl, buffer, 128);
+		fileName = buffer;
+		getDataPartFromStream(rl, buffer, 128);
+		filePath = buffer;
+
+		uploadingIrPath = filePath + fileName;
+		FIL irFile;
+		FATFS fs;
+		f_mount(&fs, "0:", 1);
+		FRESULT res = f_open(&irFile, uploadingIrPath.c_str(), FA_WRITE | FA_OPEN_ALWAYS);
+		if(res == FR_OK)
+		{
+			f_close(&irFile); // can write to file. Path correct
+			msg_console("request_part\r\n");
+		}
+		else
+		{
+			uploadingIrPath.clear();
+			msg_console("error\rDST_PATH_INCORRECT\n");
+		}
+		f_mount(0, "0:", 1);
+	}
+
+	if(command == "part_upload")
+	{
+//		char rcvBuffer[512];
+//		char wrBuffer[256];
+//		int32_t rcvBytesCount = getDataPartFromStream(rl, rcvBuffer, 512);
+//
+//		for(int i=0; i<rcvBytesCount; i++)
+//		{
+//			char w;
+//			int c = rcvBuffer[i];
+//
+//			if(c > 57) c -= 39;
+//			w =  (c - '0') << 4 ;
+//			if(c > 57) c -= 39;
+//			w  |=  c - '0';
+//			wrBuffer[i] = w;
+//		}
+
+
+		if(count > 2)
+		{
+			char buffer[512];
+			char * pEnd;
+			int32_t streamPos = 0;
+			int32_t bytesToRecieve = kgp_sdk_libc::strtol(args[2], &pEnd, 10);
+			int c;
+			do
+			{
+				rl->RecvChar(c);
+				buffer[streamPos++] = c;
+			}while(streamPos < bytesToRecieve);
+			rl->RecvChar(c); // get last \n
+
+			FIL irFile;
+			FATFS fs;
+			f_mount(&fs, "0:", 1);
+			FRESULT res = f_open(&irFile, uploadingIrPath.c_str(), FA_WRITE | FA_OPEN_EXISTING);
+			if(res == FR_OK)
+			{
+				f_lseek(&irFile, f_size(&irFile));
+				f_write(&irFile, buffer, bytesToRecieve, 0);
+				f_close(&irFile); // can write to file. Path correct
+				msg_console("request_part\r\n");
+			}
+		}
+		else
+		{
+			msg_console("error\rPART_SIZE_INCORRECT\n");
+		}
 	}
 }
+//===============================================PARAMETERS COMM HANDLERS========================================================
+//inline void default_param_handler(uint8_t* param_ptr, TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
+//{
+//	char hex[3] = {0,0,0};
+//	if(count > 0)
+//	{
+//		if(count == 2)
+//		{
+//			char* end;
+//			uint8_t val = kgp_sdk_libc::strtol(args[1], &end, 16);
+//			*param_ptr = val;
+//		}
+//
+//		i2hex(*param_ptr, hex);
+//		msg_console("%s %s\n", args[0], hex);
+//	}
+//}
 
 static void cabinet_enable_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
 {
@@ -339,57 +415,51 @@ static void presence_volume_command_handler(TReadLine* rl, TReadLine::const_symb
      set_shelf(current_preset.power_amp.presence_vol); // in RV was *(25.0f/31.0f));
 }
 
-static void lpf_on_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
+
+static void eq0_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
 {
-     default_param_handler(&current_preset.eq1.lp_on, rl, args, count);
-}
+	msg_console("%s ", args[0]);
+	if(count<3)
+	{
+		msg_console("ARGUMENTS_INCORRECT\r\n");
+		return;
+	}
 
-static void lpf_volume_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
-{
-     default_param_handler(&current_preset.eq1.lp_freq, rl, args, count);
-     float lopas = powf(195 - current_preset.eq1.lp_freq, 2.0f)*(19000.0f/powf(195.0f,2.0f))+1000.0f;
-	 SetLPF(lopas);
-}
+	emb_string target = args[1];
+	emb_string parameter = args[2];
+	char* pEnd;
 
-static void hpf_on_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
-{
-     default_param_handler(&current_preset.eq1.hp_on, rl, args, count);
-}
+	if(target.at(0) == 'b')
+	{
+		long bandNum = kgp_sdk_libc::strtol(target.substr(1).c_str(), &pEnd, 16);
+		long value = kgp_sdk_libc::strtol(parameter.substr(1).c_str(), &pEnd, 16);
 
-static void hpf_volume_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
-{
-	default_param_handler(&current_preset.eq1.hp_freq, rl, args, count);
-	float hipas = current_preset.eq1.hp_freq*(980.0f/255.0f) + 20.0f;
-	SetHPF(hipas);
-}
+		if(parameter.at(0) == 'f') current_preset.eq1.freq[bandNum] = value;
+		if(parameter.at(0) == 'g') current_preset.eq1.gain[bandNum] = value;
+		if(parameter.at(0) == 'q') current_preset.eq1.Q[bandNum] = value;
+		if(parameter.at(0) == 't') current_preset.eq1.band_type[bandNum] = value;
+		if(parameter.at(0) == 'e') current_preset.eq1.band_on[bandNum] = value;
 
-//====================================GEN 2 commands====================================
-static void eq1_band_type_command_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
-{
-	char hex[3] = {0,0,0};
-	 uint8_t band_num = args[1][0] - 48;
-	 if(count == 2)
-	 {
-		 i2hex(current_preset.eq1.band_type[band_num], hex );
+		filterInit(bandNum, current_preset.eq1.freq[bandNum], current_preset.eq1.Q[bandNum]);
+		set_filt(bandNum, current_preset.eq1.gain[bandNum], (band_type_t)current_preset.eq1.band_type[bandNum]);
 
-		 msg_console("%s\n" , hex );
-		 return;
-	 }
+	}
+	else
+	{
+		if(target == "par")
+		{
 
-	 if(count == 3)
-	 {
-		 char* end;
-		 int32_t val = kgp_sdk_libc::strtol(args[2], &end, 16);
-		 current_preset.eq1.band_type[band_num] = val;
+		}
+		if(target == "hp")
+		{
 
-		 filt_ini(band_num, current_preset.eq1.freq, current_preset.eq1.Q);
-		 set_filt(band_num, current_preset.eq1.gain[band_num], (band_type_t)current_preset.eq1.band_type[band_num]);
-	 }
-}
+		}
+		if(target == "lp")
+		{
 
-static void eq_on_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
-{
-     default_param_handler(&current_preset.eq1.parametric_on, rl, args, count);
+		}
+	}
+	msg_console("%s %s\r\n", target.c_str(), parameter.c_str());
 }
 
 static void early_on_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
@@ -515,6 +585,10 @@ static void use_map1_command_handler ( TReadLine* rl , TReadLine::const_symbol_t
 	programm_change_comm_handler( rl , a , 2 ) ;
 }
 
+static void debug_comm_hadler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
+{
+	msg_console("debug current_cab\r%s\n", loadedCab);
+}
 //========================================================================================================================
 
 void consoleSetCmdHandlers(TReadLine* rl)
@@ -566,12 +640,7 @@ void consoleSetCmdHandlers(TReadLine* rl)
 	rl->AddCommandHandler("po", presence_on_comm_handler);
 	rl->AddCommandHandler("pv", presence_volume_command_handler);
 
-	rl->AddCommandHandler("lo", lpf_on_comm_handler);
-	rl->AddCommandHandler("lv", lpf_volume_comm_handler);
-	rl->AddCommandHandler("ho", hpf_on_comm_handler);
-	rl->AddCommandHandler("hv", hpf_volume_comm_handler);
-	//====================================GEN 2 commands====================================
-	rl->AddCommandHandler("eq1_bt", eq1_band_type_command_handler);
+	rl->AddCommandHandler("eq0", eq0_comm_handler);
 
 	rl->AddCommandHandler("eo", early_on_comm_handler);
 	rl->AddCommandHandler("ev", early_volume_comm_handler);
@@ -585,6 +654,8 @@ rl->AddCommandHandler("um1", use_map1_command_handler);
 
 rl->AddCommandHandler("fsf", fs_format_command_handler);
 rl->AddCommandHandler("fwu", fw_update_command_handler);
-}
 
+//*********************debug*****************************
+	rl->AddCommandHandler("debug", debug_comm_hadler);
+}
 //------------------------------------------------------------------------------
