@@ -410,19 +410,6 @@ static void sw4_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_p
 	msg_console("END\n") ;
 }
 
-
-static void preset_wav_copy_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
-{
-   std::emb_string err_msg  ;
-
-   char* end ;
-   uint32_t preset_src  = kgp_sdk_libc::strtol ( args[1] , &end, 16 );
-   uint32_t preset_dst = kgp_sdk_libc::strtol ( args[2] , &end, 16 );
-
-   console_fs_preset_copy_wav_file(err_msg, rl , preset_src, preset_dst) ;
-   msg_console("END\n") ;
-}
-
 //------------------------------------------------------------------------------
 static void preset_wavs_delete_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
 {

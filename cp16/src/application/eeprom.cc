@@ -802,76 +802,51 @@ static inline void dir_remove_wavs_raw(const emb_string& dir_name )
 	  }
 }
 
-bool console_fs_preset_copy_wav_file(std::emb_string& err_msg, TReadLine* rl , uint8_t preset_src, uint8_t preset_dst)
+bool EEPROM_copyFile(emb_string& errMsg, const emb_string& srcPath, const emb_string& dstPath)
 {
-  uint8_t bank_pres_src[2] ;
-  uint8_t bank_pres_dst[2] ;
+	FATFS fs;
+	FRESULT res;
 
-  decode_preset(bank_pres_src, preset_src);
+	f_mount (&fs, "0:", 1);
 
-  decode_preset(bank_pres_dst, preset_dst);
+	FIL f_src;
+	FIL f_dst;
 
+	res = f_open(&f_src, srcPath.c_str(), FA_READ);
+	if(res != FR_OK)
+	{
+		errMsg = "SRC_PATH_UNAVALIABLE";
+		return false;
+	}
 
-  bool result = false ;
-  FATFS fs;
-  FRESULT res;
+	res = f_open(&f_dst, dstPath.c_str(), FA_WRITE | FA_OPEN_ALWAYS);//FA_CREATE_NEW );
+	if(res != FR_OK)
+	{
+		errMsg = "DST_PATH_UNAVALIABLE";
+		return false;
+	}
 
-  f_mount ( &fs , "0:",  1);
+	char* cb = new char[_MIN_SS];
 
-  FIL f_src ;
-  FIL f_dst ;
+	res = f_lseek (&f_src, 0) ;
+	res = f_lseek (&f_dst, 0) ;
 
-  emb_string dir_name_src;
-  emb_string file_name_src;
+	UINT br;
+	UINT bw;
+	do
+	{
+		f_read (&f_src, cb, _MIN_SS, &br);
+		if (br)
+		   f_write(&f_dst, cb, br, &bw);
+	}while (br == _MIN_SS);
 
-  dir_name_src = "/Bank_";
-  dir_name_src += (size_t)bank_pres_src[0];
-  dir_name_src += "/Preset_";
-  dir_name_src += (size_t)bank_pres_src[1];
+	delete [] cb;
 
+	f_close(&f_src);
+	f_close(&f_dst);
 
-
-  emb_string dir_name_dst;
-  emb_string file_name_dst;
-
-  dir_name_dst = "/Bank_";
-  dir_name_dst += (size_t)bank_pres_dst[0];
-  dir_name_dst += "/Preset_";
-  dir_name_dst += (size_t)bank_pres_dst[1];
-
-
-  dir_remove_wavs_raw(dir_name_dst) ;
-
-  if ( dir_get_wav( dir_name_src,  file_name_src ))
-  {
-	  res = f_open(&f_src, file_name_src.c_str(),  FA_READ );
-	  res = f_open(&f_dst, (dir_name_dst + "/" + file_name_src).c_str(),  FA_CREATE_NEW );
-
-
-	   char* cb = new char [_MIN_SS] ;
-
-	   res = f_lseek (&f_src, 0) ;
-	   res = f_lseek (&f_dst, 0) ;
-
-	   UINT br ;
-	   UINT bw ;
-	   do
-	     {
-	       f_read  (&f_src, cb  , _MIN_SS , &br ) ;\
-	       if ( br )
-	           f_write (&f_dst, cb  , br , &bw ) ;
-	     } while ( br == _MIN_SS ) ;
-
-	   delete [] cb ;
-
-	   f_close(&f_src) ;
-	   f_close(&f_dst) ;
-  }
-
-
-
-   f_mount(0, "0:", 0);
-   return result ;
+	f_mount(0, "0:", 0);
+	return true;
 }
 
 void console_dir_remove_wavs(const emb_string& dir_name)

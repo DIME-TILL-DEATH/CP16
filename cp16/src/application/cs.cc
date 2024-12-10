@@ -108,11 +108,12 @@ inline void key_check(void)
 {
 	static uint8_t key_buf_local = 0xff;
 
-	if ( !sw4_state ) return ;
+	if(!sw4_state) return;
 
     key_buf = GPIOB->IDR & 0xc03;
     key_buf |= key_buf >> 8;
     key_buf = ~key_buf & 0xf;
+
     if(key_buf_local != key_buf)
     {
     	key_buf_local = key_buf;

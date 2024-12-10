@@ -78,15 +78,13 @@ bool EEPROM_loadIr(float* cabData, const std::emb_string& irFilePath, std::emb_s
 void EEPROM_getCurrentIrInfo(ir_path_data_t& outIrData, int32_t& resultSize);
 bool EEPROM_getDirWavNames(const std::emb_string& dirPath, list<std::emb_string>& fileNamesList, TReadLine* rl);
 
+bool EEPROM_copyFile(emb_string& err_msg, const emb_string& srcPath, const emb_string& dstPath);
+bool EEPROM_delete_file(const char* file_name);
 
 void delete_current_cab(std::emb_string& err_msg, TReadLine* rl);
 bool console_out_currnt_cab(std::emb_string& err_msg, TReadLine* rl);
 bool console_fs_format(std::emb_string& err_msg, TReadLine* rl );
 bool console_fs_write_file(std::emb_string& err_msg, TReadLine* rl , const char* file_name);
-bool EEPROM_delete_file(const char* file_name);
-
-bool console_fs_preset_copy_wav_file(std::emb_string& err_msg, TReadLine* rl , uint8_t preset_src, uint8_t preset_dst); // копирование wav одного bank/preset в другой
-
 void console_dir_remove_wavs(const emb_string& dir_name );
 
 void save_map0(const uint8_t bank_preset);

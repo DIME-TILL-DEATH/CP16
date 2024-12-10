@@ -150,6 +150,26 @@ static void state_comm_handler (TReadLine* rl , TReadLine::const_symbol_type_ptr
 	msg_console("\n");
 }
 
+static void preset_change_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
+{
+	char* end;
+
+	if(count > 1)
+	{
+		uint32_t val = kgp_sdk_libc::strtol (args[1], &end, 16);
+		if(end != args[1])
+		{
+			decode_preset(bank_pres, val);
+			preset_change();
+			TTask::Delay(50);
+			msg_console("pc %d%d\rEND\n", bank_pres[0], bank_pres[1]) ;
+			return;
+		}
+	}
+	msg_console("pc\rPARAM_ERROR\n") ;
+}
+
+
 static void save_pres_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
 {
 	msg_console("%s\r\n", args[0]);
@@ -286,6 +306,25 @@ static void ir_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* a
 		}
 	}
 }
+
+static void copy_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
+{
+	char buffer[256];
+	emb_string srcPath, dstPath, errMsg;
+	getDataPartFromStream(rl, buffer, 256);
+	srcPath = buffer;
+	getDataPartFromStream(rl, buffer, 256);
+	dstPath = buffer;
+
+	if(EEPROM_copyFile(errMsg, srcPath, dstPath))
+	{
+		msg_console("copy complete\r\n");
+	}
+	else
+	{
+		msg_console("copy error\r%s\n", errMsg.c_str());
+	}
+}
 //===============================================PARAMETERS COMM HANDLERS========================================================
 
 static void cabinet_enable_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
@@ -396,7 +435,6 @@ static void presence_volume_command_handler(TReadLine* rl, TReadLine::const_symb
      set_shelf(current_preset.power_amp.presence_vol); // in RV was *(25.0f/31.0f));
 }
 
-
 static void eq0_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
 {
 	msg_console("%s ", args[0]);
@@ -405,11 +443,10 @@ static void eq0_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* 
 		msg_console("ARGUMENTS_INCORRECT\r\n");
 		return;
 	}
-
+	char* pEnd;
 	emb_string target = args[1];
 	emb_string parameter = args[2];
 	long value = kgp_sdk_libc::strtol(args[3], &pEnd, 16);
-	char* pEnd;
 
 	if(target.at(0) == 'b')
 	{
@@ -429,16 +466,26 @@ static void eq0_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* 
 	{
 		if(target == "par")
 		{
-			current_preset.eq1.parametric_on= value;
+			current_preset.eq1.parametric_on = value;
 		}
 		if(target == "hp")
 		{
-			if(parameter.at(0) == 'f') current_preset.eq1.hp_freq= value;
+			if(parameter.at(0) == 'f')
+			{
+				current_preset.eq1.hp_freq= value;
+				float hipas = current_preset.eq1.hp_freq*(980.0f/255.0f) + 20.0f;
+				SetHPF(hipas);
+			}
 			if(parameter.at(0) == 'o') current_preset.eq1.hp_on = value;
 		}
 		if(target == "lp")
 		{
-			if(parameter.at(0) == 'f') current_preset.eq1.lp_freq= value;
+			if(parameter.at(0) == 'f')
+			{
+				current_preset.eq1.lp_freq= value;
+				float lopas = powf(195 - current_preset.eq1.lp_freq, 2.0f)*(19000.0f/powf(195.0f,2.0f))+1000.0f;
+				SetLPF(lopas);
+			}
 			if(parameter.at(0) == 'o') current_preset.eq1.lp_on = value;
 		}
 	}
@@ -478,38 +525,7 @@ static void fw_update_command_handler ( TReadLine* rl , TReadLine::const_symbol_
 		NVIC_SystemReset();
 	}
 }
-
-static void programm_change_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
-{
-	char* end;
-
-	if(count > 1)
-	{
-		uint32_t val = kgp_sdk_libc::strtol (args[1], &end, 16);
-		if(end != args[1])
-		{
-			decode_preset(bank_pres, val);
-			preset_change();
-			TTask::Delay(50);
-			msg_console("pc %d%d\rEND\n", bank_pres[0], bank_pres[1]) ;
-			return;
-		}
-	}
-	msg_console("pc\rPARAM_ERROR\n") ;
-}
-
-static void preset_wav_copy_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
-{
-   std::emb_string err_msg  ;
-
-   char* end ;
-   uint32_t preset_src  = kgp_sdk_libc::strtol ( args[1] , &end, 16 );
-   uint32_t preset_dst = kgp_sdk_libc::strtol ( args[2] , &end, 16 );
-
-   console_fs_preset_copy_wav_file(err_msg, rl , preset_src, preset_dst) ;
-   msg_console("END\n") ;
-}
-
+//================================================LA3 COMMS=============================================================
 static void preset_map0_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
 {
 	char hex[3] = {0,0,0};
@@ -555,7 +571,7 @@ static void use_map0_command_handler ( TReadLine* rl , TReadLine::const_symbol_t
 	load_map0(bp);
 	i2hex( bp,hex);
 	const char* a[2] = {0,hex} ;
-	programm_change_comm_handler( rl , a , 2 ) ;
+	preset_change_comm_handler( rl , a , 2 ) ;
 }
 
 static void use_map1_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
@@ -565,9 +581,9 @@ static void use_map1_command_handler ( TReadLine* rl , TReadLine::const_symbol_t
 	load_map1(bp);
 	i2hex( bp,hex);
 	const char* a[2] = {0,hex} ;
-	programm_change_comm_handler( rl , a , 2 ) ;
+	preset_change_comm_handler( rl , a , 2 ) ;
 }
-
+//****************************************DEBUG***************************************************************************
 static void debug_comm_hadler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
 {
 	msg_console("debug current_cab\r%s\n", loadedCab);
@@ -591,11 +607,13 @@ void consoleSetCmdHandlers(TReadLine* rl)
 
 	rl->AddCommandHandler("state", state_comm_handler);
 
-	rl->AddCommandHandler("pc", programm_change_comm_handler);
+	rl->AddCommandHandler("pc", preset_change_comm_handler);
 	rl->AddCommandHandler("sp", save_pres_comm_handler);
 
 	rl->AddCommandHandler("ls", ls_comm_handler);
 	rl->AddCommandHandler("ir", ir_comm_handler);
+
+	rl->AddCommandHandler("copy", copy_comm_handler);
 
 	// *****************params comm handlers********
 	rl->AddCommandHandler("ce", cabinet_enable_comm_handler);
@@ -629,16 +647,16 @@ void consoleSetCmdHandlers(TReadLine* rl)
 	rl->AddCommandHandler("ev", early_volume_comm_handler);
 	rl->AddCommandHandler("et", early_type_comm_handler);
 
-// *********************service comms*******************
-rl->AddCommandHandler("sm0", preset_map0_command_handler);
-rl->AddCommandHandler("sm1", preset_map1_command_handler);
-rl->AddCommandHandler("um0", use_map0_command_handler);
-rl->AddCommandHandler("um1", use_map1_command_handler);
+	// *********************service comms*******************
+	rl->AddCommandHandler("sm0", preset_map0_command_handler);
+	rl->AddCommandHandler("sm1", preset_map1_command_handler);
+	rl->AddCommandHandler("um0", use_map0_command_handler);
+	rl->AddCommandHandler("um1", use_map1_command_handler);
 
-rl->AddCommandHandler("fsf", fs_format_command_handler);
-rl->AddCommandHandler("fwu", fw_update_command_handler);
+	rl->AddCommandHandler("fsf", fs_format_command_handler);
+	rl->AddCommandHandler("fwu", fw_update_command_handler);
 
-//*********************debug*****************************
+	//*********************debug*****************************
 	rl->AddCommandHandler("debug", debug_comm_hadler);
 }
 //------------------------------------------------------------------------------
