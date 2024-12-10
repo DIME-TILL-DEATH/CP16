@@ -20,19 +20,19 @@ float a11;
 float b1;
 float b11;
 
-float freq[5] = {120.0, 360.0, 800.0, 2000.0, 6000.0};
-float freq1[5];
-volatile float filt_q;
+float legacyCenterFreq[5] = {120.0, 360.0, 800.0, 2000.0, 6000.0};
+//float freq1[5];
+//volatile float filt_q;
 
 uint16_t convertLegacyFreq(uint8_t bandNum, uint8_t freqVal)
 {
 	uint16_t convertedFreq = 20;
 	switch(bandNum)
 	{
-	case 0:case 1:convertedFreq = (int8_t)freqVal + freq[bandNum];break;
-	case 2:convertedFreq = (int8_t)freqVal*2 + freq[bandNum];break;
-	case 3:convertedFreq = (int8_t)freqVal*10 + freq[bandNum];break;
-	case 4:convertedFreq = (int8_t)freqVal*50 + freq[bandNum];break;
+	case 0:case 1:convertedFreq = (int8_t)freqVal + legacyCenterFreq[bandNum];break;
+	case 2:convertedFreq = (int8_t)freqVal*2 + legacyCenterFreq[bandNum];break;
+	case 3:convertedFreq = (int8_t)freqVal*10 + legacyCenterFreq[bandNum];break;
+	case 4:convertedFreq = (int8_t)freqVal*50 + legacyCenterFreq[bandNum];break;
 	}
 	return convertedFreq;
 }

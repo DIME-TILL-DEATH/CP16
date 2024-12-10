@@ -136,6 +136,7 @@ float __CCM_BSS__ ir_samples[block_size];
 
 float __CCM_BSS__ processing_samples[block_size];
 
+float __CCM_BSS__ mon_sample[block_size]; // pre IR
 float __CCM_BSS__ out_sampleL[block_size];
 float __CCM_BSS__ out_sampleR[block_size];
 
@@ -214,6 +215,7 @@ extern "C" void DMA1_Stream3_IRQHandler()
 		{
 			case LINE: ccl[i] = ccl[i] >> 1 ; ccr[i] = ccr[i] >> 1; break;
 			case BALANCE: ccr[i] = -ccl[i]; break;
+			case MONITOR: ccl[i] = out_clip(mon_sample[i] * processing_params.preset_volume) * 8388607.0f;// * get_fade_coef(); break;
 		}
 
 		dac_data[base_address + i].left.sample = ror16((uint32_t)(ccl[i] << 8));
@@ -296,6 +298,8 @@ void __RAMFUNC__ ir_processing_stage(float* in_samples, float* out_samples)
 
 	for(int i = 0; i < block_size; i++)
 	{
+		mon_sample[i] = in_samples[i];
+
 		to523(in_samples[i] * 0.3f, &aux_samples[aux_smpl_wr_ptr][0]);
 
 		aux_smpl_wr_ptr++;

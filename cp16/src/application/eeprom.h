@@ -8,7 +8,8 @@ enum
 {
 	PHONES = 0,
 	LINE,
-	BALANCE
+	BALANCE,
+	MONITOR
 };
 
 #define FIRMWARE_STRING_SIZE 20

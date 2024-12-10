@@ -119,7 +119,23 @@ static void state_comm_handler (TReadLine* rl , TReadLine::const_symbol_type_ptr
 		msg_console(" %s", args[1]);
 		if(command == "set")
 		{
+			char rcvBuffer[512];
+			char wrBuffer[256];
+			int32_t rcvBytesCount = getDataPartFromStream(rl, rcvBuffer, 512);
 
+			for(int i=0; i<rcvBytesCount; i+=2)
+			{
+				char w;
+				int c = rcvBuffer[i];
+
+				if(c > 57) c -= 39;
+				w =  (c - '0') << 4;
+				c = rcvBuffer[i+1];
+				if(c > 57) c -= 39;
+				w  |=  c - '0';
+				wrBuffer[i] = w;
+				kgp_sdk_libc::memcpy(&current_preset, wrBuffer, sizeof(preset_data_t));
+			}
 		}
 	}
 	msg_console("\r");
@@ -240,23 +256,6 @@ static void ir_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* a
 
 	if(command == "part_upload")
 	{
-//		char rcvBuffer[512];
-//		char wrBuffer[256];
-//		int32_t rcvBytesCount = getDataPartFromStream(rl, rcvBuffer, 512);
-//
-//		for(int i=0; i<rcvBytesCount; i++)
-//		{
-//			char w;
-//			int c = rcvBuffer[i];
-//
-//			if(c > 57) c -= 39;
-//			w =  (c - '0') << 4 ;
-//			if(c > 57) c -= 39;
-//			w  |=  c - '0';
-//			wrBuffer[i] = w;
-//		}
-
-
 		if(count > 2)
 		{
 			char buffer[512];
@@ -290,22 +289,6 @@ static void ir_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* a
 	}
 }
 //===============================================PARAMETERS COMM HANDLERS========================================================
-//inline void default_param_handler(uint8_t* param_ptr, TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
-//{
-//	char hex[3] = {0,0,0};
-//	if(count > 0)
-//	{
-//		if(count == 2)
-//		{
-//			char* end;
-//			uint8_t val = kgp_sdk_libc::strtol(args[1], &end, 16);
-//			*param_ptr = val;
-//		}
-//
-//		i2hex(*param_ptr, hex);
-//		msg_console("%s %s\n", args[0], hex);
-//	}
-//}
 
 static void cabinet_enable_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
 {
