@@ -40,7 +40,7 @@ public:
 
 void preset_change(void);
 void set_parameters(void);
-void CS_activateIr(const emb_string& irFilePath);
+bool CS_activateIr(const emb_string& irFilePath);
 
 extern uint8_t ind_en;
 

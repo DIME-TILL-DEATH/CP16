@@ -291,7 +291,7 @@ static void eq_volume_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_p
 			 current_preset.eq1.gain[band_num] = val;
 
 			 filterInit(band_num, current_preset.eq1.freq[band_num], current_preset.eq1.Q[band_num]);
-			 set_filt(band_num, current_preset.eq1.gain[band_num], (band_type_t)current_preset.eq1.band_type[band_num]);
+			 filterCalcCoefs(band_num, current_preset.eq1.gain[band_num], (band_type_t)current_preset.eq1.band_type[band_num]);
 		 }
 		 i2hex(current_preset.eq1.gain[band_num], hex);
 		 msg_console("%s %d %s\r\n", args[0], band_num, hex);
@@ -311,7 +311,7 @@ static void eq_freq_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr
 			 current_preset.eq1.freq[band_num] = convertLegacyFreq(band_num, val);
 
 			 filterInit(band_num, current_preset.eq1.freq[band_num], current_preset.eq1.Q[band_num]);
-			 set_filt(band_num, current_preset.eq1.gain[band_num], (band_type_t)current_preset.eq1.band_type[band_num]);
+			 filterCalcCoefs(band_num, current_preset.eq1.gain[band_num], (band_type_t)current_preset.eq1.band_type[band_num]);
 		 }
 		 i2hex(current_preset.eq1.freq[band_num], hex);
 		 msg_console("%s %d %s\r\n", args[0], band_num, hex);
@@ -331,7 +331,7 @@ static void eq_q_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t*
 			current_preset.eq1.Q[band_num] = val;
 
 			filterInit(band_num, current_preset.eq1.freq[band_num], current_preset.eq1.Q[band_num]);
-			set_filt(band_num, current_preset.eq1.gain[band_num], (band_type_t)current_preset.eq1.band_type[band_num]);
+			filterCalcCoefs(band_num, current_preset.eq1.gain[band_num], (band_type_t)current_preset.eq1.band_type[band_num]);
 		}
 		i2hex(current_preset.eq1.Q[band_num], hex);
 		msg_console("%s %d %s\r\n", args[0], band_num, hex);

@@ -84,7 +84,7 @@ void preset_from_legacy(preset_data_t* dst_preset, const preset_data_legacy_t* s
 	for(int i=0; i<5; i++)
 	{
 
-		dst_preset->eq1.gain[i] = src_preset->eq_band_vol[i];
+		dst_preset->eq1.gain[i] = src_preset->eq_band_vol[i] - 15;
 		dst_preset->eq1.freq[i] = convertLegacyFreq(i, src_preset->eq_freq[i]);
 		dst_preset->eq1.Q[i] = (int8_t)(src_preset->eq_Q[i]);
 	}
@@ -95,7 +95,7 @@ void preset_from_legacy(preset_data_t* dst_preset, const preset_data_legacy_t* s
 
 	for(int i=0; i<5; i++)
 	{
-		dst_preset->eq2.gain[i] = 15;
+		dst_preset->eq2.gain[i] = 0;
 		dst_preset->eq2.freq[i] = legacyCenterFreq[i];
 		dst_preset->eq2.Q[i] = 0;
 	}

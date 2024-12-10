@@ -143,7 +143,7 @@ void preset_change(void)
 	fade_in();
 }
 
-void CS_activateIr(const emb_string& irFilePath)
+bool CS_activateIr(const emb_string& irFilePath)
 {
 	emb_string err_msg;
 	if(EEPROM_loadIr(cab_data, irFilePath, err_msg) != true)
@@ -152,6 +152,7 @@ void CS_activateIr(const emb_string& irFilePath)
 		led_pulse_config(1);
 
 		kgp_sdk_libc::memset(loadedCab, 0, 256); // debug info
+		return false;
 	}
 	else
 	{
@@ -160,6 +161,7 @@ void CS_activateIr(const emb_string& irFilePath)
 		led_pulse_config(0);
 
 		kgp_sdk_libc::memcpy(loadedCab, irFilePath.c_str(), sizeof(irFilePath));
+		return true;
 	}
 }
 
@@ -191,7 +193,7 @@ void set_parameters(void)
 	for(uint8_t i = 0 ; i < 5 ; i++)
 	{
 		filterInit(i, current_preset.eq1.freq[i], current_preset.eq1.Q[i]);
-		set_filt(i, current_preset.eq1.gain[i], (band_type_t)current_preset.eq1.band_type[i]);
+		filterCalcCoefs(i, current_preset.eq1.gain[i], (band_type_t)current_preset.eq1.band_type[i]);
 	}
 
 	float low_pass = powf(195 - current_preset.eq1.lp_freq, 2.0f) * (19000.0f/powf(195.0f, 2.0f)) + 1000.0f;

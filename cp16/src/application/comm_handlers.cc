@@ -123,14 +123,14 @@ static void state_comm_handler (TReadLine* rl , TReadLine::const_symbol_type_ptr
 			char wrBuffer[256];
 			int32_t rcvBytesCount = getDataPartFromStream(rl, rcvBuffer, 512);
 
-			for(int i=0; i<rcvBytesCount; i+=2)
+			for(int i=0; i<rcvBytesCount/2; i++)
 			{
 				char w;
-				int c = rcvBuffer[i];
+				int c = rcvBuffer[2*i];
 
 				if(c > 57) c -= 39;
 				w =  (c - '0') << 4;
-				c = rcvBuffer[i+1];
+				c = rcvBuffer[2*i+1];
 				if(c > 57) c -= 39;
 				w  |=  c - '0';
 				wrBuffer[i] = w;
@@ -173,11 +173,7 @@ static void ls_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* a
 
 	if(EEPROM_getDirWavNames(dirPath, fileNamesList, rl))
 	{
-		if(fileNamesList.empty())
-		{
-			msg_console("\r\n");
-		}
-		else
+		if(!fileNamesList.empty())
 		{
 			for(auto it = fileNamesList.begin(); it != fileNamesList.end(); ++it)
 			{
@@ -220,11 +216,13 @@ static void ir_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* a
 		getDataPartFromStream(rl, dataBuffer, bufferSize);
 		current_ir_link.irLinkPath = dataBuffer;
 
-		// TODO check file exist
 		emb_string irFilePath = current_ir_link.irLinkPath + "/" + current_ir_link.irFileName;
-		CS_activateIr(irFilePath);
+		bool res = CS_activateIr(irFilePath);
 
-		msg_console("link\r%s\r%s\n", current_ir_link.irFileName.c_str(), current_ir_link.irLinkPath.c_str());
+		if(res)
+			msg_console("link\r%s\r%s\n", current_ir_link.irFileName.c_str(), current_ir_link.irLinkPath.c_str());
+		else
+			msg_console("link\rLINK_NOT_VALID\n");
 	}
 
 	if(command == "start_upload")
@@ -402,7 +400,7 @@ static void presence_volume_command_handler(TReadLine* rl, TReadLine::const_symb
 static void eq0_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
 {
 	msg_console("%s ", args[0]);
-	if(count<3)
+	if(count<4)
 	{
 		msg_console("ARGUMENTS_INCORRECT\r\n");
 		return;
@@ -410,12 +408,12 @@ static void eq0_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* 
 
 	emb_string target = args[1];
 	emb_string parameter = args[2];
+	long value = kgp_sdk_libc::strtol(args[3], &pEnd, 16);
 	char* pEnd;
 
 	if(target.at(0) == 'b')
 	{
 		long bandNum = kgp_sdk_libc::strtol(target.substr(1).c_str(), &pEnd, 16);
-		long value = kgp_sdk_libc::strtol(parameter.substr(1).c_str(), &pEnd, 16);
 
 		if(parameter.at(0) == 'f') current_preset.eq1.freq[bandNum] = value;
 		if(parameter.at(0) == 'g') current_preset.eq1.gain[bandNum] = value;
@@ -424,25 +422,27 @@ static void eq0_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* 
 		if(parameter.at(0) == 'e') current_preset.eq1.band_on[bandNum] = value;
 
 		filterInit(bandNum, current_preset.eq1.freq[bandNum], current_preset.eq1.Q[bandNum]);
-		set_filt(bandNum, current_preset.eq1.gain[bandNum], (band_type_t)current_preset.eq1.band_type[bandNum]);
+		filterCalcCoefs(bandNum, current_preset.eq1.gain[bandNum], (band_type_t)current_preset.eq1.band_type[bandNum]);
 
 	}
 	else
 	{
 		if(target == "par")
 		{
-
+			current_preset.eq1.parametric_on= value;
 		}
 		if(target == "hp")
 		{
-
+			if(parameter.at(0) == 'f') current_preset.eq1.hp_freq= value;
+			if(parameter.at(0) == 'o') current_preset.eq1.hp_on = value;
 		}
 		if(target == "lp")
 		{
-
+			if(parameter.at(0) == 'f') current_preset.eq1.lp_freq= value;
+			if(parameter.at(0) == 'o') current_preset.eq1.lp_on = value;
 		}
 	}
-	msg_console("%s %s\r\n", target.c_str(), parameter.c_str());
+	msg_console("%s %s %s\r\n", target.c_str(), parameter.c_str(), args[3]);
 }
 
 static void early_on_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
