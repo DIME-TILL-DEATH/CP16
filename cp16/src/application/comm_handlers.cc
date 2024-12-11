@@ -1,3 +1,5 @@
+#include "appdefs.h"
+
 #include "console_handlers.h"
 #include "comm_handlers_legacy.h"
 
@@ -12,8 +14,9 @@
 
 #include "preset.h"
 
-#include "DSP/compressor.h"
 #include "DSP/amp_imp.h"
+#include "DSP/compressor.h"
+#include "DSP/fades.h"
 #include "DSP/filters.h"
 #include "DSP/sound_processing.h"
 #include "DSP/Reverb/reverb.h"
@@ -507,6 +510,12 @@ static void early_type_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_
 //-------------------------------------------SERVICE COMMAND HANDLERS--------------------------------------------------------------------
 static void fs_format_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
 {
+	fade_out();
+	while(!is_fade_complete()){};
+	adau_mute();
+	NVIC_DisableIRQ(DMA1_Stream3_IRQn);
+	NVIC_DisableIRQ(SPI2_IRQn);
+
 	msg_console("fsf\r");
 	std::emb_string err_str ;
 	console_fs_format(err_str, rl);
@@ -514,6 +523,12 @@ static void fs_format_command_handler ( TReadLine* rl , TReadLine::const_symbol_
 
 static void fw_update_command_handler ( TReadLine* rl , TReadLine::const_symbol_type_ptr_t* args , const size_t count )
 {
+	fade_out();
+	adau_mute();
+	while(!is_fade_complete()){};
+	NVIC_DisableIRQ(DMA1_Stream3_IRQn);
+	NVIC_DisableIRQ(SPI2_IRQn);
+
 	msg_console("fwu\r");
 	std::emb_string err_msg  ;
 	if ( console_fs_write_file(err_msg, rl , "0:/firmware"))

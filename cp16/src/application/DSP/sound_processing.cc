@@ -207,15 +207,15 @@ extern "C" void DMA1_Stream3_IRQHandler()
 	//----------------------------------Out conversion-----------------------------------------------
 
 
-		ccl[i] = out_clip(out_sampleL[i] * processing_params.preset_volume) * 8388607.0f;// * get_fade_coef();
-		ccr[i] = out_clip(out_sampleR[i] * processing_params.preset_volume) * 8388607.0f;// * get_fade_coef();
+		ccl[i] = out_clip(out_sampleL[i] * processing_params.preset_volume) * 8388607.0f * get_fade_coef();
+		ccr[i] = out_clip(out_sampleR[i] * processing_params.preset_volume) * 8388607.0f * get_fade_coef();
 
 
 		switch(system_parameters.output_mode)
 		{
 			case LINE: ccl[i] = ccl[i] >> 1 ; ccr[i] = ccr[i] >> 1; break;
 			case BALANCE: ccr[i] = -ccl[i]; break;
-			case MONITOR: ccl[i] = out_clip(mon_sample[i] * processing_params.preset_volume) * 8388607.0f;// * get_fade_coef(); break;
+			case MONITOR: ccl[i] = out_clip(mon_sample[i] * processing_params.preset_volume) * 8388607.0f * get_fade_coef(); break;
 		}
 
 		dac_data[base_address + i].left.sample = ror16((uint32_t)(ccl[i] << 8));
