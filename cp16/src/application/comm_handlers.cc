@@ -456,7 +456,6 @@ static void eq0_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* 
 		if(parameter.at(0) == 'g') current_preset.eq1.gain[bandNum] = value;
 		if(parameter.at(0) == 'q') current_preset.eq1.Q[bandNum] = value;
 		if(parameter.at(0) == 't') current_preset.eq1.band_type[bandNum] = value;
-		if(parameter.at(0) == 'e') current_preset.eq1.band_on[bandNum] = value;
 
 		filterInit(bandNum, current_preset.eq1.freq[bandNum], current_preset.eq1.Q[bandNum]);
 		filterCalcCoefs(bandNum, current_preset.eq1.gain[bandNum], (band_type_t)current_preset.eq1.band_type[bandNum]);
@@ -473,8 +472,7 @@ static void eq0_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* 
 			if(parameter.at(0) == 'f')
 			{
 				current_preset.eq1.hp_freq= value;
-				float hipas = current_preset.eq1.hp_freq*(980.0f/255.0f) + 20.0f;
-				SetHPF(hipas);
+				SetHPF(current_preset.eq1.hp_freq);
 			}
 			if(parameter.at(0) == 'o') current_preset.eq1.hp_on = value;
 		}
@@ -483,8 +481,7 @@ static void eq0_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* 
 			if(parameter.at(0) == 'f')
 			{
 				current_preset.eq1.lp_freq= value;
-				float lopas = powf(195 - current_preset.eq1.lp_freq, 2.0f)*(19000.0f/powf(195.0f,2.0f))+1000.0f;
-				SetLPF(lopas);
+				SetLPF(current_preset.eq1.lp_freq);
 			}
 			if(parameter.at(0) == 'o') current_preset.eq1.lp_on = value;
 		}

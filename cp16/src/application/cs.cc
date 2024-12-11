@@ -197,11 +197,8 @@ void set_parameters(void)
 		filterCalcCoefs(i, current_preset.eq1.gain[i], (band_type_t)current_preset.eq1.band_type[i]);
 	}
 
-	float low_pass = powf(195 - current_preset.eq1.lp_freq, 2.0f) * (19000.0f/powf(195.0f, 2.0f)) + 1000.0f;
-	SetLPF(low_pass);
-
-	float hi_pass = current_preset.eq1.hp_freq * (980.0f/255.0f) + 20.0f;
-	SetHPF(hi_pass);
+	SetLPF(current_preset.eq1.lp_freq);
+	SetHPF(current_preset.eq1.hp_freq);
 
 	processing_params.ear_vol = current_preset.reverb.volume * (1.0/31.0);
 }

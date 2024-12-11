@@ -44,14 +44,12 @@ void filterInit(uint8_t bandNum, uint16_t freq, int8_t q)
 	  filt_sin[bandNum] = sinf(w0);
 	  filt_cos[bandNum] = cosf(w0);
 	  float filt_q =  powf(200 - (q + 100) , 3.0f)*(5.0f/powf(200.0f , 3.0f)) + 0.225f;
-	  filt_alpha[bandNum] = filt_sin[bandNum]/2.0*filt_q;
+	  filt_alpha[bandNum] = filt_sin[bandNum]/(2.0*filt_q);
 }
 
 void filterCalcCoefs(uint8_t band_num, int8_t filt_gain, band_type_t band_type)
 {
 	float gain = filt_gain;
-//	if(filt_gain < 15) gain = -(15.0f - filt_gain);
-//	else gain = -(15.0f - filt_gain);
 
 	float A = powf(10.0f, gain/40.0f);
 

@@ -281,13 +281,17 @@ void __RAMFUNC__ pa_processing_stage(float* in_samples, float* out_samples)
 
 			arm_fir_f32(&pa_instance, out_samples, out_samples, block_size);
 		}
+
+		arm_biquad_cascade_df1_f32(&presence_instance, out_samples, out_samples, block_size);
+
+		//--------------------------------------Presence-------------------------------------------
+//		if(current_preset.power_amp.presence_on)
+//		{
+//			arm_biquad_cascade_df1_f32(&presence_instance, out_samples, out_samples, block_size);
+//		}
 	}
 
-	//--------------------------------------Presence-------------------------------------------
-	if(current_preset.power_amp.presence_on)
-	{
-		arm_biquad_cascade_df1_f32(&presence_instance, out_samples, out_samples, block_size);
-	}
+
 }
 
 void __RAMFUNC__ ir_processing_stage(float* in_samples, float* out_samples)

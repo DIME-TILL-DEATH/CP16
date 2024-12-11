@@ -246,9 +246,21 @@ static void lpf_on_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_
 
 static void lpf_volume_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
 {
-     default_param_handler(&current_preset.eq1.lp_freq, rl, args, count);
-     float lopas = powf(195 - current_preset.eq1.lp_freq, 2.0f)*(19000.0f/powf(195.0f,2.0f))+1000.0f;
-	 SetLPF(lopas);
+	char hex[3] = {0,0,0};
+	uint8_t val;
+	if(count > 0)
+	{
+		if(count == 2)
+		{
+			char* end;
+			val = kgp_sdk_libc::strtol(args[1], &end, 16);
+			current_preset.eq1.lp_freq = powf(195 - val, 2.0f)*(19000.0f/powf(195.0f,2.0f))+1000.0f;
+			SetLPF(current_preset.eq1.lp_freq);
+		}
+
+		i2hex(val, hex);
+		msg_console("%s %s\n", args[0], hex);
+	}
 }
 
 static void hpf_on_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
@@ -258,9 +270,21 @@ static void hpf_on_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_
 
 static void hpf_volume_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
 {
-	default_param_handler(&current_preset.eq1.hp_freq, rl, args, count);
-	float hipas = current_preset.eq1.hp_freq*(980.0f/255.0f) + 20.0f;
-	SetHPF(hipas);
+	char hex[3] = {0,0,0};
+	uint8_t val;
+	if(count > 0)
+	{
+		if(count == 2)
+		{
+			char* end;
+			val = kgp_sdk_libc::strtol(args[1], &end, 16);
+			current_preset.eq1.hp_freq = val*(980.0f/255.0f) + 20.0f;
+			SetHPF(current_preset.eq1.hp_freq);
+		}
+
+		i2hex(val, hex);
+		msg_console("%s %s\n", args[0], hex);
+	}
 }
 
 static void eq_on_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)

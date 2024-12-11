@@ -130,20 +130,17 @@ typedef struct
     uint8_t hp_on;
     uint8_t lp_on;
 
-    uint8_t lp_freq;
-    uint8_t hp_freq;
+    uint16_t lp_freq;
+    uint16_t hp_freq;
 
     int8_t gain[EQ_BANDS_COUNT];
     uint16_t freq[EQ_BANDS_COUNT];
-//    uint8_t freq[EQ_BANDS_COUNT];
-//    uint8_t reserv[EQ_BANDS_COUNT];
 
     int8_t Q[EQ_BANDS_COUNT];
     uint8_t band_type[EQ_BANDS_COUNT];
-    uint8_t band_on[EQ_BANDS_COUNT];
 
-    uint8_t reserved[5];
-}eq_t; //42
+    uint8_t reserved[4];
+}eq_t; //36
 
 typedef struct
 {
@@ -168,7 +165,7 @@ typedef struct
     eq_t eq2;
 
     // Tremolo, phaser, flanger, chorus, WAH
-    uint8_t reserved[22];
+    uint8_t reserved[24];
 
     reverb_data_t reverb;
 }preset_data_t;

@@ -89,9 +89,9 @@ void preset_from_legacy(preset_data_t* dst_preset, const preset_data_legacy_t* s
 		dst_preset->eq1.Q[i] = (int8_t)(src_preset->eq_Q[i]);
 	}
 	dst_preset->eq1.hp_on = src_preset->hp_on;
-	dst_preset->eq1.hp_freq = src_preset->hp_freq;
+	dst_preset->eq1.hp_freq = src_preset->hp_freq*(980.0f/255.0f) + 20.0f;
 	dst_preset->eq1.lp_on = src_preset->lp_on;
-	dst_preset->eq1.lp_freq = src_preset->lp_freq;
+	dst_preset->eq1.lp_freq = powf(195 - src_preset->lp_freq, 2.0f)*(19000.0f/powf(195.0f,2.0f))+1000.0f;
 
 	for(int i=0; i<5; i++)
 	{
@@ -99,6 +99,8 @@ void preset_from_legacy(preset_data_t* dst_preset, const preset_data_legacy_t* s
 		dst_preset->eq2.freq[i] = legacyCenterFreq[i];
 		dst_preset->eq2.Q[i] = 0;
 	}
+	dst_preset->eq2.hp_freq = 20;
+	dst_preset->eq2.lp_freq = 20000;
 
 	dst_preset->cab_sim_on = src_preset->cab_on;
 
