@@ -19,4 +19,3 @@ static inline uint32_t __attribute__ ((always_inline)) high_sort(uint32_t* p, si
 	return temp;
 }
 #endif /*__INIT_H__*/
-uint32_t sw1_state() ;

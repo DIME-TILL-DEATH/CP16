@@ -529,6 +529,10 @@ static void fw_update_command_handler ( TReadLine* rl , TReadLine::const_symbol_
 	NVIC_DisableIRQ(DMA1_Stream3_IRQn);
 	NVIC_DisableIRQ(SPI2_IRQn);
 
+	NVIC_DisableIRQ(EXTI0_IRQn);
+	NVIC_DisableIRQ(EXTI1_IRQn);
+	NVIC_DisableIRQ(EXTI15_10_IRQn);
+
 	msg_console("fwu\r");
 	std::emb_string err_msg  ;
 	if ( console_fs_write_file(err_msg, rl , "0:/firmware"))
@@ -620,6 +624,7 @@ void consoleSetCmdHandlers(TReadLine* rl)
 	rl->AddCommandHandler("state", state_comm_handler);
 
 	rl->AddCommandHandler("pc", preset_change_comm_handler);
+
 	rl->AddCommandHandler("sp", save_pres_comm_handler);
 
 	rl->AddCommandHandler("ls", ls_comm_handler);

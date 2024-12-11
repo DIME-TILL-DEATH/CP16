@@ -71,6 +71,16 @@ void TCSTask::Code()
 
 	adau_run();
 
+	NVIC_EnableIRQ(DMA1_Stream5_IRQn);
+	SPI_I2S_DMACmd(adau_com_spi, SPI_I2S_DMAReq_Tx, ENABLE);
+	NVIC_EnableIRQ(SPI2_IRQn);
+
+	NVIC_EnableIRQ(EXTI0_IRQn);
+	NVIC_EnableIRQ(EXTI1_IRQn);
+	NVIC_EnableIRQ(EXTI15_10_IRQn);
+
+	key_check();
+
 	while(1)
 	{
 		if(!usb_flag)
@@ -95,12 +105,8 @@ void TCSTask::Code()
 	decode_preset( bank_pres, bp);
 	preset_change();
 #else
-	key_check();  // управление пресетами с внешних устройств по средством gpio обычных cp16
+//	key_check();  // управление пресетами с внешних устройств по средством gpio обычных cp16
 #endif
-
-	NVIC_EnableIRQ(DMA1_Stream5_IRQn);
-	SPI_I2S_DMACmd(adau_com_spi, SPI_I2S_DMAReq_Tx, ENABLE);
-	NVIC_EnableIRQ(SPI2_IRQn);
 	}
 }
 
