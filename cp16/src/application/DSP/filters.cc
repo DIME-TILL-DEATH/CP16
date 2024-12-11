@@ -47,11 +47,11 @@ void filterInit(uint8_t bandNum, uint16_t freq, int8_t q)
 	  filt_alpha[bandNum] = filt_sin[bandNum]/2.0*filt_q;
 }
 
-void filterCalcCoefs(uint8_t band_num, uint8_t filt_gain, band_type_t band_type)
+void filterCalcCoefs(uint8_t band_num, int8_t filt_gain, band_type_t band_type)
 {
-	float gain;
-	if(filt_gain < 15) gain = -(15.0f - filt_gain);
-	else gain = -(15.0f - filt_gain);
+	float gain = filt_gain;
+//	if(filt_gain < 15) gain = -(15.0f - filt_gain);
+//	else gain = -(15.0f - filt_gain);
 
 	float A = powf(10.0f, gain/40.0f);
 
@@ -74,7 +74,7 @@ void filterCalcCoefs(uint8_t band_num, uint8_t filt_gain, band_type_t band_type)
 			coeff_eq[1 + band_num*5] = 2 * A * ((A - 1) - (A + 1)*filt_cos[band_num])/a0;
 			coeff_eq[2 + band_num*5] = A * ((A + 1) - (A - 1)*filt_cos[band_num] - 2*sqrt(A)*filt_alpha[band_num])/a0;
 			coeff_eq[3 + band_num*5] = -(-2 * ((A - 1) + (A + 1)*filt_cos[band_num])/a0);
-			coeff_eq[4 + band_num*5] = -(((A + 1) + (A - 1)*filt_cos[band_num] + 2*sqrt(A)*filt_alpha[band_num])/a0);
+			coeff_eq[4 + band_num*5] = -(((A + 1) + (A - 1)*filt_cos[band_num] - 2*sqrt(A)*filt_alpha[band_num])/a0);
 			break;
 		}
 		case HIGH_SHELF:
