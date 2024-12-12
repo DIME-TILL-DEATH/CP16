@@ -44,6 +44,8 @@ typedef struct
 
 extern processing_params_t processing_params;
 
+extern uint16_t irClips, outClips;
+
 void DSP_init();
 void DSP_set_module_to_processing_stage(DSP_mono_module_type_t module_type, uint8_t stage_num);
 

@@ -328,6 +328,11 @@ static void copy_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t*
 		msg_console("copy error\r%s\n", errMsg.c_str());
 	}
 }
+
+static void clip_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
+{
+	msg_console("clip\r%d\r%d\n", irClips, outClips);
+}
 //===============================================PARAMETERS COMM HANDLERS========================================================
 
 static void cabinet_enable_comm_handler(TReadLine* rl, TReadLine::const_symbol_type_ptr_t* args, const size_t count)
@@ -632,6 +637,7 @@ void consoleSetCmdHandlers(TReadLine* rl)
 
 	rl->AddCommandHandler("copy", copy_comm_handler);
 
+	rl->AddCommandHandler("clip", clip_comm_handler);
 	// *****************params comm handlers********
 	rl->AddCommandHandler("ce", cabinet_enable_comm_handler);
 

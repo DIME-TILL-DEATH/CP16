@@ -38,7 +38,7 @@ uint8_t ir_send_position = 3;
 inline float soft_clip_amp(float in);
 inline float soft_clip_pre(float in);
 inline float dc_block(float in);
-inline float out_clip(float in);
+inline float out_clip(float in, bool* clipped);
 
 processing_params_t processing_params;
 
@@ -143,6 +143,12 @@ float __CCM_BSS__ out_sampleR[block_size];
 int32_t __CCM_BSS__ ccl[block_size];
 int32_t __CCM_BSS__ ccr[block_size];
 
+uint16_t irClipCounter = 0;
+uint16_t outClipCounter = 0;
+uint16_t framesCounter = 0;
+
+uint16_t irClips=0;
+uint16_t outClips=0;
 
 extern "C" void DMA1_Stream3_IRQHandler()
 {
@@ -205,26 +211,63 @@ extern "C" void DMA1_Stream3_IRQHandler()
 			pwm_count_f = 0.0f;
 		}
 	//----------------------------------Out conversion-----------------------------------------------
+		bool outClippedL, outClippedR;
 
-
-		ccl[i] = out_clip(out_sampleL[i] * processing_params.preset_volume) * 8388607.0f * get_fade_coef();
-		ccr[i] = out_clip(out_sampleR[i] * processing_params.preset_volume) * 8388607.0f * get_fade_coef();
+		ccl[i] = out_clip(out_sampleL[i] * processing_params.preset_volume, &outClippedL) * 8388607.0f * get_fade_coef(); // 8388607 = 0x7FFFFF
+		ccr[i] = out_clip(out_sampleR[i] * processing_params.preset_volume, &outClippedR) * 8388607.0f * get_fade_coef();
 
 
 		switch(system_parameters.output_mode)
 		{
 			case LINE: ccl[i] = ccl[i] >> 1 ; ccr[i] = ccr[i] >> 1; break;
 			case BALANCE: ccr[i] = -ccl[i]; break;
-			case MONITOR: ccl[i] = out_clip(mon_sample[i] * processing_params.preset_volume) * 8388607.0f * get_fade_coef(); break;
+			case MONITOR: ccl[i] = out_clip(mon_sample[i] * processing_params.preset_volume, &outClippedL) * 8388607.0f * get_fade_coef(); break;
 		}
 
 		dac_data[base_address + i].left.sample = ror16((uint32_t)(ccl[i] << 8));
 		dac_data[base_address + i].right.sample = ror16((uint32_t)(ccr[i] << 8));
 
+		if(outClippedL)
+		{
+			outClipCounter++;
+		}
 	}
 
 	//---------------------------------------------End-------------------------------------
 	GPIO_ResetBits(GPIOB, GPIO_Pin_7);
+
+	if(framesCounter<1000)
+	{
+		framesCounter++;
+	}
+	else
+	{
+		framesCounter=0;
+
+		if(irClipCounter>0 || outClipCounter>0)
+		{
+			outClips = outClipCounter;
+			irClips = irClipCounter;
+
+			static volatile bool fst = true ;
+			if ( fst ) { fst = false; return; }
+
+			BaseType_t  HigherPriorityTaskWoken;
+			char cmd[] = "clip\r\n";
+			for (size_t i = 0; i<7; i++)
+				ConsoleTask->WriteToInputBuffFromISR(cmd + i ,&HigherPriorityTaskWoken);
+
+			portYIELD_FROM_ISR(HigherPriorityTaskWoken);
+		}
+		else
+		{
+			irClips = 0;
+			outClips = 0;
+		}
+
+		irClipCounter = 0;
+		outClipCounter = 0;
+	}
 }
 
 
@@ -304,7 +347,10 @@ void __RAMFUNC__ ir_processing_stage(float* in_samples, float* out_samples)
 	{
 		mon_sample[i] = in_samples[i];
 
-		to523(in_samples[i] * 0.3f, &aux_samples[aux_smpl_wr_ptr][0]);
+		bool irClipped;
+		to523(out_clip(in_samples[i], &irClipped) * 0.3f, &aux_samples[aux_smpl_wr_ptr][0]);
+
+		if(irClipped) irClipCounter++;
 
 		aux_smpl_wr_ptr++;
 
@@ -415,15 +461,21 @@ inline float dc_block(float in)
 	return a;
 }
 
-inline float out_clip(float in)
+inline float out_clip(float in, bool* clipped)
 {
 	float a = fabsf(in);
 	float b = a - 0.91838997f;
 	if(a > 0.9486f)
 	{
+		*clipped = true;
+
 		a = 0.98f * (b/(fabsf(b) + 0.001f));
 		if(in >=0.0f)in = a;
 		else in = -a;
+	}
+	else
+	{
+		*clipped = false;
 	}
 	return in;
 }
