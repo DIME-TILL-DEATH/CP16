@@ -1,5 +1,6 @@
+#include "../PROCESSING/filters.h"
+
 #include "appdefs.h"
-#include "filters.h"
 
 float pres_buf[5];
 float Coeffs_b[5];

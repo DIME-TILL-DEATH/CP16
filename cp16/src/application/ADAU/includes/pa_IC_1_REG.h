@@ -19,7 +19,6 @@
 #ifndef __PA_IC_1_REG_H__
 #define __PA_IC_1_REG_H__
 
-
 /* InterfaceRegister0  - Registers (IC 1) */
 #define REG_INTERFACEREGISTER0_IC_1_ADDR          0x800
 #define REG_INTERFACEREGISTER0_IC_1_BYTE          4
@@ -144,7 +143,6 @@
 #define REG_ANALOGINTERFACEREGISTER3_IC_1_ADDR    0x827
 #define REG_ANALOGINTERFACEREGISTER3_IC_1_BYTE    2
 #define REG_ANALOGINTERFACEREGISTER3_IC_1_VALUE   0x1
-
 
 /*
  *

@@ -1,4 +1,4 @@
-#include "reverb.h"
+#include "../../PROCESSING/Reverb/reverb.h"
 
 char __CCM_BSS__ buff[32768];
 float* early_buf = (float*)buff;

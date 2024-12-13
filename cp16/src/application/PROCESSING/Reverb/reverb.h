@@ -1,9 +1,9 @@
 #ifndef __REVERB_H__
 #define __REVERB_H__
 
+#include "../../PROCESSING/Reverb/early.h"
 #include "appdefs.h"
 
-#include "early.h"
 #include "eeprom.h"
 
 #define rev_size 8192
@@ -37,10 +37,10 @@ void revers1(void);
 void revers2(void);
 void revers3(void);
 
-     extern float ear_outL;
-     extern float ear_outR;
-     extern float reverb_accum;
-     extern float rev_tim;
-     //extern float __CCM_BSS__ early_buf[];
+extern float ear_outL;
+extern float ear_outR;
+extern float reverb_accum;
+extern float rev_tim;
+//extern float __CCM_BSS__ early_buf[];
 
 #endif /*__REVERB_H__*/

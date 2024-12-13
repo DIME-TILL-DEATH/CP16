@@ -11,11 +11,11 @@
 
 #include "preset.h"
 
-#include "DSP/sound_processing.h"
-#include "DSP/fades.h"
-#include "DSP/filters.h"
-#include "DSP/amp_imp.h"
-#include "DSP/compressor.h"
+#include "PROCESSING/amp_imp.h"
+#include "PROCESSING/compressor.h"
+#include "PROCESSING/fades.h"
+#include "PROCESSING/filters.h"
+#include "PROCESSING/sound_processing.h"
 
 char loadedCab[256]; // debug data
 

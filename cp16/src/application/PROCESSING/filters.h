@@ -2,7 +2,7 @@
 #define __FILT_H__
 #include "appdefs.h"
 
-#define FILT_PI    3.14159265358979323846f
+#define FILT_PI 3.14159265358979323846f
 
 extern float pres_buf[5];
 extern float Coeffs_b[5];
@@ -28,8 +28,6 @@ extern float b1;
 extern float b11;
 
 extern float legacyCenterFreq[5];
-//extern float freq1[5];
-//extern volatile float filt_q;
 
 typedef enum
 {

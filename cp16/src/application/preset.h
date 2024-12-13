@@ -8,7 +8,7 @@
 #ifndef SRC_APPLICATION_PRESET_H_
 #define SRC_APPLICATION_PRESET_H_
 
-#include "DSP/sound_processing.h"
+#include "PROCESSING/sound_processing.h"
 
 //======================Legacy================================
 enum{

@@ -5,9 +5,9 @@
  *      Author: dime
  */
 
-#include "amp_imp.h"
-#include "sound_processing.h"
+#include "../PROCESSING/amp_imp.h"
 
+#include "../PROCESSING/sound_processing.h"
 #include "ADAU/adau1701.h"
 
 arm_fir_instance_f32 pa_instance;

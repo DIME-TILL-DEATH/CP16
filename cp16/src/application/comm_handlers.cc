@@ -14,12 +14,12 @@
 
 #include "preset.h"
 
-#include "DSP/amp_imp.h"
-#include "DSP/compressor.h"
-#include "DSP/fades.h"
-#include "DSP/filters.h"
-#include "DSP/sound_processing.h"
-#include "DSP/Reverb/reverb.h"
+#include "PROCESSING/amp_imp.h"
+#include "PROCESSING/compressor.h"
+#include "PROCESSING/fades.h"
+#include "PROCESSING/filters.h"
+#include "PROCESSING/Reverb/reverb.h"
+#include "PROCESSING/sound_processing.h"
 
 emb_string uploadingIrPath;
 

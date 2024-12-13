@@ -5,8 +5,8 @@
  *      Author: dime
  */
 
-#ifndef SRC_APPLICATION_DSP_SOUND_PROCESSING_H_
-#define SRC_APPLICATION_DSP_SOUND_PROCESSING_H_
+#ifndef SRC_APPLICATION_PROCESSING_SOUND_PROCESSING_H_
+#define SRC_APPLICATION_PROCESSING_SOUND_PROCESSING_H_
 
 #include "appdefs.h"
 
@@ -54,4 +54,4 @@ extern float coeff_eq[eq_stage * 5];
 constexpr float vol_ind_k[] = { 3e-3f,  2.7e-5f,   1.75e-4f,};
 extern volatile  float vol_ind_vector[3];
 
-#endif /* SRC_APPLICATION_DSP_SOUND_PROCESSING_H_ */
+#endif /* SRC_APPLICATION_PROCESSING_SOUND_PROCESSING_H_ */

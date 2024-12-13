@@ -7,16 +7,16 @@
 
 #include "preset.h"
 
-#include "DSP/filters.h"
+#include "PROCESSING/filters.h"
 
 char current_preset_name[PRESET_NAME_LENGTH];
 preset_data_legacy_t default_legacy_preset;
 preset_data_t current_preset;
 ir_path_data_t current_ir_link;
 
-void PRESET_init()
-{
-	kgp_sdk_libc::memset(&default_legacy_preset, 0, sizeof(preset_data_legacy_t));
+void PRESET_init() {
+	kgp_sdk_libc::memset(&default_legacy_preset, 0,
+			sizeof(preset_data_legacy_t));
 
 	default_legacy_preset.eq_band_vol[0] = 15;
 	default_legacy_preset.eq_band_vol[1] = 15;
@@ -34,21 +34,18 @@ void PRESET_init()
 	default_legacy_preset.preamp_volume = 25;
 }
 
-void preset_from_legacy(preset_data_t* dst_preset, const preset_data_legacy_t* src_preset)
-{
+void preset_from_legacy(preset_data_t *dst_preset,
+		const preset_data_legacy_t *src_preset) {
 	kgp_sdk_libc::memset(dst_preset, 0, sizeof(preset_data_t));
 
-	if(src_preset->eq_pre)
-	{
+	if (src_preset->eq_pre) {
 		dst_preset->modules_order[0] = CM;
 		dst_preset->modules_order[1] = EQ;
 		dst_preset->modules_order[2] = PR;
 		dst_preset->modules_order[3] = PA;
 		dst_preset->modules_order[4] = IR;
 		dst_preset->modules_order[5] = NG;
-	}
-	else
-	{
+	} else {
 		dst_preset->modules_order[0] = CM;
 		dst_preset->modules_order[1] = PR;
 		dst_preset->modules_order[2] = PA;
@@ -81,20 +78,19 @@ void preset_from_legacy(preset_data_t* dst_preset, const preset_data_legacy_t* s
 	dst_preset->power_amp.presence_vol = src_preset->presence_vol;
 
 	dst_preset->eq1.parametric_on = src_preset->eq_on;
-	for(int i=0; i<5; i++)
-	{
+	for (int i = 0; i < 5; i++) {
 
 		dst_preset->eq1.gain[i] = src_preset->eq_band_vol[i] - 15;
 		dst_preset->eq1.freq[i] = convertLegacyFreq(i, src_preset->eq_freq[i]);
 		dst_preset->eq1.Q[i] = (int8_t)(src_preset->eq_Q[i]);
 	}
 	dst_preset->eq1.hp_on = src_preset->hp_on;
-	dst_preset->eq1.hp_freq = src_preset->hp_freq*(980.0f/255.0f) + 20.0f;
+	dst_preset->eq1.hp_freq = src_preset->hp_freq * (980.0f / 255.0f) + 20.0f;
 	dst_preset->eq1.lp_on = src_preset->lp_on;
-	dst_preset->eq1.lp_freq = powf(195 - src_preset->lp_freq, 2.0f)*(19000.0f/powf(195.0f,2.0f))+1000.0f;
+	dst_preset->eq1.lp_freq = powf(195 - src_preset->lp_freq, 2.0f)
+			* (19000.0f / powf(195.0f, 2.0f)) + 1000.0f;
 
-	for(int i=0; i<5; i++)
-	{
+	for (int i = 0; i < 5; i++) {
 		dst_preset->eq2.gain[i] = 0;
 		dst_preset->eq2.freq[i] = legacyCenterFreq[i];
 		dst_preset->eq2.Q[i] = 0;
@@ -109,8 +105,8 @@ void preset_from_legacy(preset_data_t* dst_preset, const preset_data_legacy_t* s
 	dst_preset->reverb.volume = src_preset->early_volume;
 }
 
-void legacy_from_preset(preset_data_legacy_t* dst_preset, const preset_data_t* src_preset)
-{
+void legacy_from_preset(preset_data_legacy_t *dst_preset,
+		const preset_data_t *src_preset) {
 	dst_preset->preset_volume = src_preset->volume;
 
 	dst_preset->gate_on = src_preset->gate.on;
@@ -136,12 +132,11 @@ void legacy_from_preset(preset_data_legacy_t* dst_preset, const preset_data_t* s
 	dst_preset->presence_vol = src_preset->power_amp.presence_vol;
 
 	dst_preset->eq_on = src_preset->eq1.parametric_on;
-	for(int i=0; i<5; i++)
-	{
+	for (int i = 0; i < 5; i++) {
 		// backward compatibility does not support
-		dst_preset->eq_band_vol[i] = 15;//src_preset->eq1.gain[i];
-		dst_preset->eq_freq[i] = legacyCenterFreq[i];//src_preset->eq1.freq[i];
-		dst_preset->eq_Q[i] = 0;//src_preset->eq1.Q[i];
+		dst_preset->eq_band_vol[i] = 15; //src_preset->eq1.gain[i];
+		dst_preset->eq_freq[i] = legacyCenterFreq[i]; //src_preset->eq1.freq[i];
+		dst_preset->eq_Q[i] = 0; //src_preset->eq1.Q[i];
 	}
 	dst_preset->hp_on = src_preset->eq1.hp_on;
 	dst_preset->hp_freq = src_preset->eq1.hp_freq;

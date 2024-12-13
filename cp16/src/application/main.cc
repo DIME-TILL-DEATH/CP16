@@ -85,6 +85,9 @@ int main(void)
 	CSTask =  new TCSTask() ;
 	CSTask->Create("CS", 20*configMINIMAL_STACK_SIZE , 0);
 
+//	SpectrumTask = new TSpectrumTask();
+//	SpectrumTask->Create("STR", 20*configMINIMAL_STACK_SIZE, 0);
+
 	//sudo rfcomm connect rfcomm1 98:D3:33:80:D1:1E
 	ConsoleTask = new TConsoleTask(256) ;
 	ConsoleTask->Create("CON", 30*configMINIMAL_STACK_SIZE, 1) ;

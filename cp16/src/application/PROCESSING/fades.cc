@@ -5,7 +5,7 @@
  *      Author: dime
  */
 
-#include "fades.h"
+#include "../PROCESSING/fades.h"
 
 bool fade_processing = false;
 bool is_fade_direction_down;
