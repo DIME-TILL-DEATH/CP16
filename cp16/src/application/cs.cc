@@ -43,6 +43,7 @@ TCSTask::TCSTask () : TTask()
 
 void TCSTask::Code()
 {
+	bool started = false;
 	init();
 
 	PRESET_init();
@@ -71,15 +72,9 @@ void TCSTask::Code()
 
 	adau_run();
 
-	NVIC_EnableIRQ(DMA1_Stream5_IRQn);
-	SPI_I2S_DMACmd(adau_com_spi, SPI_I2S_DMAReq_Tx, ENABLE);
-	NVIC_EnableIRQ(SPI2_IRQn);
-
-	NVIC_EnableIRQ(EXTI0_IRQn);
-	NVIC_EnableIRQ(EXTI1_IRQn);
-	NVIC_EnableIRQ(EXTI15_10_IRQn);
-
-	key_check();
+//	NVIC_EnableIRQ(DMA1_Stream5_IRQn);
+//	SPI_I2S_DMACmd(adau_com_spi, SPI_I2S_DMAReq_Tx, ENABLE);
+//	NVIC_EnableIRQ(SPI2_IRQn);
 
 	while(1)
 	{
@@ -88,15 +83,28 @@ void TCSTask::Code()
 			if(GPIOA->IDR & GPIO_Pin_9)
 			{
 				usb_flag = 1;
-				void start_usb(uint8_t type);
 				start_usb(usb_type);
-				sw4_state = false ;
+				sw4_state = false;
 			}
 		}
 		else
 		{
 			if(!(GPIOA->IDR & GPIO_Pin_9))
-			NVIC_SystemReset();
+				NVIC_SystemReset();
+		}
+
+		if(!started)
+		{
+			NVIC_EnableIRQ(DMA1_Stream5_IRQn);
+			SPI_I2S_DMACmd(adau_com_spi, SPI_I2S_DMAReq_Tx, ENABLE);
+			NVIC_EnableIRQ(SPI2_IRQn);
+
+			key_check();
+			started = true;
+
+			NVIC_EnableIRQ(EXTI0_IRQn);
+			NVIC_EnableIRQ(EXTI1_IRQn);
+			NVIC_EnableIRQ(EXTI15_10_IRQn);
 		}
 
 #ifdef __LA3_MOD__
@@ -104,8 +112,6 @@ void TCSTask::Code()
 	load_map0(bp);
 	decode_preset( bank_pres, bp);
 	preset_change();
-#else
-//	key_check();  // управление пресетами с внешних устройств по средством gpio обычных cp16
 #endif
 	}
 }

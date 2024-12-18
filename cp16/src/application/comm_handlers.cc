@@ -540,7 +540,7 @@ static void fw_update_command_handler ( TReadLine* rl , TReadLine::const_symbol_
 
 	msg_console("fwu\r");
 	std::emb_string err_msg  ;
-	if ( console_fs_write_file(err_msg, rl , "0:/firmware"))
+	if (console_fs_write_file(err_msg, rl , "0:/firmware"))
 	{
 		TTask::Delay(100); // задержка, необходимая для сброса данных в TUsbTask по интерфейсу usb
 		NVIC_SystemReset();

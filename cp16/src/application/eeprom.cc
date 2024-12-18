@@ -281,12 +281,13 @@ bool EEPROM_delete_file(const char *file_name) {
 	return res == FR_OK;
 }
 
-bool console_fs_write_file(std::emb_string &err_msg, TReadLine *rl,
-		const char *file_name) {
-	constexpr size_t chunk_buff_size = 4096;
+bool console_fs_write_file(std::emb_string &err_msg, TReadLine *rl, const char *file_name)
+{
+	constexpr size_t chunk_buff_size = 2048;
 	char *chunk = new char[chunk_buff_size];
-	if (!chunk) {
-		err_msg = "BUF_ALLOC_ERROR\n";
+	if (!chunk)
+	{
+		msg_console("BUF_ALLOC_ERROR\n");
 		return false;
 	}
 
@@ -304,22 +305,32 @@ bool console_fs_write_file(std::emb_string &err_msg, TReadLine *rl,
 	FRESULT res;
 	FATFS fs;
 	FIL file;
-	if ((res = f_mount(&fs, "0:", 1)) == FR_OK) {
+	if ((res = f_mount(&fs, "0:", 1)) == FR_OK)
+	{
 		// запись файла
-		if ((res = f_open(&file, file_name, FA_CREATE_ALWAYS | FA_WRITE))
-				== FR_OK) {
+		if ((res = f_open(&file, file_name, FA_CREATE_ALWAYS | FA_WRITE)) == FR_OK)
+		{
 			UINT bytes;
 
-			while (1) {
+			while (1)
+			{
 				// запрос размера
 				rl->SendString("REQUEST_CHUNK_SIZE\n");
 				// прием размера куска
 				rl->RecvLine(str);
 
 				char *end;
-				uint32_t chunk_size = kgp_sdk_libc::strtol(str.c_str(), &end,
-						10);
-				if ((chunk_size == 0) || (chunk_size > chunk_buff_size)) {
+				uint32_t chunk_size = kgp_sdk_libc::strtol(str.c_str(), &end, 10);
+
+				if(chunk_size > chunk_buff_size)
+				{
+					res = f_close(&file);
+					msg_console("CHUNK_IS_TOO_BIG\n");
+					break;
+				}
+
+				if(chunk_size == 0)
+				{
 					res = f_close(&file);
 					break;
 				}
@@ -430,7 +441,7 @@ void EEPROM_savePreset(void) {
 	// write link data
 	if (current_ir_link.irFileName != "") {
 		file_name = dir_name + "/ir.lnk";
-		f_open(&file, file_name.c_str(), FA_READ | FA_WRITE | FA_OPEN_ALWAYS);
+		f_open(&file, file_name.c_str(), FA_WRITE | FA_CREATE_ALWAYS);
 		f_puts(current_ir_link.irFileName.c_str(), &file);
 		f_puts("\n", &file);
 		f_puts(current_ir_link.irLinkPath.c_str(), &file);
