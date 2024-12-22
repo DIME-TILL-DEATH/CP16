@@ -34,8 +34,8 @@ void PRESET_init() {
 	default_legacy_preset.preamp_volume = 25;
 }
 
-void preset_from_legacy(preset_data_t *dst_preset,
-		const preset_data_legacy_t *src_preset) {
+void preset_from_legacy(preset_data_t *dst_preset, const preset_data_legacy_t *src_preset) {
+
 	kgp_sdk_libc::memset(dst_preset, 0, sizeof(preset_data_t));
 
 	if (src_preset->eq_pre) {

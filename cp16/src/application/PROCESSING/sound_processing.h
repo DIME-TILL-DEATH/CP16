@@ -16,6 +16,7 @@
 
 typedef void (*processing_func_ptr)(float* in, float* out);
 
+#define MAX_PROCESSING_STAGES 10
 typedef enum
 {
 	BYPASS=0,
@@ -27,6 +28,7 @@ typedef enum
 	EQ,
 	LP,
 	NG,
+	PS,
 	//---------
 	NUM_MONO_MODULE_TYPES
 }DSP_mono_module_type_t;
@@ -47,7 +49,7 @@ extern processing_params_t processing_params;
 extern uint16_t irClips, outClips;
 
 void DSP_init();
-void DSP_set_module_to_processing_stage(DSP_mono_module_type_t module_type, uint8_t stage_num);
+bool DSP_set_module_to_processing_stage(DSP_mono_module_type_t module_type, uint8_t stage_num);
 
 extern float coeff_eq[eq_stage * 5];
 

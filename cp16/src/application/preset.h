@@ -152,7 +152,8 @@ typedef struct
 
 typedef struct
 {
-    uint8_t modules_order[14];
+    uint8_t modules_order[MAX_PROCESSING_STAGES];
+    uint8_t head_reserved[14-MAX_PROCESSING_STAGES];
     uint8_t volume;
     uint8_t cab_sim_on;
 

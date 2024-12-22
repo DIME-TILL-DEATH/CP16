@@ -19,7 +19,7 @@
 #include "spectrum.h"
 
 processing_func_ptr processing_library[NUM_MONO_MODULE_TYPES];
-processing_func_ptr processing_stage[NUM_MONO_MODULE_TYPES];
+processing_func_ptr processing_stage[MAX_PROCESSING_STAGES];
 
 void __RAMFUNC__ bypass_processing_stage(float *in_samples, float *out_samples);
 //------MONO OUT-----------------------------------------------------------
@@ -85,7 +85,7 @@ void DSP_init() {
 	processing_library[LP] = lpf_processing_stage;
 	processing_library[NG] = gate_processing_stage;
 
-	for (int i = 0; i < NUM_MONO_MODULE_TYPES; i++) {
+	for (int i = 0; i < MAX_PROCESSING_STAGES; i++) {
 		processing_stage[i] = processing_library[i];
 	}
 
@@ -106,9 +106,12 @@ void DSP_init() {
 	processing_params.impulse_avaliable = 0;
 }
 
-void DSP_set_module_to_processing_stage(DSP_mono_module_type_t module_type,
-		uint8_t stage_num) {
+bool DSP_set_module_to_processing_stage(DSP_mono_module_type_t module_type, uint8_t stage_num) {
+	if(module_type >= DSP_mono_module_type_t::NUM_MONO_MODULE_TYPES) return false;
+	if(stage_num > MAX_PROCESSING_STAGES) return false;
+
 	processing_stage[stage_num] = processing_library[module_type];
+	return true;
 }
 
 //================================Main processing routine=================================
@@ -189,7 +192,7 @@ extern "C" void DMA1_Stream3_IRQHandler() {
 	}
 
 	//---------------------------------------------Processing------------------------------------
-	for (int i = 0; i < NUM_MONO_MODULE_TYPES; i++) {
+	for (int i = 0; i < MAX_PROCESSING_STAGES; i++) {
 		if (processing_stage[i]) //pointer check
 			processing_stage[i](processing_samples, processing_samples);
 	}
@@ -281,10 +284,7 @@ extern "C" void DMA1_Stream3_IRQHandler() {
 }
 
 //=============================Processing functions=====================================
-void __RAMFUNC__ bypass_processing_stage(float *in_samples,
-		float *out_samples) {
-//	GPIO_ResetBits(GPIOB,GPIO_Pin_7);
-//	GPIO_SetBits(GPIOB,GPIO_Pin_7);
+void __RAMFUNC__ bypass_processing_stage(float *in_samples, float *out_samples) {
 	for (uint8_t i = 0; i < block_size; i++)
 		out_samples[i] = in_samples[i];
 }
@@ -297,8 +297,7 @@ void __RAMFUNC__ gate_processing_stage(float *in_samples, float *out_samples) {
 	}
 }
 
-void __RAMFUNC__ compressor_processing_stage(float *in_samples,
-		float *out_samples) {
+void __RAMFUNC__ compressor_processing_stage(float *in_samples, float *out_samples) {
 	//------------------------------------Compressor-----------------------------------------
 	if (current_preset.compressor.on) {
 		for (uint8_t i = 0; i < block_size; i++)
@@ -306,8 +305,7 @@ void __RAMFUNC__ compressor_processing_stage(float *in_samples,
 	}
 }
 
-void __RAMFUNC__ preamp_processing_stage(float *in_samples,
-		float *out_samples) {
+void __RAMFUNC__ preamp_processing_stage(float *in_samples, float *out_samples) {
 	if (current_preset.preamp.on) {
 		float out_biquad_samples[block_size];
 		arm_biquad_cascade_df1_f32(&preamp_instance, in_samples,
@@ -333,14 +331,7 @@ void __RAMFUNC__ pa_processing_stage(float *in_samples, float *out_samples) {
 
 		arm_biquad_cascade_df1_f32(&presence_instance, out_samples, out_samples,
 				block_size);
-
-		//--------------------------------------Presence-------------------------------------------
-//		if(current_preset.power_amp.presence_on)
-//		{
-//			arm_biquad_cascade_df1_f32(&presence_instance, out_samples, out_samples, block_size);
-//		}
 	}
-
 }
 
 void __RAMFUNC__ ir_processing_stage(float *in_samples, float *out_samples) {
@@ -383,12 +374,16 @@ void __RAMFUNC__ hpf_processing_stage(float *in_samples, float *out_samples) {
 }
 
 void __RAMFUNC__ eq_processing_stage(float *in_samples, float *out_samples) {
+	hpf_processing_stage(in_samples, out_samples);
+
 	//------------------------------------PARAMETRIC-------------------------------------------
 	if (current_preset.eq1.parametric_on) {
 		arm_biquad_cascade_df1_f32(&eq_instance, in_samples, out_samples,
 				block_size);
 	} else
 		bypass_processing_stage(in_samples, out_samples);
+
+	lpf_processing_stage(in_samples, out_samples);
 }
 
 void __RAMFUNC__ lpf_processing_stage(float *in_samples, float *out_samples) {
@@ -400,8 +395,7 @@ void __RAMFUNC__ lpf_processing_stage(float *in_samples, float *out_samples) {
 		bypass_processing_stage(in_samples, out_samples);
 }
 
-void __RAMFUNC__ early_processing_stage(float *in_samples, float *out_l_samples,
-		float *out_r_samples) {
+void __RAMFUNC__ early_processing_stage(float *in_samples, float *out_l_samples, float *out_r_samples) {
 	for (uint8_t i = 0; i < block_size; i++) {
 		if (current_preset.reverb.on)
 			reverb_accum = in_samples[i] * 0.7f;

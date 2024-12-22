@@ -139,8 +139,7 @@ void EEPROM_saveSys(void) {
 	f_mount(0, "0:", 0);
 }
 
-static inline bool dir_get_wav(const emb_string &dir_name,
-		std::emb_string &wav_file_name) {
+static inline bool dir_get_wav(const emb_string &dir_name, std::emb_string &wav_file_name) {
 	FILINFO fno;
 	DIR dir;
 	char *fn; /* This function assumes non-Unicode configuration */
@@ -377,8 +376,7 @@ void EEPROM_loadPreset(uint8_t bank, uint8_t preset, save_data_t &loaded_data,
 		uint8_t legacy_preset_data[128];
 		f_read(&file, legacy_preset_data, 128, &f_size);
 
-		preset_data_legacy_t *convert_struct =
-				(preset_data_legacy_t*) &legacy_preset_data;
+		preset_data_legacy_t *convert_struct = (preset_data_legacy_t*) &legacy_preset_data;
 		preset_from_legacy(&loaded_data.parametersData, convert_struct);
 
 		kgp_sdk_libc::memset(loaded_data.name, 0, PRESET_NAME_LENGTH);
@@ -415,8 +413,7 @@ void EEPROM_savePreset(void) {
 	f_open(&file, file_name.c_str(), FA_WRITE);
 
 	uint8_t legacy_preset_data[128];
-	legacy_from_preset((preset_data_legacy_t*) legacy_preset_data,
-			&current_preset);
+	legacy_from_preset((preset_data_legacy_t*) legacy_preset_data, &current_preset);
 
 	f_lseek(&file, seek);
 	f_write(&file, legacy_preset_data, sizeof(preset_data_legacy_t), &f_size);
@@ -428,10 +425,8 @@ void EEPROM_savePreset(void) {
 	f_open(&file, file_name.c_str(), FA_READ | FA_WRITE | FA_OPEN_ALWAYS);
 
 	save_data_t save_data;
-	kgp_sdk_libc::memcpy(&save_data.parametersData, &current_preset,
-			sizeof(preset_data_t));
-	kgp_sdk_libc::memcpy(save_data.name, current_preset_name,
-			sizeof(PRESET_NAME_LENGTH));
+	kgp_sdk_libc::memcpy(&save_data.parametersData, &current_preset, sizeof(preset_data_t));
+	kgp_sdk_libc::memcpy(save_data.name, current_preset_name, sizeof(PRESET_NAME_LENGTH));
 
 	f_lseek(&file, seek);
 	f_write(&file, &save_data, sizeof(save_data_t), &f_size);
@@ -452,8 +447,7 @@ void EEPROM_savePreset(void) {
 	f_mount(0, "0:", 0);
 }
 
-bool EEPROM_getPresetIrLink(uint8_t bank, uint8_t preset,
-		ir_path_data_t &outIrLink) {
+bool EEPROM_getPresetIrLink(uint8_t bank, uint8_t preset, ir_path_data_t &outIrLink) {
 	FATFS fs;
 	FRESULT res;
 	f_mount(&fs, "0:", 1);
@@ -543,8 +537,7 @@ void EEPROM_getPresetCabPath(uint8_t bank, uint8_t preset,
 	}
 }
 
-bool EEPROM_getDirWavNames(const std::emb_string &dirPath,
-		list<std::emb_string> &fileNamesList, TReadLine *rl) {
+bool EEPROM_getDirWavNames(const std::emb_string &dirPath, list<std::emb_string> &fileNamesList, TReadLine *rl) {
 	FATFS fs;
 	f_mount(&fs, "0:", 1);
 
