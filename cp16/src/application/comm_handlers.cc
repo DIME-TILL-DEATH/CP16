@@ -228,10 +228,10 @@ static void ls_comm_handler(TReadLine *rl,
 	}
 }
 
-static void ir_comm_handler(TReadLine *rl,
-		TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
+static void ir_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
 	msg_console("ir ");
-	if (count < 2) {
+	if (count < 2)
+	{
 		msg_console("error\rCOMMAND_INCORRECT\r\n");
 		return;
 	}
@@ -240,7 +240,8 @@ static void ir_comm_handler(TReadLine *rl,
 	const int bufferSize = 512;
 	char dataBuffer[bufferSize];
 
-	if (command == "info") {
+	if (command == "info")
+	{
 		ir_path_data_t irPathData;
 		int32_t irSize;
 		EEPROM_getCurrentIrInfo(irPathData, irSize);
@@ -248,7 +249,8 @@ static void ir_comm_handler(TReadLine *rl,
 				irPathData.irFileName.c_str(), irSize);
 	}
 
-	if (command == "link") {
+	if (command == "link")
+	{
 		getDataPartFromStream(rl, dataBuffer, bufferSize);
 		current_ir_link.irFileName = dataBuffer;
 		getDataPartFromStream(rl, dataBuffer, bufferSize);
@@ -259,13 +261,13 @@ static void ir_comm_handler(TReadLine *rl,
 		bool res = CS_activateIr(irFilePath);
 
 		if (res)
-			msg_console("link\r%s\r%s\n", current_ir_link.irFileName.c_str(),
-					current_ir_link.irLinkPath.c_str());
+			msg_console("link\r%s\r%s\n", current_ir_link.irFileName.c_str(), current_ir_link.irLinkPath.c_str());
 		else
 			msg_console("link\rLINK_NOT_VALID\n");
 	}
 
-	if (command == "start_upload") {
+	if (command == "start_upload")
+	{
 		char buffer[128];
 		emb_string fileName, filePath;
 		getDataPartFromStream(rl, buffer, 128);
@@ -277,9 +279,9 @@ static void ir_comm_handler(TReadLine *rl,
 		FIL irFile;
 		FATFS fs;
 		f_mount(&fs, "0:", 1);
-		FRESULT res = f_open(&irFile, uploadingIrPath.c_str(),
-				FA_WRITE | FA_OPEN_ALWAYS);
-		if (res == FR_OK) {
+		FRESULT res = f_open(&irFile, uploadingIrPath.c_str(), FA_WRITE | FA_OPEN_ALWAYS);
+		if (res == FR_OK)
+		{
 			f_close(&irFile); // can write to file. Path correct
 			msg_console("request_part\r\n");
 		} else {
@@ -289,14 +291,17 @@ static void ir_comm_handler(TReadLine *rl,
 		f_mount(0, "0:", 1);
 	}
 
-	if (command == "part_upload") {
-		if (count > 2) {
+	if (command == "part_upload")
+	{
+		if (count > 2)
+		{
 			char buffer[512];
 			char *pEnd;
 			int32_t streamPos = 0;
 			int32_t bytesToRecieve = kgp_sdk_libc::strtol(args[2], &pEnd, 10);
 			int c;
-			do {
+			do
+			{
 				rl->RecvChar(c);
 				buffer[streamPos++] = c;
 			} while (streamPos < bytesToRecieve);
@@ -305,22 +310,37 @@ static void ir_comm_handler(TReadLine *rl,
 			FIL irFile;
 			FATFS fs;
 			f_mount(&fs, "0:", 1);
-			FRESULT res = f_open(&irFile, uploadingIrPath.c_str(),
-					FA_WRITE | FA_OPEN_EXISTING);
-			if (res == FR_OK) {
+			FRESULT res = f_open(&irFile, uploadingIrPath.c_str(), FA_WRITE | FA_OPEN_EXISTING);
+			if (res == FR_OK)
+			{
 				f_lseek(&irFile, f_size(&irFile));
 				f_write(&irFile, buffer, bytesToRecieve, 0);
 				f_close(&irFile); // can write to file. Path correct
 				msg_console("request_part\r\n");
 			}
-		} else {
+		}
+		else
+		{
 			msg_console("error\rPART_SIZE_INCORRECT\n");
+		}
+	}
+
+	if (command == "delete")
+	{
+		getDataPartFromStream(rl, dataBuffer, bufferSize);
+
+		if(EEPROM_delete_file(dataBuffer))
+		{
+			msg_console("\rOK\n");
+		}
+		else
+		{
+			msg_console("\rERROR\n");
 		}
 	}
 }
 
-static void copy_comm_handler(TReadLine *rl,
-		TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
+static void copy_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
 	char buffer[256];
 	emb_string srcPath, dstPath, errMsg;
 	getDataPartFromStream(rl, buffer, 256);
