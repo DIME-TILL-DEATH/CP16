@@ -328,10 +328,19 @@ bool console_fs_write_file(std::emb_string &err_msg, TReadLine *rl, const char *
 					break;
 				}
 
+
 				if(chunk_size == 0)
 				{
-					res = f_close(&file);
-					break;
+					msg_console("END_PTR %s\r\n", end);
+					if(end == str.c_str())
+					{
+						continue;
+					}
+					else
+					{
+						res = f_close(&file);
+						break;
+					}
 				}
 				// прием куска данных
 				rl->RecvBuf(chunk, chunk_size);
