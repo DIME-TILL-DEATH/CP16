@@ -257,10 +257,12 @@ void adau_init_ic (void)
 	adau_transmit(DSP_PROGRAMM_ADDRESS, (uint8_t*)adau_program_parv, 1024 * 5);
 	adau_transmit(DSP_CTRL_ADDRESS, (uint8_t*)R3_HWCONFIGURATION_IC_1_Default, sizeof(R3_HWCONFIGURATION_IC_1_Default));
 
+	adau_transmit(DSP_SAFELOAD_ADDR0_ADDRESS, (uint8_t*)HWSF_ADDR0, sizeof(HWSF_ADDR0));
+
 	kgp_sdk_libc::memset(spi_com_buffer, 0, SPI3_DMA_BUFFER_SIZE);
 }
 
-void adau_dma_transmit(uint16_t address, void* data, uint32_t size)
+void adau_dma_transmit(uint16_t address, const void* data, uint32_t size)
 {
 	GPIO_ResetBits(adau_spi_cs_port, adau_spi_cs);
 
@@ -274,6 +276,7 @@ void adau_dma_transmit(uint16_t address, void* data, uint32_t size)
 	DMA_Cmd(DMA1_Stream5, ENABLE);
 }
 
+bool send_ist = 0;
 extern "C" void DMA1_Stream5_IRQHandler()
 {
 	DMA_ClearITPendingBit(DMA1_Stream5, DMA_IT_TCIF5);
@@ -282,6 +285,12 @@ extern "C" void DMA1_Stream5_IRQHandler()
 	delay_nop(0xFF);
 
 	GPIO_SetBits(adau_spi_cs_port, adau_spi_cs);
+
+	if(send_ist)
+	{
+		adau_dma_transmit(DSP_CTRL_ADDRESS, (uint8_t*)HWCONTROL_IST, sizeof(HWCONTROL_IST));
+		send_ist = false;
+	}
 }
 
 void adau_load_firmware(ADAU_fw_type_t fw_type)

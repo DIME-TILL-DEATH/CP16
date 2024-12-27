@@ -116,26 +116,31 @@ bool DSP_set_module_to_processing_stage(DSP_mono_module_type_t module_type, uint
 
 //================================Main processing routine=================================
 uint8_t __CCM_BSS__ frame_part = 0;
-uint8_t __CCM_BSS__ aux_samples[block_size * 2][4];
+uint8_t __CCM_BSS__ aux_samples[block_size * 4][5];
 uint8_t __CCM_BSS__ aux_smpl_rd_ptr = 0;
 uint8_t __CCM_BSS__ aux_smpl_wr_ptr = 0;
 
 bool double_buf_ptr = 0;
-extern "C" void SPI2_IRQHandler() {
+extern "C" void SPI2_IRQHandler()
+{
 	SPI_I2S_ClearITPendingBit(adau_i2s_spi_ext, SPI_I2S_IT_RXNE);
 
-	if (frame_part == 0) {
-		adau_dma_transmit(DSP_AUXIN_ADDRESS, &aux_samples[aux_smpl_rd_ptr][0],
-				4);
-		aux_smpl_rd_ptr++;
+	if (frame_part == 1)
+	{
+
+//		adau_dma_transmit(DSP_AUXIN_ADDRESS, &aux_samples[aux_smpl_rd_ptr][1], 4);
+		adau_dma_transmit(DSP_SAFELOAD_DATA0_ADDRESS, &aux_samples[aux_smpl_rd_ptr][0], 5 * 2);
+		send_ist = true;
+//		aux_smpl_rd_ptr++;
+		aux_smpl_rd_ptr += 2;  // Decimation! result max frequency 12kHz
 		if (aux_smpl_rd_ptr == block_size * 2)
 			aux_smpl_rd_ptr = 0;
 	}
 
-	if (frame_part == 0)
-		frame_part = 3;
+	if (frame_part == 4 * 2 - 1)
+		frame_part = 0;
 	else
-		frame_part--;
+		frame_part++;
 }
 
 float __CCM_BSS__ di_samples[block_size];
@@ -157,7 +162,8 @@ uint16_t framesCounter = 0;
 uint16_t irClips = 0;
 uint16_t outClips = 0;
 
-extern "C" void DMA1_Stream3_IRQHandler() {
+extern "C" void DMA1_Stream3_IRQHandler()
+{
 	GPIO_SetBits(GPIOB, GPIO_Pin_7);
 
 	uint8_t dma_ht_fl = 0;
@@ -225,7 +231,8 @@ extern "C" void DMA1_Stream3_IRQHandler() {
 		ccr[i] = out_clip(out_sampleR[i] * processing_params.preset_volume,
 				&outClippedR) * 8388607.0f * get_fade_coef();
 
-		switch (system_parameters.output_mode) {
+		switch (system_parameters.output_mode)
+		{
 		case LINE:
 			ccl[i] = ccl[i] >> 1;
 			ccr[i] = ccr[i] >> 1;
@@ -299,7 +306,9 @@ void __RAMFUNC__ gate_processing_stage(float *in_samples, float *out_samples) {
 
 void __RAMFUNC__ compressor_processing_stage(float *in_samples, float *out_samples) {
 	//------------------------------------Compressor-----------------------------------------
-	if (current_preset.compressor.on) {
+
+	if (current_preset.compressor.on)
+	{
 		for (uint8_t i = 0; i < block_size; i++)
 			out_samples[i] = compr_out(in_samples[i]);
 	}
@@ -317,14 +326,15 @@ void __RAMFUNC__ preamp_processing_stage(float *in_samples, float *out_samples) 
 	}
 }
 
-void __RAMFUNC__ pa_processing_stage(float *in_samples, float *out_samples) {
+void __RAMFUNC__ pa_processing_stage(float *in_samples, float *out_samples)
+{
 	//--------------------------------------Amplifier----------------------------------------
-	if (current_preset.power_amp.on) {
-		if (current_preset.power_amp.type != 8) {
+	if (current_preset.power_amp.on)
+	{
+		if (current_preset.power_amp.type != 8)
+		{
 			for (uint8_t i = 0; i < block_size; i++)
-				out_samples[i] = soft_clip_amp(
-						in_samples[i] * processing_params.amp_vol)
-						* processing_params.amp_slave;
+				out_samples[i] = soft_clip_amp(in_samples[i] * processing_params.amp_vol) * processing_params.amp_slave;
 
 			arm_fir_f32(&pa_instance, out_samples, out_samples, block_size);
 		}
@@ -334,19 +344,21 @@ void __RAMFUNC__ pa_processing_stage(float *in_samples, float *out_samples) {
 	}
 }
 
-void __RAMFUNC__ ir_processing_stage(float *in_samples, float *out_samples) {
+void __RAMFUNC__ ir_processing_stage(float *in_samples, float *out_samples)
+{
 	uint8_t aux_smpl_wr_ptr;
 	if (aux_smpl_rd_ptr < block_size)
 		aux_smpl_wr_ptr = block_size;
 	else
 		aux_smpl_wr_ptr = 0;
 
-	for (int i = 0; i < block_size; i++) {
+
+	for (int i = 0; i < block_size; i++)
+	{
 		mon_sample[i] = in_samples[i];
 
 		bool irClipped;
-		to523(out_clip(in_samples[i], &irClipped) * 0.3f,
-				&aux_samples[aux_smpl_wr_ptr][0]);
+		to523(out_clip(in_samples[i], &irClipped), &aux_samples[aux_smpl_wr_ptr][1]);
 
 		if (irClipped)
 			irClipCounter++;
@@ -354,11 +366,13 @@ void __RAMFUNC__ ir_processing_stage(float *in_samples, float *out_samples) {
 		aux_smpl_wr_ptr++;
 
 		//---------------------------------------Cab data or Dry signal-------------------------
-		if (!current_preset.cab_sim_on
-				|| !processing_params.impulse_avaliable) {
+		if (!current_preset.cab_sim_on || !processing_params.impulse_avaliable)
+		{
 			// bypass IR
 			out_samples[i] = in_samples[i];
-		} else {
+		}
+		else
+		{
 			out_samples[i] = ir_samples[i];
 		}
 	}
@@ -395,7 +409,8 @@ void __RAMFUNC__ lpf_processing_stage(float *in_samples, float *out_samples) {
 		bypass_processing_stage(in_samples, out_samples);
 }
 
-void __RAMFUNC__ early_processing_stage(float *in_samples, float *out_l_samples, float *out_r_samples) {
+void __RAMFUNC__ early_processing_stage(float *in_samples, float *out_l_samples, float *out_r_samples)
+{
 	for (uint8_t i = 0; i < block_size; i++) {
 		if (current_preset.reverb.on)
 			reverb_accum = in_samples[i] * 0.7f;

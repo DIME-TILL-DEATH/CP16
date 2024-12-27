@@ -407,8 +407,12 @@ static void compressor_volume_comm_handler(TReadLine *rl,
 	comp_par(2 | (current_preset.compressor.volume << 8));
 }
 
-static void preamp_on_comm_handler(TReadLine *rl,
-		TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
+const uint8_t GAIN_DATA[] =
+{
+		0x00, 0x00, 0x10, 0x00, 0x00
+};
+static void preamp_on_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
 	default_param_handler(&current_preset.preamp.on, rl, args, count);
 }
 
@@ -436,8 +440,10 @@ static void preamp_high_command_handler(TReadLine *rl,
 	default_param_handler(&current_preset.preamp.high, rl, args, count);
 	preamp_param(PREAMP_HIGH, current_preset.preamp.high);
 }
+
 static void amp_on_command_handler(TReadLine *rl,
-		TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
+		TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
 	default_param_handler(&current_preset.power_amp.on, rl, args, count);
 }
 
@@ -635,8 +641,9 @@ static void use_map1_command_handler(TReadLine *rl,
 	preset_change_comm_handler(rl, a, 2);
 }
 //****************************************DEBUG***************************************************************************
-static void debug_comm_hadler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
-	msg_console("debug current_cab\r%s\n", loadedCab);
+static void debug_comm_hadler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
+	msg_console("debug\r\n");
 }
 //========================================================================================================================
 
