@@ -79,14 +79,14 @@ void adau_init_ic (void)
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
 
 	NVIC_InitStructure.NVIC_IRQChannel = DMA1_Stream3_IRQn ;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
 	NVIC_Init(&NVIC_InitStructure);
 
 	NVIC_InitStructure.NVIC_IRQChannel = DMA1_Stream5_IRQn ;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
 	NVIC_Init(&NVIC_InitStructure);
 
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
 	NVIC_InitStructure.NVIC_IRQChannel = SPI2_IRQn ;
 	NVIC_Init(&NVIC_InitStructure);
 

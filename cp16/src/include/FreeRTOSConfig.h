@@ -43,7 +43,7 @@
 	#define configMAX_CO_ROUTINE_PRIORITIES ( 2 )
 
     #define configUSE_TIMERS                1
-    #define configTIMER_TASK_PRIORITY       1
+    #define configTIMER_TASK_PRIORITY       1   // Priority lower than sound DMA and SPI (1, 0).
     #define configTIMER_QUEUE_LENGTH        32
     #define configTIMER_TASK_STACK_DEPTH    (configMINIMAL_STACK_SIZE*2)
 

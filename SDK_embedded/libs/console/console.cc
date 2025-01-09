@@ -31,8 +31,6 @@ void TConsoleTask::Code()
 	}
 }
 
-
-
 TConsoleTask* ConsoleTask ;
 
 //-----------------------------------------------------------------------

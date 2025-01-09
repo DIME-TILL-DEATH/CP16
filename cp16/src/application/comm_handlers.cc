@@ -14,6 +14,8 @@
 
 #include "preset.h"
 
+#include "spectrum.h"
+
 #include "PROCESSING/amp_imp.h"
 #include "PROCESSING/compressor.h"
 #include "PROCESSING/fades.h"
@@ -178,8 +180,8 @@ static void state_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t
 	msg_console("\n");
 }
 
-static void preset_change_comm_handler(TReadLine *rl,
-		TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
+static void preset_change_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
 	char *end;
 
 	if (count > 1) {
@@ -340,7 +342,8 @@ static void ir_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *a
 	}
 }
 
-static void copy_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
+static void copy_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
 	char buffer[256];
 	emb_string srcPath, dstPath, errMsg;
 	getDataPartFromStream(rl, buffer, 256);
@@ -355,22 +358,44 @@ static void copy_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t 
 	}
 }
 
-static void clip_comm_handler(TReadLine *rl,
-		TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
+static void tuner_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
+	if(count > 1)
+	{
+		char* end;
+		if(kgp_sdk_libc::strtol(args[1], &end, 16) > 0)
+		{
+			fade_out();
+			while (!is_fade_complete());
+		}
+		else
+		{
+			fade_in();
+		}
+	}
+	default_param_handler(&tuner_use, rl, args, count);
+}
+
+static void tuner_data_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
+	msg_console("tn\r%s\r%d\n", SpectrumTask->note_name, SpectrumTask->cents);
+}
+
+static void clip_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
 	msg_console("clip\r%d\r%d\n", irClips, outClips);
 }
 //===============================================PARAMETERS COMM HANDLERS========================================================
 
-static void cabinet_enable_comm_handler(TReadLine *rl,
-		TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
+static void cabinet_enable_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
 	default_param_handler(&current_preset.cab_sim_on, rl, args, count);
 }
 
-static void master_volume_comm_handler(TReadLine *rl,
-		TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
+static void master_volume_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
 	default_param_handler(&current_preset.volume, rl, args, count);
-	processing_params.preset_volume = powf(current_preset.volume, 2.0f)
-			* (1.0f / powf(31.0f, 2.0f));
+	processing_params.preset_volume = powf(current_preset.volume, 2.0f) * (1.0f / powf(31.0f, 2.0f));
 }
 
 static void gate_on_comm_handler(TReadLine *rl,
@@ -454,11 +479,10 @@ static void amp_volume_command_handler(TReadLine *rl,
 			* (10.0f / powf(31.0f, 2.0f)) + 1.0f;
 }
 
-static void amp_slave_command_handler(TReadLine *rl,
-		TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
+static void amp_slave_command_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
 	default_param_handler(&current_preset.power_amp.slave, rl, args, count);
-	processing_params.amp_slave = powf(current_preset.power_amp.slave, 4.0f)
-			* (0.99f / powf(31.0f, 4.0f)) + 0.01f;
+	processing_params.amp_slave = powf(current_preset.power_amp.slave, 4.0f) * (0.99f / powf(31.0f, 4.0f)) + 0.01f;
 }
 
 static void amp_type_command_handler(TReadLine *rl,
@@ -643,11 +667,13 @@ static void use_map1_command_handler(TReadLine *rl,
 //****************************************DEBUG***************************************************************************
 static void debug_comm_hadler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
 {
-	msg_console("debug\r\n");
+//	msg_console("frame_part %d\r\n", frame_part_fix);
 }
 //========================================================================================================================
 
-void consoleSetCmdHandlers(TReadLine *rl) {
+void consoleSetCmdHandlers(TReadLine *rl)
+{
+
 	setConsoleCmdDefaultHandlers(rl);
 	set_legacy_handlers(rl);
 
@@ -671,6 +697,9 @@ void consoleSetCmdHandlers(TReadLine *rl) {
 
 	rl->AddCommandHandler("ls", ls_comm_handler);
 	rl->AddCommandHandler("ir", ir_comm_handler);
+
+	rl->AddCommandHandler("tuner", tuner_comm_handler);
+	rl->AddCommandHandler("tn", tuner_data_comm_handler);
 
 	rl->AddCommandHandler("copy", copy_comm_handler);
 

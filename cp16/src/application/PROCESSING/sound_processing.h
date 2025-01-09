@@ -45,6 +45,7 @@ typedef struct
 }processing_params_t;
 
 extern processing_params_t processing_params;
+extern uint8_t tuner_use;
 
 extern uint16_t irClips, outClips;
 

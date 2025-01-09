@@ -2,7 +2,7 @@
 
 #include "appdefs.h"
 
-#define block_size 16//8
+#define block_size 32//8
 
 typedef union
 {
@@ -74,7 +74,7 @@ void dsp_upload_ir(float* cab_data);
 void to523(float param_dec , uint8_t* param_hex);
 
 #define DSP_FIR_SIZE 976
-#define DSP_FIR_ADDRESS 0x0001
+#define DSP_FIR_ADDRESS 0x0002
 
 #define DSP_DATA_ADDRESS 0x0000
 #define DSP_PROGRAMM_ADDRESS 0x0400

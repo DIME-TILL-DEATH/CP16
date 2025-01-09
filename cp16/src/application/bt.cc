@@ -79,61 +79,60 @@ size_t uart_recv_buf (char* buf , size_t size)
 }
 
 void uart_console_task_hw_init()
-		{
-	      GPIO_InitTypeDef  GPIO_InitStructure;
-	      USART_InitTypeDef USART_InitStructure;
-	      NVIC_InitTypeDef NVIC_InitStructure;
+{
+	GPIO_InitTypeDef  GPIO_InitStructure;
+	USART_InitTypeDef USART_InitStructure;
+	NVIC_InitTypeDef NVIC_InitStructure;
 
-	      RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC,ENABLE);
-	      RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG,ENABLE);
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC,ENABLE);
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG,ENABLE);
 
-	      GPIO_StructInit(&GPIO_InitStructure);
-	      GPIO_InitStructure.GPIO_Mode=GPIO_Mode_AF ;
-	      GPIO_InitStructure.GPIO_Speed=GPIO_Low_Speed;
-	      GPIO_InitStructure.GPIO_PuPd=GPIO_PuPd_NOPULL;
-	      GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10 | GPIO_Pin_11 ;
-	      GPIO_Init(GPIOC, &GPIO_InitStructure);
+	GPIO_StructInit(&GPIO_InitStructure);
+	GPIO_InitStructure.GPIO_Mode=GPIO_Mode_AF ;
+	GPIO_InitStructure.GPIO_Speed=GPIO_Low_Speed;
+	GPIO_InitStructure.GPIO_PuPd=GPIO_PuPd_NOPULL;
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10 | GPIO_Pin_11 ;
+	GPIO_Init(GPIOC, &GPIO_InitStructure);
 
-	      GPIO_PinAFConfig(GPIOC, GPIO_PinSource10, GPIO_AF_UART4);
-	      GPIO_PinAFConfig(GPIOC, GPIO_PinSource11, GPIO_AF_UART4);
+	GPIO_PinAFConfig(GPIOC, GPIO_PinSource10, GPIO_AF_UART4);
+	GPIO_PinAFConfig(GPIOC, GPIO_PinSource11, GPIO_AF_UART4);
 
-	      RCC_APB1PeriphClockCmd( RCC_APB1Periph_UART4, ENABLE );
+	RCC_APB1PeriphClockCmd( RCC_APB1Periph_UART4, ENABLE );
 
-	      USART_Cmd(UART4,DISABLE);
+	USART_Cmd(UART4,DISABLE);
 
-	      USART_StructInit(&USART_InitStructure);
-	      USART_InitStructure.USART_BaudRate = 9600;
-	      USART_InitStructure.USART_WordLength = USART_WordLength_8b;
-	      USART_InitStructure.USART_StopBits = USART_StopBits_1;
-	      USART_InitStructure.USART_Parity = USART_Parity_No;
-	      USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
-	      USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
-	      USART_Init(UART4, &USART_InitStructure);
-	      USART_ITConfig(UART4,USART_IT_RXNE,ENABLE);
+	USART_StructInit(&USART_InitStructure);
+	USART_InitStructure.USART_BaudRate = 9600;
+	USART_InitStructure.USART_WordLength = USART_WordLength_8b;
+	USART_InitStructure.USART_StopBits = USART_StopBits_1;
+	USART_InitStructure.USART_Parity = USART_Parity_No;
+	USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
+	USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
+	USART_Init(UART4, &USART_InitStructure);
+	USART_ITConfig(UART4,USART_IT_RXNE,ENABLE);
 
+	NVIC_InitStructure.NVIC_IRQChannel = UART4_IRQn ;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 15;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
 
-	      NVIC_InitStructure.NVIC_IRQChannel = UART4_IRQn ;
-	      NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-	      NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 15;
-	      NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+	NVIC_Init( &NVIC_InitStructure );
 
-	      NVIC_Init( &NVIC_InitStructure );
+	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4);
 
-	      NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4);
-
-		}
+}
 
 void uart_enable(int& ret )
-		{
-	      USART_Cmd(UART4,ENABLE);
-	      ret = 0 ;
-		}
+{
+	USART_Cmd(UART4,ENABLE);
+	ret = 0 ;
+}
 
 void uart_disable(int& ret )
-		{
-	      USART_Cmd(UART4,DISABLE);
-	      ret = 0 ;
-		}
+{
+	USART_Cmd(UART4, DISABLE);
+	ret = 0;
+}
 
 TConsoleTask::readline_io_t bt_io
 {
@@ -158,6 +157,6 @@ extern "C" void UART4_IRQHandler()
 	USART_ClearITPendingBit(UART4, USART_IT_RXNE);
 	char c = USART_ReceiveData(UART4);
     BaseType_t HigherPriorityTaskWoken ;
-    ConsoleTask->WriteToInputBuffFromISR( &c,  &HigherPriorityTaskWoken );
+    ConsoleTask->WriteToInputBuffFromISR(&c,  &HigherPriorityTaskWoken);
     portYIELD_FROM_ISR(HigherPriorityTaskWoken);
 }

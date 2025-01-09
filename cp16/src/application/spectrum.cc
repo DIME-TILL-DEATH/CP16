@@ -3,7 +3,8 @@
 // http://habrahabr.ru/post/247385/
 // https://code.google.com/p/ctuner/source/browse/trunk/windows/Tuner.c
 
- #include "spectrum.h"
+#include "spectrum.h"
+#include "console.h"
 // #include "rt_counter.h"
 // #include "int2str.h"
 #include "PROCESSING/filters.h"
@@ -130,7 +131,8 @@
 	"5/B",
 };
 
-static const uint8_t not_num[] = {
+static const uint8_t not_num[] =
+{
 	0,1,2,3,4,5,6,7,8,9,10,11,
 	0,1,2,3,4,5,6,7,8,9,10,11,
 	0,1,2,3,4,5,6,7,8,9,10,11,
@@ -165,22 +167,22 @@ inline void SetLPF_tune(float fCut)
 	at0 = at1 = fCut * Norm;
 }
 
- TSpectrumTask* SpectrumTask ;
+TSpectrumTask* SpectrumTask ;
 
-// volatile float Fswe;
+volatile float Fswe;
 
-// volatile float  Fs =48000.0f;
-// extern char __CCM_BSS__ buff[];
+volatile float  Fs =48000.0f;
+extern char __CCM_BSS__ buff[];
 
-// const size_t buff_size = 32768 ;
-// const size_t vec_buff_size = 32768 / sizeof(vec) ;
+const size_t buff_size = 32768 ;
+const size_t vec_buff_size = 32768 / sizeof(vec) ;
 
-// vec* in_0 = (vec*)buff;
-// vec* in_1 = ((vec*)buff) + vec_buff_size / 2 ;
+vec* in_0 = (vec*)buff;
+vec* in_1 = ((vec*)buff) + vec_buff_size / 2 ;
 
-// const size_t N = 2048 ;     // sample count
-// volatile size_t n = 1024  ;   // frame overlap
-// vec Wfwd[32];
+const size_t N = 2048 ;     // sample count
+volatile size_t n = 1024  ;   // frame overlap
+vec Wfwd[32];
 
 
 TSpectrumTask::TSpectrumTask ()
@@ -192,193 +194,182 @@ TSpectrumTask::TSpectrumTask ()
 	guitar_classic_index_table[4] = 47 ;  // 47  0246.941 Hz  Small/H
 	guitar_classic_index_table[5] = 52 ;  // 52  0329.627 Hz  1.00/E
 
-	guitar_bass_index_table[0] = 11 ;  // 11  0030.867 Hz  SubContre/B ( 5/6 sring guitar )
+	guitar_bass_index_table[0] = 11 ;  // 11  0030.867 Hz  SubContre/B ( 5/6 string guitar )
 	guitar_bass_index_table[1] = 16 ;  // 16  0041.203 Hz  Contre/E
 	guitar_bass_index_table[2] = 21 ;  // 21  0055.000 Hz  Contre/A
 	guitar_bass_index_table[3] = 26 ;  // 26  0073.416 Hz  Big/D
 	guitar_bass_index_table[4] = 31 ;  // 31  0097.998 Hz  Big/G
-	guitar_bass_index_table[5] = 36 ;  // 36  0130.812 Hz  Small/C     ( 6 sring guitar )
+	guitar_bass_index_table[5] = 36 ;  // 36  0130.812 Hz  Small/C     ( 6 string guitar )
 
-//	fft_0.init(in_0,N,Wfwd,0);
-//	fft_1.init(in_1,N,Wfwd,0);
+	fft_0.init(in_0,N, Wfwd, 0);
+	fft_1.init(in_1,N, Wfwd, 0);
 
 	SetLPF_tune(2000.0f);
-} ;
+}
 
-// volatile uint32_t notee;
-// void TSpectrumTask::ToneMeter()
-// {
-//   size_t counter ;
+//volatile uint32_t notee;
+void TSpectrumTask::ToneMeter()
+{
+	for (size_t n = 0; n < N; n++)
+	{
+		float h = kgp_math::window::Hann(n,N);
+		in_0[n] *= h;
+		in_1[n] *= h;
+	}
 
-//   for (size_t n = 0 ; n < N ; n++)
-//   {
-// 	  float h = kgp_math::window::Hann(n,N);
-// 	  in_0[n] *= h ;
-// 	  in_1[n] *= h ;
-//   }
+	fft_0.transform();
+	fft_1.transform();
 
-//   rt_counter_start(counter);
-//   fft_0.transform() ;
-//   fft_1.transform() ;
-//   ffts_x2_uS = rt_counter_stop_us(counter);
+	kgp_math::find_tone(Kmes, fft_0, fft_1, n);
 
-//   rt_counter_start(counter);
+	tone =  fft_0.k2freq(Kmes, Fs) ;
+	tone += 0.001f;
 
-//   kgp_math::find_tone( Kmes, fft_0, fft_1, n) ;
+	size_t note;
+	Tone2NoteAndDiff(tone, note, freq_diff);
 
-//   tone =  fft_0.k2freq( Kmes , Fs ) ;
+//	notee = note;
 
-//   uS_find_tone = rt_counter_stop_us(counter);
-//   rt_counter_start(counter);
+//	extern volatile uint8_t t_no;
+//	t_no = not_num[note];
+	note_name = note_name_table[note] ;
 
-//   tone += 0.001f;
+	int aa = freq_diff * 1000.0f;
+	float bb = aa / 1000.0f;
 
-//   size_t note ;
-//   Tone2NoteAndDiff(tone, note, freq_diff);
+	if(freq_diff < 0)
+	{
+		float a = HalfTone(note - 1);
+		float b = HalfTone(note);
+		float c = (b - a) * 0.5f;
+		cents = (uint8_t)((48.0 - (fabsf(bb) * (48.0/c))));
+	}
+	else
+	{
+		float a = HalfTone(note + 1);
+		float b = HalfTone(note);
+		float c = (a - b) * 0.5f;
+		cents = (uint8_t)(((bb * (48.0/c))) + 48.0);
+	}
 
-//   notee = note;
+	char cmd[] = "tn\r\n";
+	for (size_t i = 0; i < 4; i++)
+		ConsoleTask->WriteToInputBuff(cmd + i);
+}
 
-//   extern volatile uint8_t t_no;
-//   t_no = not_num[note];
-//   note_name = note_name_table[note] ;
+extern volatile uint8_t rev_en;
+extern volatile uint8_t rev_en1;
+void SpectrumBuffsUpdate(float u)
+{
+//	rev_en = 1;
+//	if(rev_en1)
+//	{
 
-//   note_and_diff_uS = rt_counter_stop_us(counter);
+		static size_t index = 0 ;
 
-//   int aa = freq_diff * 1000.0f;
-//   float bb = aa / 1000.0f;
+		if(eSuspended == TTaskUtilities::GetTaskState( SpectrumTask->GetHandle()))
+		{
+			u = filt_lp_tun(u);
+			vec val(u , 0 );
+			if ( index < N)
+			in_0[ index ] = vec(u , 0 ) ;
 
-//   extern uint8_t t_po;
-//   if(freq_diff < 0)
-//   {
-// 	  float a = HalfTone(note - 1);
-// 	  float b = HalfTone(note);
-// 	  float c = (b - a) * 0.5f;
-// 	  t_po = (uint8_t)((48.0 - (fabsf(bb) * (48.0/c))));
-//   }
-//   else {
-// 	  float a = HalfTone(note + 1);
-// 	  float b = HalfTone(note);
-// 	  float c = (a - b) * 0.5f;
-// 	  t_po = (uint8_t)(((bb * (48.0/c))) + 48.0);
-//   }
-//   DisplayTask->Tun();
-// }
+			if ( index >= n )
+			in_1[ index - n ] = vec(u , 0 ) ;
 
-// extern volatile uint8_t rev_en;
-// extern volatile uint8_t rev_en1;
-// void SpectrumBuffsUpdate (float u)
-// {
-// 	rev_en = 1;
-// 	if(rev_en1)
-//  {
+			index++ ;
+			if ( index == N + n )
+			{
+				extern uint8_t tuner_use;
+				if(tuner_use) SpectrumTask->Resume();
+				index = 0;
+			}
+		}
+//	}
+}
 
-//   static size_t index = 0 ;
+void TSpectrumTask::Code()
+{
+	while(1)
+	{
+		Suspend();
+		ToneMeter();
+	}
+}
 
-//   if(eSuspended == TTaskUtilities::GetTaskState( SpectrumTask->GetHandle()))
-//    {
-// 	  u = filt_lp_tun(u);
-// 	  vec val(u , 0 );
-// 	  if ( index < N)
-// 	    in_0[ index ] = vec(u , 0 ) ;
+ //------------------------------------------------------
+ void TSpectrumTask::Sinus( float Fin, float Fs, size_t N, vec* in, size_t offset )
+ {
+    for ( size_t i = 0 ; i < N ; i++ )
+      {
+        float s,c ;
 
-//      if ( index >= n )
-// 	    in_1[ index - n ] = vec(u , 0 ) ;
+        vdt::fast_sincosf( (Fin / Fs) * ( i + offset) * vdt::details::VDT_2PI_F , s,c);
+        in[i] = vec (c,s);
+      }
+ }
+ //------------------------------------------------------
+ void TSpectrumTask::SinusRepos( kgp_math::fft& fft, float f, float Fs, size_t N, size_t offset )
+ {
+	for ( size_t i = 0 ; i < N ; i++ )
+	{
+		float s,c ;
 
-//      index++ ;
-//      if ( index == N + n )
-//         {
-//     	  extern uint8_t tuner_use;
-//     	  if(tuner_use)SpectrumTask->Resume();
-//           index = 0 ;
-//         }
-//     }
-//  }
-// }
+		vdt::fast_sincosf( (i + offset) * vdt::details::VDT_2PI_F * f / Fs  , s,c);
+		vec val(c,s);
+		// write with reposition
+		fft.reposition_write( val , i);
+	}
+ }
+ //--------------------------------------------------------
+ //--------------------------------------------------------
+ //-----------------------------------------------------
+ void TSpectrumTask::PrintNoteTable()
+ {
+   /*for ( int i = 0 ; i < 108 ;)
+     {
+       	for ( int j = 0 ; j < 12 ; j++ )
+        	{
+            rmsg ( "%1\t\t%4.3\t\t\t%s\n", i , HalfTone(i) , note_name_table[i]) ;
+            i++ ;
+         }
+     }*/
+ }
+ //-----------------------------------------------------
+ void TSpectrumTask::PrintBassGuitarTable()
+ {
+   /*rmsg ( "4/5/6 strings guitar freq table\n#\t\tfreq\t\t\tnote name\n");
+   for ( int i = 0 ; i < 6 ; i++)
+     {
+            rmsg ( "%1\t\t%4.3\t\t%s\n", 6-i , HalfTone(guitar_bass_index_table[i]) , note_name_table[guitar_bass_index_table[i]]) ;
+     }*/
+ }
 
-// void TSpectrumTask::Code()
-// {
+ //-------------------------------------------------------
+ void TSpectrumTask::PrintSpertrum(vec* in, size_t N)
+ {
+   /*    for ( size_t i = 0 ; i < N ; i++ )
+ 	{
+ 		for ( size_t k = 0 ; k < N ; k++ )
+ 		{
+ 			const char* sym = in[k].norma() >= N-i ? "*" : " " ;
+ 		        rmsg("%c" , sym) ;
 
-// 	//DMA_ITConfig ( DMA1_Stream2 , DMA_IT_TC , ENABLE);
+ 		}
+ 		rmsg("\n") ;
+ 	}*/
+ }
+ void TSpectrumTask::PrintSpertrumDB(float* in, float low_level_db, size_t N)
+ {
+     /*  for ( size_t i = 0 ; i < N ; i++ )
+ 	{
+ 		for ( size_t k = 0 ; k < N ; k++ )
+ 		{
+ 			const char* sym = in[k]/10 >= low_level_db/10 ? "*" : " " ;
+ 		        rmsg("%c" , sym) ;
 
-//     while(1)
-//      {
-//        Suspend();
-//        ToneMeter();
-//      }
-// }
-
-// //-------------------------------------------------------
-// void TSpectrumTask::PrintSpertrum(vec* in, size_t N)
-// {
-//   /*    for ( size_t i = 0 ; i < N ; i++ )
-// 	{
-// 		for ( size_t k = 0 ; k < N ; k++ )
-// 		{
-// 			const char* sym = in[k].norma() >= N-i ? "*" : " " ;
-// 		        rmsg("%c" , sym) ;
-
-// 		}
-// 		rmsg("\n") ;
-// 	}*/
-// }
-// void TSpectrumTask::PrintSpertrumDB(float* in, float low_level_db, size_t N)
-// {
-//     /*  for ( size_t i = 0 ; i < N ; i++ )
-// 	{
-// 		for ( size_t k = 0 ; k < N ; k++ )
-// 		{
-// 			const char* sym = in[k]/10 >= low_level_db/10 ? "*" : " " ;
-// 		        rmsg("%c" , sym) ;
-
-// 		}
-// 		rmsg("\n") ;
-// 	}*/
-// }
-// //------------------------------------------------------
-// void TSpectrumTask::Sinus( float Fin, float Fs, size_t N, vec* in, size_t offset )
-// {
-//    for ( size_t i = 0 ; i < N ; i++ )
-//      {
-//        float s,c ;
-
-//        vdt::fast_sincosf( (Fin / Fs) * ( i + offset) * vdt::details::VDT_2PI_F , s,c);
-//        in[i] = vec (c,s);
-//      }
-// }
-// //------------------------------------------------------
-// void TSpectrumTask::SinusRepos( kgp_math::fft& fft, float f, float Fs, size_t N, size_t offset )
-// {
-//    for ( size_t i = 0 ; i < N ; i++ )
-//      {
-//        float s,c ;
-
-//        vdt::fast_sincosf( (i + offset) * vdt::details::VDT_2PI_F * f / Fs  , s,c);
-//        vec val(c,s);
-//        // write with reposition
-//        fft.reposition_write( val , i);
-
-//      }
-// }
-// //-----------------------------------------------------
-// void TSpectrumTask::PrintNoteTable()
-// {
-//   /*for ( int i = 0 ; i < 108 ;)
-//     {
-//       	for ( int j = 0 ; j < 12 ; j++ )
-//        	{
-//            rmsg ( "%1\t\t%4.3\t\t\t%s\n", i , HalfTone(i) , note_name_table[i]) ;
-//            i++ ;
-//         }
-//     }*/
-// }
-// //-----------------------------------------------------
-// void TSpectrumTask::PrintBassGuitarTable()
-// {
-//   /*rmsg ( "4/5/6 strings guitar freq table\n#\t\tfreq\t\t\tnote name\n");
-//   for ( int i = 0 ; i < 6 ; i++)
-//     {
-//            rmsg ( "%1\t\t%4.3\t\t%s\n", 6-i , HalfTone(guitar_bass_index_table[i]) , note_name_table[guitar_bass_index_table[i]]) ;
-//     }*/
-// }
-
+ 		}
+ 		rmsg("\n") ;
+ 	}*/
+ }
 

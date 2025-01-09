@@ -71,22 +71,28 @@ void TCSTask::Code() {
 
 	adau_run();
 
-	while (1) {
-		if (!usb_flag) {
-			if (GPIOA->IDR & GPIO_Pin_9) {
+	while (1)
+	{
+		if (!usb_flag)
+		{
+			if (GPIOA->IDR & GPIO_Pin_9)
+			{
 				usb_flag = 1;
 				start_usb(usb_type);
 				sw4_state = false;
 			}
-		} else {
+		}
+		else
+		{
 			if (!(GPIOA->IDR & GPIO_Pin_9))
 				NVIC_SystemReset();
 		}
 
-		if (!started) {
-			NVIC_EnableIRQ (DMA1_Stream5_IRQn);
+		if (!started)
+		{
+			NVIC_EnableIRQ(DMA1_Stream5_IRQn);
 			SPI_I2S_DMACmd(adau_com_spi, SPI_I2S_DMAReq_Tx, ENABLE);
-			NVIC_EnableIRQ (SPI2_IRQn);
+			NVIC_EnableIRQ(SPI2_IRQn);
 
 			key_check();
 			started = true;
@@ -124,10 +130,10 @@ inline void key_check(void) {
 	}
 }
 
-void preset_change(void) {
+void preset_change(void)
+{
 	fade_out();
-	while (!is_fade_complete())
-		;
+	while (!is_fade_complete());
 
 	kgp_sdk_libc::memset(current_preset_name, 0, sizeof(PRESET_NAME_LENGTH));
 

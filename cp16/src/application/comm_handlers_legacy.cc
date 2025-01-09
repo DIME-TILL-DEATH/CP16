@@ -46,8 +46,8 @@ static void current_cabinet_comm_handler(TReadLine *rl,
 		msg_console(" %s %s\r", args[1], args[2]);
 		rev_en = 1;
 		if (args[2][0] == '0' && kgp_sdk_libc::strlen(args[2]) == 1) {
-			while (!rev_en1)
-				;
+			while (!rev_en1);
+
 			stream_pos = 0;
 			do {
 				int c;
