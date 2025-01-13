@@ -18,7 +18,7 @@ public:
 	kgp_math::fft& get_fft_1() { return fft_1 ; };
 
 	char const* note_name;
-	uint8_t cents;
+	int8_t cents;
 
 private:
 	void Code() ;

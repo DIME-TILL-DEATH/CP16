@@ -128,16 +128,16 @@ extern "C" void SPI2_IRQHandler()
 
 	if (frame_part == 2)
 	{
-//		adau_dma_transmit(DSP_AUXIN_ADDRESS, &aux_samples[aux_smpl_rd_ptr][1], 4);
-		adau_dma_transmit(DSP_SAFELOAD_DATA0_ADDRESS, &aux_samples[aux_smpl_rd_ptr][0], 5 * 2);
-		send_ist = true;
-//		aux_smpl_rd_ptr++;
-		aux_smpl_rd_ptr += 2;  // Decimation! result max frequency 12kHz
+		adau_dma_transmit(DSP_AUXIN_ADDRESS, &aux_samples[aux_smpl_rd_ptr][1], 4);
+//		adau_dma_transmit(DSP_SAFELOAD_DATA0_ADDRESS, &aux_samples[aux_smpl_rd_ptr][0], 5 * 2);
+//		send_ist = true;
+		aux_smpl_rd_ptr++;
+//		aux_smpl_rd_ptr += 2;  // Decimation! result max frequency 12kHz
 		if (aux_smpl_rd_ptr == block_size * 2)
 			aux_smpl_rd_ptr = 0;
 	}
 
-	if (frame_part == 4 * 2 - 1)
+	if (frame_part == 4-1) //4 * 2 - 1)
 		frame_part = 0;
 	else
 		frame_part++;
@@ -214,18 +214,19 @@ extern "C" void DMA1_Stream3_IRQHandler()
 
 		if(tuner_use)
 		{
-			if(fabsf(di_samples[i]) < 0.0005f) di_samples[i] = 0.0f;
-			SpectrumBuffsUpdate(di_samples[i]);
+			if(fabsf(processing_samples[i]) < 0.0005f) processing_samples[i] = 0.0f;
+			SpectrumBuffsUpdate(processing_samples[i]);
 		}
 
-		di_samples[i] *= get_fade_coef();
+		processing_samples[i] *= get_fade_coef();
 		ir_samples[i] *= get_fade_coef();
 	}
 
 	//---------------------------------------------Processing------------------------------------
 	if(!tuner_use)
 	{
-		for (int i = 0; i < MAX_PROCESSING_STAGES; i++) {
+		for (int i = 0; i < MAX_PROCESSING_STAGES; i++)
+		{
 			if (processing_stage[i]) //pointer check
 				processing_stage[i](processing_samples, processing_samples);
 		}
@@ -429,14 +430,17 @@ void __RAMFUNC__ lpf_processing_stage(float *in_samples, float *out_samples) {
 
 void __RAMFUNC__ early_processing_stage(float *in_samples, float *out_l_samples, float *out_r_samples)
 {
-	for (uint8_t i = 0; i < block_size; i++) {
+	for (uint8_t i = 0; i < block_size; i++)
+	{
 		if (current_preset.reverb.on)
 			reverb_accum = in_samples[i] * 0.7f;
 		else
 			reverb_accum = 0.0f;
 
-		if (!rev_en) {
-			switch (current_preset.reverb.type) {
+		if (!rev_en)
+		{
+			switch (current_preset.reverb.type)
+			{
 			case 0:
 				early1();
 				break;
@@ -447,8 +451,8 @@ void __RAMFUNC__ early_processing_stage(float *in_samples, float *out_l_samples,
 				early3();
 				break;
 			}
-		} else
-			rev_en1 = 1;
+		}
+		else rev_en1 = 1;
 
 		out_l_samples[i] = in_samples[i] + ear_outL * processing_params.ear_vol;
 		out_r_samples[i] = in_samples[i] + ear_outR * processing_params.ear_vol;

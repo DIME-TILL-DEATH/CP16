@@ -248,7 +248,7 @@ namespace kgp_math
              return angle;
          }
 
-   inline float __attribute__((always_inline)) find_tone( float& f_mesured,  fft& fft_0, fft& fft_1, size_t n)
+   inline float __attribute__(/*(always_inline)*/(optimize(0))) find_tone( float& f_mesured,  fft& fft_0, fft& fft_1, size_t n)
    {
 
       // вычисление номера частотного отсчета с максимальной мощностью

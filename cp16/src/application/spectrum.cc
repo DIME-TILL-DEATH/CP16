@@ -3,6 +3,8 @@
 // http://habrahabr.ru/post/247385/
 // https://code.google.com/p/ctuner/source/browse/trunk/windows/Tuner.c
 
+#include "ff.h"
+
 #include "spectrum.h"
 #include "console.h"
 // #include "rt_counter.h"
@@ -167,11 +169,11 @@ inline void SetLPF_tune(float fCut)
 	at0 = at1 = fCut * Norm;
 }
 
-TSpectrumTask* SpectrumTask ;
+TSpectrumTask* SpectrumTask;
 
 volatile float Fswe;
 
-volatile float  Fs =48000.0f;
+volatile float  Fs = 48000.0f;
 extern char __CCM_BSS__ buff[];
 
 const size_t buff_size = 32768 ;
@@ -180,8 +182,8 @@ const size_t vec_buff_size = 32768 / sizeof(vec) ;
 vec* in_0 = (vec*)buff;
 vec* in_1 = ((vec*)buff) + vec_buff_size / 2 ;
 
-const size_t N = 2048 ;     // sample count
-volatile size_t n = 1024  ;   // frame overlap
+const size_t N = 2048;     // sample count
+volatile size_t n = 128;   // frame overlap
 vec Wfwd[32];
 
 
@@ -201,8 +203,8 @@ TSpectrumTask::TSpectrumTask ()
 	guitar_bass_index_table[4] = 31 ;  // 31  0097.998 Hz  Big/G
 	guitar_bass_index_table[5] = 36 ;  // 36  0130.812 Hz  Small/C     ( 6 string guitar )
 
-	fft_0.init(in_0,N, Wfwd, 0);
-	fft_1.init(in_1,N, Wfwd, 0);
+	fft_0.init(in_0, N, Wfwd, 0);
+	fft_1.init(in_1, N, Wfwd, 0);
 
 	SetLPF_tune(2000.0f);
 }
@@ -210,15 +212,67 @@ TSpectrumTask::TSpectrumTask ()
 //volatile uint32_t notee;
 void TSpectrumTask::ToneMeter()
 {
+//
+//	FATFS fs;
+//	FIL file0, file1;
+//	DWORD seek = 0;
+//
+//	f_mount(&fs, "0:", 1);
+//	emb_string file_name0, file_name1;
+//	file_name0 = "/in0.txt";
+//	file_name1 = "/in1.txt";
+//
+//	f_open(&file0, file_name0.c_str(), FA_CREATE_ALWAYS | FA_WRITE);
+//	f_lseek(&file0, seek);
+//	f_open(&file1, file_name1.c_str(), FA_CREATE_ALWAYS | FA_WRITE);
+//	f_lseek(&file1, seek);
+
+
 	for (size_t n = 0; n < N; n++)
 	{
-		float h = kgp_math::window::Hann(n,N);
+//		long resX0 = in_0[n].x * 100000000;
+//		long resX1 = in_1[n].x * 100000000;
+//
+//	    f_printf(&file0, "%ld\n", resX0);
+//	    f_printf(&file1, "%ld\n", resX1);
+
+		float h = kgp_math::window::Hann(n, N);
 		in_0[n] *= h;
 		in_1[n] *= h;
 	}
+//	f_sync(&file0);
+//	f_close(&file0);
+//	f_sync(&file1);
+//	f_close(&file1);
 
 	fft_0.transform();
 	fft_1.transform();
+
+//	file_name0 = "/fft0.txt";
+//	file_name1 = "/fft1.txt";
+//
+//	f_open(&file0, file_name0.c_str(), FA_CREATE_ALWAYS | FA_WRITE);
+//	f_lseek(&file0, seek);
+//	f_open(&file1, file_name1.c_str(), FA_CREATE_ALWAYS | FA_WRITE);
+//	f_lseek(&file1, seek);
+//
+//
+//	for (size_t n = 0; n < N; n++)
+//	{
+//		long resX0 = in_0[n].x * 100000000;
+//		long resX1 = in_1[n].x * 100000000;
+//		long resY0 = in_0[n].y * 100000000;
+//		long resY1 = in_1[n].y * 100000000;
+//
+//		f_printf(&file0, "%ld, %ld\n", resX0, resY0);
+//		f_printf(&file1, "%ld, %ld\n", resX1, resY1);
+//	}
+//	f_sync(&file0);
+//	f_close(&file0);
+//	f_sync(&file1);
+//	f_close(&file1);
+//
+//	f_mount(0, "0:", 0);
 
 	kgp_math::find_tone(Kmes, fft_0, fft_1, n);
 
@@ -237,28 +291,33 @@ void TSpectrumTask::ToneMeter()
 	int aa = freq_diff * 1000.0f;
 	float bb = aa / 1000.0f;
 
+	float a, b;
 	if(freq_diff < 0)
 	{
-		float a = HalfTone(note - 1);
-		float b = HalfTone(note);
+		a = HalfTone(note - 1);
+		b = HalfTone(note);
 		float c = (b - a) * 0.5f;
-		cents = (uint8_t)((48.0 - (fabsf(bb) * (48.0/c))));
+		float oneCent = (b - a) / 100;
+		cents = freq_diff/oneCent;
+//		cents = (uint8_t)((48.0 - (fabsf(bb) * (48.0/c))));
 	}
 	else
 	{
-		float a = HalfTone(note + 1);
-		float b = HalfTone(note);
+		a = HalfTone(note + 1);
+		b = HalfTone(note);
 		float c = (a - b) * 0.5f;
 		cents = (uint8_t)(((bb * (48.0/c))) + 48.0);
 	}
+	float oneCent = (b - a) / 100;
+	cents = freq_diff/oneCent;
 
 	char cmd[] = "tn\r\n";
 	for (size_t i = 0; i < 4; i++)
 		ConsoleTask->WriteToInputBuff(cmd + i);
 }
 
-extern volatile uint8_t rev_en;
-extern volatile uint8_t rev_en1;
+//extern volatile uint8_t rev_en;
+//extern volatile uint8_t rev_en1;
 void SpectrumBuffsUpdate(float u)
 {
 //	rev_en = 1;
@@ -270,15 +329,17 @@ void SpectrumBuffsUpdate(float u)
 		if(eSuspended == TTaskUtilities::GetTaskState( SpectrumTask->GetHandle()))
 		{
 			u = filt_lp_tun(u);
-			vec val(u , 0 );
-			if ( index < N)
-			in_0[ index ] = vec(u , 0 ) ;
 
-			if ( index >= n )
-			in_1[ index - n ] = vec(u , 0 ) ;
+			//vec val(u, 0);
+			if (index < N)
+				in_0[index] = vec(u, 0);
 
-			index++ ;
-			if ( index == N + n )
+			if (index >= n)
+				in_1[index - n] = vec(u, 0);
+
+			index++;
+
+			if (index == N + n)
 			{
 				extern uint8_t tuner_use;
 				if(tuner_use) SpectrumTask->Resume();
