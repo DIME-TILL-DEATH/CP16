@@ -118,7 +118,7 @@ class TConsoleTask : public TTask
 
 extern TConsoleTask* ConsoleTask ;
 
-void consoleSetCmdHandlers(TReadLine* rl) ;
+void consoleSetCmdHandlers(TReadLine* rl);
 
 // команда TReadLine (выполняется в контексте TConsoleTask ) !!!!!!!!!!!!!!!!
 #define msg_console(...) rl->UnsafePrintF( __VA_ARGS__ )

@@ -12,6 +12,8 @@
 #include "fades.h"
 #include "filters.h"
 #include "Reverb/reverb.h"
+#include "tremolo.h"
+
 #include "preset.h"
 
 #include "ADAU/adau1701.h"
@@ -23,8 +25,7 @@ processing_func_ptr processing_stage[MAX_PROCESSING_STAGES];
 
 void __RAMFUNC__ bypass_processing_stage(float *in_samples, float *out_samples);
 //------MONO OUT-----------------------------------------------------------
-void __RAMFUNC__ compressor_processing_stage(float *in_samples,
-		float *out_samples);
+void __RAMFUNC__ compressor_processing_stage(float *in_samples, float *out_samples);
 void __RAMFUNC__ preamp_processing_stage(float *in_samples, float *out_samples);
 void __RAMFUNC__ pa_processing_stage(float *in_samples, float *out_samples);
 void __RAMFUNC__ ir_processing_stage(float *in_samples, float *out_samples);
@@ -32,6 +33,8 @@ void __RAMFUNC__ hpf_processing_stage(float *in_samples, float *out_samples);
 void __RAMFUNC__ eq_processing_stage(float *in_samples, float *out_samples);
 void __RAMFUNC__ lpf_processing_stage(float *in_samples, float *out_samples);
 void __RAMFUNC__ gate_processing_stage(float *in_samples, float *out_samples);
+
+void __RAMFUNC__ tremolo_processing_stage(float *in_samples, float *out_samples);
 //------STEREO OUT-----------------------------------------------------------
 void __RAMFUNC__ early_processing_stage(float *in_samples, float *out_l_samples,
 		float *out_r_samples);
@@ -71,7 +74,8 @@ uint16_t pwm_count_po;
 volatile uint8_t rev_en = 0;
 volatile uint8_t rev_en1 = 0;
 
-void DSP_init() {
+void DSP_init()
+{
 	gate_change_preset();
 	compressor_init();
 	compressor_change_preset(0, 0);
@@ -85,8 +89,10 @@ void DSP_init() {
 	processing_library[EQ] = eq_processing_stage;
 	processing_library[LP] = lpf_processing_stage;
 	processing_library[NG] = gate_processing_stage;
+	processing_library[TR] = tremolo_processing_stage;
 
-	for (int i = 0; i < MAX_PROCESSING_STAGES; i++) {
+	for (int i = 0; i < MAX_PROCESSING_STAGES; i++)
+	{
 		processing_stage[i] = processing_library[i];
 	}
 
@@ -165,7 +171,7 @@ uint16_t outClips = 0;
 uint8_t frame_part_fix = 0;
 extern "C" void DMA1_Stream3_IRQHandler()
 {
-//	GPIO_SetBits(GPIOB, GPIO_Pin_7);
+	GPIO_SetBits(GPIOB, GPIO_Pin_7);
 
 	uint8_t dma_ht_fl = 0;
 	//--------------------------------------------------------Start---------------------
@@ -286,7 +292,6 @@ extern "C" void DMA1_Stream3_IRQHandler()
 	}
 
 	//---------------------------------------------End-------------------------------------
-//	GPIO_ResetBits(GPIOB, GPIO_Pin_7);
 
 	if (framesCounter < 1000)
 	{
@@ -318,6 +323,8 @@ extern "C" void DMA1_Stream3_IRQHandler()
 		irClipCounter = 0;
 		outClipCounter = 0;
 	}
+
+	GPIO_ResetBits(GPIOB, GPIO_Pin_7);
 }
 
 //=============================Processing functions=====================================
@@ -397,35 +404,48 @@ void __RAMFUNC__ ir_processing_stage(float *in_samples, float *out_samples)
 	}
 }
 
-void __RAMFUNC__ hpf_processing_stage(float *in_samples, float *out_samples) {
-	//---------------------------------------HPF-----------------------------------------------
-	if (current_preset.eq1.hp_on) {
+void __RAMFUNC__ hpf_processing_stage(float *in_samples, float *out_samples)
+{
+	if (current_preset.eq1.hp_on)
+	{
 		for (uint8_t i = 0; i < block_size; i++)
 			out_samples[i] = filt_hp(in_samples[i]);
-	} else
-		bypass_processing_stage(in_samples, out_samples);
+	}
 }
 
-void __RAMFUNC__ eq_processing_stage(float *in_samples, float *out_samples) {
+void __RAMFUNC__ eq_processing_stage(float *in_samples, float *out_samples)
+{
 	hpf_processing_stage(in_samples, out_samples);
 
 	//------------------------------------PARAMETRIC-------------------------------------------
-	if (current_preset.eq1.parametric_on) {
-		arm_biquad_cascade_df1_f32(&eq_instance, in_samples, out_samples,
-				block_size);
+	if (current_preset.eq1.parametric_on)
+	{
+		arm_biquad_cascade_df1_f32(&eq_instance, in_samples, out_samples, block_size);
 	} else
 		bypass_processing_stage(in_samples, out_samples);
 
 	lpf_processing_stage(in_samples, out_samples);
 }
 
-void __RAMFUNC__ lpf_processing_stage(float *in_samples, float *out_samples) {
-	//---------------------------------------LPF-----------------------------------------------
-	if (current_preset.eq1.lp_on) {
+void __RAMFUNC__ lpf_processing_stage(float *in_samples, float *out_samples)
+{
+	if (current_preset.eq1.lp_on)
+	{
 		for (uint8_t i = 0; i < block_size; i++)
 			out_samples[i] = filt_lp(in_samples[i]);
-	} else
-		bypass_processing_stage(in_samples, out_samples);
+	}
+}
+
+void __RAMFUNC__ tremolo_processing_stage(float *in_samples, float *out_samples)
+{
+	if(current_preset.tremolo.on)
+	{
+		for (uint8_t i = 0; i < block_size; i++)
+		{
+			TREMOLO_step();
+			out_samples[i] = in_samples[i] * TREMOLO_get_volume();
+		}
+	}
 }
 
 void __RAMFUNC__ early_processing_stage(float *in_samples, float *out_l_samples, float *out_r_samples)

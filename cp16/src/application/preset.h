@@ -144,6 +144,14 @@ typedef struct
 
 typedef struct
 {
+	uint8_t on;
+	uint8_t rate;
+	uint8_t depth;
+	uint8_t form;
+}tremolo_t;
+
+typedef struct
+{
     uint8_t on;
     uint8_t type;
     uint8_t volume;
@@ -165,8 +173,9 @@ typedef struct
     eq_t eq1;
     eq_t eq2;
 
-    // Tremolo, phaser, flanger, chorus, WAH
-    uint8_t reserved[24];
+    tremolo_t tremolo;
+    // phaser, flanger, chorus
+    uint8_t reserved[20];
 
     reverb_data_t reverb;
 }preset_data_t;

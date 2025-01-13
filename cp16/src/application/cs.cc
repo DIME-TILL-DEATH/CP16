@@ -15,6 +15,7 @@
 #include "PROCESSING/compressor.h"
 #include "PROCESSING/fades.h"
 #include "PROCESSING/filters.h"
+#include "PROCESSING/tremolo.h"
 #include "PROCESSING/sound_processing.h"
 
 char loadedCab[256]; // debug data
@@ -189,20 +190,18 @@ void set_parameters(void) {
 	comp_par(0 | (current_preset.compressor.sustain << 8));
 	comp_par(2 | (current_preset.compressor.volume << 8));
 
-	processing_params.pream_vol = powf(current_preset.preamp.volume, 2.0f)
-			* (1.0f / powf(31.0f, 2.0f));
+	processing_params.pream_vol = powf(current_preset.preamp.volume, 2.0f)* (1.0f / powf(31.0f, 2.0f));
 	preamp_param(PREAMP_LOW, current_preset.preamp.low);
 	preamp_param(PREAMP_MID, current_preset.preamp.mid);
 	preamp_param(PREAMP_HIGH, current_preset.preamp.high);
 
-	processing_params.amp_vol = powf(current_preset.power_amp.volume, 2.0f)
-			* (10.0f / powf(31.0f, 2.0f)) + 1.0f;
-	processing_params.amp_slave = powf(current_preset.power_amp.slave, 4.0f)
-			* (0.99f / powf(31.0f, 4.0f)) + 0.01f;
+	processing_params.amp_vol = powf(current_preset.power_amp.volume, 2.0f)* (10.0f / powf(31.0f, 2.0f)) + 1.0f;
+	processing_params.amp_slave = powf(current_preset.power_amp.slave, 4.0f)* (0.99f / powf(31.0f, 4.0f)) + 0.01f;
 	pa_update_coefficients(current_preset.power_amp.type);
 	set_shelf(current_preset.power_amp.presence_vol * (31.0f / 31.0f));
 
-	for (uint8_t i = 0; i < 5; i++) {
+	for (uint8_t i = 0; i < 5; i++)
+	{
 		filterInit(i, current_preset.eq1.freq[i], current_preset.eq1.Q[i]);
 		filterCalcCoefs(i, current_preset.eq1.gain[i],
 				(band_type_t) current_preset.eq1.band_type[i]);
@@ -210,6 +209,10 @@ void set_parameters(void) {
 
 	SetLPF(current_preset.eq1.lp_freq);
 	SetHPF(current_preset.eq1.hp_freq);
+
+	TREMOLO_set_par(TREMOLO_DEPTH, current_preset.tremolo.depth);
+	TREMOLO_set_par(TREMOLO_RATE, current_preset.tremolo.rate);
+	TREMOLO_set_par(TREMOLO_FORM, current_preset.tremolo.form);
 
 	processing_params.ear_vol = current_preset.reverb.volume * (1.0 / 31.0);
 

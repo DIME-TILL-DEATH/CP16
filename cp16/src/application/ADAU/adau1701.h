@@ -2,7 +2,7 @@
 
 #include "appdefs.h"
 
-#define block_size 32//8
+#define block_size 16//8
 
 typedef union
 {

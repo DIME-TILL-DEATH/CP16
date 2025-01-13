@@ -20,12 +20,14 @@
 #include "PROCESSING/compressor.h"
 #include "PROCESSING/fades.h"
 #include "PROCESSING/filters.h"
+#include "PROCESSING/tremolo.h"
 #include "PROCESSING/Reverb/reverb.h"
 #include "PROCESSING/sound_processing.h"
 
 emb_string uploadingIrPath;
 
-uint16_t getDataPartFromStream(TReadLine *rl, char *buf, int maxSize) {
+uint16_t getDataPartFromStream(TReadLine *rl, char *buf, int maxSize)
+{
 	kgp_sdk_libc::memset(buf, 0, maxSize);
 	int streamPos = 0;
 	do {
@@ -38,19 +40,22 @@ uint16_t getDataPartFromStream(TReadLine *rl, char *buf, int maxSize) {
 	} while (streamPos < maxSize);
 }
 
-static void amtid_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
+static void amtid_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
 	char hex[3] = { 0, 0, 0 };
 	i2hex(AMT_DEV_ID, hex);
 	msg_console("%s\r%d\n", args[0], AMT_DEV_ID);
 	msg_console("END\n");
 }
 
-static void amtver_command_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
+static void amtver_command_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
 	msg_console("%s\r%s\n", args[0], ver);
 	msg_console("END\n");
 }
 
-static void preset_list_command_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
+static void preset_list_command_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
 	msg_console("plist");
 	for (int b = 0; b < 4; b++)
 		for (int p = 0; p < 4; p++) {
@@ -64,7 +69,8 @@ static void preset_list_command_handler(TReadLine *rl, TReadLine::const_symbol_t
 	msg_console("\n");
 }
 
-static void get_mode_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
+static void get_mode_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
 	char hex[3] = { 0, 0, 0 };
 	if (count > 0) {
 		if (count == 2) {
@@ -79,7 +85,8 @@ static void get_mode_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_pt
 	}
 }
 
-static void get_bp_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
+static void get_bp_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
 	msg_console("%s\r", args[0]);
 	for (size_t i = 0; i < 2; i++) {
 		char hex[3] = { 0, 0, 0 };
@@ -89,7 +96,8 @@ static void get_bp_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_
 	msg_console("\n");
 }
 
-static void mconfig_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
+static void mconfig_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
 	msg_console("%s", args[0]);
 	if (count > 1) {
 		std::emb_string command = args[1];
@@ -415,47 +423,43 @@ static void gate_decay_comm_handler(TReadLine *rl,
 	gate_par(1 | (current_preset.gate.decay << 8));
 }
 
-static void compressor_on_comm_handler(TReadLine *rl,
-		TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
+static void compressor_on_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
 	default_param_handler(&current_preset.compressor.on, rl, args, count);
 }
 
-static void compressor_sustain_comm_handler(TReadLine *rl,
-		TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
+static void compressor_sustain_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
 	default_param_handler(&current_preset.compressor.sustain, rl, args, count);
 	comp_par(0 | (current_preset.compressor.sustain << 8));
 }
 
-static void compressor_volume_comm_handler(TReadLine *rl,
-		TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
+static void compressor_volume_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
 	default_param_handler(&current_preset.compressor.volume, rl, args, count);
 	comp_par(2 | (current_preset.compressor.volume << 8));
 }
 
-const uint8_t GAIN_DATA[] =
-{
-		0x00, 0x00, 0x10, 0x00, 0x00
-};
 static void preamp_on_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
 {
 	default_param_handler(&current_preset.preamp.on, rl, args, count);
 }
 
-static void preamp_volume_comm_handler(TReadLine *rl,
-		TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
+static void preamp_volume_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
 	default_param_handler(&current_preset.preamp.volume, rl, args, count);
 	processing_params.pream_vol = powf(current_preset.preamp.volume, 2.0f)
 			* (1.0f / powf(31.0f, 2.0f));
 }
 
-static void preamp_low_command_handler(TReadLine *rl,
-		TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
+static void preamp_low_command_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
 	default_param_handler(&current_preset.preamp.low, rl, args, count);
 	preamp_param(PREAMP_LOW, current_preset.preamp.low);
 }
 
-static void preamp_mid_command_handler(TReadLine *rl,
-		TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
+static void preamp_mid_command_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
 	default_param_handler(&current_preset.preamp.mid, rl, args, count);
 	preamp_param(PREAMP_MID, current_preset.preamp.mid);
 }
@@ -497,15 +501,14 @@ static void presence_on_comm_handler(TReadLine *rl,
 			count);
 }
 
-static void presence_volume_command_handler(TReadLine *rl,
-		TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
-	default_param_handler(&current_preset.power_amp.presence_vol, rl, args,
-			count);
+static void presence_volume_command_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
+	default_param_handler(&current_preset.power_amp.presence_vol, rl, args, count);
 	set_shelf(current_preset.power_amp.presence_vol); // in RV was *(25.0f/31.0f));
 }
 
-static void eq0_comm_handler(TReadLine *rl,
-		TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
+static void eq0_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
 	msg_console("%s ", args[0]);
 	if (count < 4) {
 		msg_console("ARGUMENTS_INCORRECT\r\n");
@@ -558,8 +561,31 @@ static void eq0_comm_handler(TReadLine *rl,
 	msg_console("%s %s %s\r\n", target.c_str(), parameter.c_str(), args[3]);
 }
 
-static void early_on_comm_handler(TReadLine *rl,
-		TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
+static void tremolo_on_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
+	default_param_handler(&current_preset.tremolo.on, rl, args, count);
+}
+
+static void tremolo_rate_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
+	default_param_handler(&current_preset.tremolo.rate, rl, args, count);
+	TREMOLO_set_par(TREMOLO_RATE, current_preset.tremolo.rate);
+}
+
+static void tremolo_depth_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
+	default_param_handler(&current_preset.tremolo.depth, rl, args, count);
+	TREMOLO_set_par(TREMOLO_DEPTH, current_preset.tremolo.depth);
+}
+
+static void tremolo_form_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
+	default_param_handler(&current_preset.tremolo.form, rl, args, count);
+	TREMOLO_set_par(TREMOLO_FORM, current_preset.tremolo.form);
+}
+
+static void early_on_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
 	default_param_handler(&current_preset.reverb.on, rl, args, count);
 }
 
@@ -731,6 +757,11 @@ void consoleSetCmdHandlers(TReadLine *rl)
 	rl->AddCommandHandler("pv", presence_volume_command_handler);
 
 	rl->AddCommandHandler("eq0", eq0_comm_handler);
+
+	rl->AddCommandHandler("tr_on", tremolo_on_comm_handler);
+	rl->AddCommandHandler("tr_dp", tremolo_depth_comm_handler);
+	rl->AddCommandHandler("tr_rt", tremolo_rate_comm_handler);
+	rl->AddCommandHandler("tr_fm", tremolo_form_comm_handler);
 
 	rl->AddCommandHandler("eo", early_on_comm_handler);
 	rl->AddCommandHandler("ev", early_volume_comm_handler);

@@ -14,9 +14,9 @@ preset_data_legacy_t default_legacy_preset;
 preset_data_t current_preset;
 ir_path_data_t current_ir_link;
 
-void PRESET_init() {
-	kgp_sdk_libc::memset(&default_legacy_preset, 0,
-			sizeof(preset_data_legacy_t));
+void PRESET_init()
+{
+	kgp_sdk_libc::memset(&default_legacy_preset, 0, sizeof(preset_data_legacy_t));
 
 	default_legacy_preset.eq_band_vol[0] = 15;
 	default_legacy_preset.eq_band_vol[1] = 15;
@@ -99,6 +99,10 @@ void preset_from_legacy(preset_data_t *dst_preset, const preset_data_legacy_t *s
 	dst_preset->eq2.lp_freq = 20000;
 
 	dst_preset->cab_sim_on = src_preset->cab_on;
+
+	dst_preset->tremolo.depth = 63;
+	dst_preset->tremolo.rate = 63;
+	dst_preset->tremolo.form = 0;
 
 	dst_preset->reverb.on = src_preset->early_on;
 	dst_preset->reverb.type = src_preset->early_type;
