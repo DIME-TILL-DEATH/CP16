@@ -18,7 +18,8 @@ public:
 			memflan[i] = 0.0f;
 	}
 
-	inline void flanger(float *l) {
+	inline void flanger(float *l)
+	{
 		float in_f = *l;
 		in_f = fl_hpf.filt(in_f);
 		if (fl_type == 2)
@@ -82,7 +83,8 @@ public:
 		*l = *l * fl_dry + accum_f * fl_wet/* * fl_vol*/;
 	}
 
-	inline void fl_param(uint32_t val) {
+	inline void fl_param(uint32_t val)
+	{
 		uint32_t va = val >> 8;
 		val &= 0xff;
 		switch (val & 0xff) {

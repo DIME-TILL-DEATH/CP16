@@ -16,6 +16,7 @@
 #include "PROCESSING/fades.h"
 #include "PROCESSING/filters.h"
 #include "PROCESSING/tremolo.h"
+#include "PROCESSING/chorus.h"
 #include "PROCESSING/sound_processing.h"
 
 char loadedCab[256]; // debug data
@@ -213,6 +214,11 @@ void set_parameters(void) {
 	TREMOLO_set_par(TREMOLO_DEPTH, current_preset.tremolo.depth);
 	TREMOLO_set_par(TREMOLO_RATE, current_preset.tremolo.rate);
 	TREMOLO_set_par(TREMOLO_FORM, current_preset.tremolo.form);
+
+	CHORUS_set_par(CHORUS_MIX, current_preset.chorus.mix);
+	CHORUS_set_par(CHORUS_RATE, current_preset.chorus.rate);
+	CHORUS_set_par(CHORUS_WIDTH, current_preset.chorus.width);
+	CHORUS_set_par(CHORUS_HPF, current_preset.chorus.hpf);
 
 	processing_params.ear_vol = current_preset.reverb.volume * (1.0 / 31.0);
 

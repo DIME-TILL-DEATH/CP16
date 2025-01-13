@@ -152,6 +152,18 @@ typedef struct
 
 typedef struct
 {
+	uint8_t on;
+	uint8_t mix;
+	uint8_t rate;
+	uint8_t width;
+	uint8_t delay;
+	uint8_t type;
+	uint8_t hpf;
+	uint8_t reserved;
+}chorus_t;
+
+typedef struct
+{
     uint8_t on;
     uint8_t type;
     uint8_t volume;
@@ -174,8 +186,9 @@ typedef struct
     eq_t eq2;
 
     tremolo_t tremolo;
-    // phaser, flanger, chorus
-    uint8_t reserved[20];
+    chorus_t chorus;
+    // phaser, flanger
+    uint8_t reserved[12];
 
     reverb_data_t reverb;
 }preset_data_t;

@@ -104,13 +104,18 @@ void preset_from_legacy(preset_data_t *dst_preset, const preset_data_legacy_t *s
 	dst_preset->tremolo.rate = 63;
 	dst_preset->tremolo.form = 0;
 
+	dst_preset->chorus.mix = 63;
+	dst_preset->chorus.rate = 31;
+	dst_preset->chorus.width = 74;
+	dst_preset->chorus.delay = 4;
+
 	dst_preset->reverb.on = src_preset->early_on;
 	dst_preset->reverb.type = src_preset->early_type;
 	dst_preset->reverb.volume = src_preset->early_volume;
 }
 
-void legacy_from_preset(preset_data_legacy_t *dst_preset,
-		const preset_data_t *src_preset) {
+void legacy_from_preset(preset_data_legacy_t *dst_preset, const preset_data_t *src_preset)
+{
 	dst_preset->preset_volume = src_preset->volume;
 
 	dst_preset->gate_on = src_preset->gate.on;

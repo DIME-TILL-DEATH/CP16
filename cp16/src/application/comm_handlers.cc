@@ -21,6 +21,7 @@
 #include "PROCESSING/fades.h"
 #include "PROCESSING/filters.h"
 #include "PROCESSING/tremolo.h"
+#include "PROCESSING/chorus.h"
 #include "PROCESSING/Reverb/reverb.h"
 #include "PROCESSING/sound_processing.h"
 
@@ -584,6 +585,35 @@ static void tremolo_form_comm_handler(TReadLine *rl, TReadLine::const_symbol_typ
 	TREMOLO_set_par(TREMOLO_FORM, current_preset.tremolo.form);
 }
 
+static void chorus_on_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
+	default_param_handler(&current_preset.chorus.on, rl, args, count);
+}
+
+static void chorus_mix_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
+	default_param_handler(&current_preset.chorus.mix, rl, args, count);
+	CHORUS_set_par(CHORUS_MIX, current_preset.chorus.mix);
+}
+
+static void chorus_rate_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
+	default_param_handler(&current_preset.chorus.rate, rl, args, count);
+	CHORUS_set_par(CHORUS_RATE, current_preset.chorus.rate);
+}
+
+static void chorus_width_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
+	default_param_handler(&current_preset.chorus.width, rl, args, count);
+	CHORUS_set_par(CHORUS_WIDTH, current_preset.chorus.width);
+}
+
+static void chorus_hpf_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
+	default_param_handler(&current_preset.chorus.hpf, rl, args, count);
+	CHORUS_set_par(CHORUS_HPF, current_preset.chorus.hpf);
+}
+
 static void early_on_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
 {
 	default_param_handler(&current_preset.reverb.on, rl, args, count);
@@ -762,6 +792,12 @@ void consoleSetCmdHandlers(TReadLine *rl)
 	rl->AddCommandHandler("tr_dp", tremolo_depth_comm_handler);
 	rl->AddCommandHandler("tr_rt", tremolo_rate_comm_handler);
 	rl->AddCommandHandler("tr_fm", tremolo_form_comm_handler);
+
+	rl->AddCommandHandler("ch_on", chorus_on_comm_handler);
+	rl->AddCommandHandler("ch_wd", chorus_width_comm_handler);
+	rl->AddCommandHandler("ch_rt", chorus_rate_comm_handler);
+	rl->AddCommandHandler("ch_mx", chorus_mix_comm_handler);
+	rl->AddCommandHandler("ch_hp", chorus_hpf_comm_handler);
 
 	rl->AddCommandHandler("eo", early_on_comm_handler);
 	rl->AddCommandHandler("ev", early_volume_comm_handler);

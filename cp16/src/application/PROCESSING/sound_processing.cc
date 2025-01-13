@@ -13,6 +13,7 @@
 #include "filters.h"
 #include "Reverb/reverb.h"
 #include "tremolo.h"
+#include "chorus.h"
 
 #include "preset.h"
 
@@ -35,6 +36,7 @@ void __RAMFUNC__ lpf_processing_stage(float *in_samples, float *out_samples);
 void __RAMFUNC__ gate_processing_stage(float *in_samples, float *out_samples);
 
 void __RAMFUNC__ tremolo_processing_stage(float *in_samples, float *out_samples);
+void __RAMFUNC__ chorus_processing_stage(float *in_samples, float *out_samples);
 //------STEREO OUT-----------------------------------------------------------
 void __RAMFUNC__ early_processing_stage(float *in_samples, float *out_l_samples,
 		float *out_r_samples);
@@ -90,6 +92,7 @@ void DSP_init()
 	processing_library[LP] = lpf_processing_stage;
 	processing_library[NG] = gate_processing_stage;
 	processing_library[TR] = tremolo_processing_stage;
+	processing_library[CH] = chorus_processing_stage;
 
 	for (int i = 0; i < MAX_PROCESSING_STAGES; i++)
 	{
@@ -444,6 +447,17 @@ void __RAMFUNC__ tremolo_processing_stage(float *in_samples, float *out_samples)
 		{
 			TREMOLO_step();
 			out_samples[i] = in_samples[i] * TREMOLO_get_volume();
+		}
+	}
+}
+
+void __RAMFUNC__ chorus_processing_stage(float *in_samples, float *out_samples)
+{
+	if(current_preset.chorus.on)
+	{
+		for (uint8_t i = 0; i < block_size; i++)
+		{
+			CHORUS_process(&in_samples[i], &out_samples[i]);
 		}
 	}
 }
