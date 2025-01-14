@@ -138,9 +138,7 @@ typedef struct
 
     int8_t Q[EQ_BANDS_COUNT];
     uint8_t band_type[EQ_BANDS_COUNT];
-
-    uint8_t reserved[4];
-}eq_t; //36
+}eq_t; //32 (was 36)
 
 typedef struct
 {
@@ -156,11 +154,23 @@ typedef struct
 	uint8_t mix;
 	uint8_t rate;
 	uint8_t width;
-	uint8_t delay;
-	uint8_t type;
 	uint8_t hpf;
-	uint8_t reserved;
+//	uint8_t delay;
+//	uint8_t type;
+	uint8_t reserved[3];
 }chorus_t;
+
+typedef struct
+{
+	uint8_t on;
+	uint8_t mix;
+	uint8_t rate;
+	uint8_t center;
+	uint8_t width;
+	uint8_t feedback;
+	uint8_t stages;
+	uint8_t reserved;
+}phaser_t;
 
 typedef struct
 {
@@ -187,7 +197,8 @@ typedef struct
 
     tremolo_t tremolo;
     chorus_t chorus;
-    // phaser, flanger
+    phaser_t phaser;
+    // flanger
     uint8_t reserved[12];
 
     reverb_data_t reverb;

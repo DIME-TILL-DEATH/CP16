@@ -107,7 +107,11 @@ void preset_from_legacy(preset_data_t *dst_preset, const preset_data_legacy_t *s
 	dst_preset->chorus.mix = 63;
 	dst_preset->chorus.rate = 31;
 	dst_preset->chorus.width = 74;
-	dst_preset->chorus.delay = 4;
+
+	dst_preset->phaser.mix = 63;
+	dst_preset->phaser.rate = 50;
+	dst_preset->phaser.center = 0;
+	dst_preset->phaser.width = 55;
 
 	dst_preset->reverb.on = src_preset->early_on;
 	dst_preset->reverb.type = src_preset->early_type;

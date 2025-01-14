@@ -31,6 +31,7 @@ typedef enum
 	PS,
 	TR,
 	CH,
+	PH,
 	//---------
 	NUM_MONO_MODULE_TYPES
 }DSP_mono_module_type_t;

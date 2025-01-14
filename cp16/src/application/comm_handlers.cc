@@ -22,6 +22,7 @@
 #include "PROCESSING/filters.h"
 #include "PROCESSING/tremolo.h"
 #include "PROCESSING/chorus.h"
+#include "PROCESSING/phaser.h"
 #include "PROCESSING/Reverb/reverb.h"
 #include "PROCESSING/sound_processing.h"
 
@@ -614,6 +615,47 @@ static void chorus_hpf_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_
 	CHORUS_set_par(CHORUS_HPF, current_preset.chorus.hpf);
 }
 
+static void phaser_on_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
+	default_param_handler(&current_preset.phaser.on, rl, args, count);
+}
+
+static void phaser_mix_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
+	default_param_handler(&current_preset.phaser.mix, rl, args, count);
+	PHASER_set_par(PHASER_MIX, current_preset.phaser.mix);
+}
+
+static void phaser_rate_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
+	default_param_handler(&current_preset.phaser.rate, rl, args, count);
+	PHASER_set_par(PHASER_RATE, current_preset.phaser.rate);
+}
+
+static void phaser_width_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
+	default_param_handler(&current_preset.phaser.width, rl, args, count);
+	PHASER_set_par(PHASER_WIDTH, current_preset.phaser.width);
+}
+
+static void phaser_center_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
+	default_param_handler(&current_preset.phaser.center, rl, args, count);
+	PHASER_set_par(PHASER_CENTER, current_preset.phaser.center);
+}
+
+static void phaser_feedback_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
+	default_param_handler(&current_preset.phaser.feedback, rl, args, count);
+	PHASER_set_par(PHASER_FEEDBACK, current_preset.phaser.feedback);
+}
+
+static void phaser_stages_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
+	default_param_handler(&current_preset.phaser.stages, rl, args, count);
+	PHASER_set_par(PHASER_STAGES, current_preset.phaser.stages);
+}
+
 static void early_on_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
 {
 	default_param_handler(&current_preset.reverb.on, rl, args, count);
@@ -794,10 +836,18 @@ void consoleSetCmdHandlers(TReadLine *rl)
 	rl->AddCommandHandler("tr_fm", tremolo_form_comm_handler);
 
 	rl->AddCommandHandler("ch_on", chorus_on_comm_handler);
-	rl->AddCommandHandler("ch_wd", chorus_width_comm_handler);
-	rl->AddCommandHandler("ch_rt", chorus_rate_comm_handler);
 	rl->AddCommandHandler("ch_mx", chorus_mix_comm_handler);
+	rl->AddCommandHandler("ch_rt", chorus_rate_comm_handler);
+	rl->AddCommandHandler("ch_wd", chorus_width_comm_handler);
 	rl->AddCommandHandler("ch_hp", chorus_hpf_comm_handler);
+
+	rl->AddCommandHandler("ph_on", phaser_on_comm_handler);
+	rl->AddCommandHandler("ph_mx", phaser_mix_comm_handler);
+	rl->AddCommandHandler("ph_rt", phaser_rate_comm_handler);
+	rl->AddCommandHandler("ph_wd", phaser_width_comm_handler);
+	rl->AddCommandHandler("ph_cn", phaser_center_comm_handler);
+	rl->AddCommandHandler("ph_fb", phaser_feedback_comm_handler);
+	rl->AddCommandHandler("ph_st", phaser_stages_comm_handler);
 
 	rl->AddCommandHandler("eo", early_on_comm_handler);
 	rl->AddCommandHandler("ev", early_volume_comm_handler);
