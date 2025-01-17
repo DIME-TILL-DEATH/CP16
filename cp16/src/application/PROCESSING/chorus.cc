@@ -3,11 +3,8 @@
 #include <vdt/vdt.h>
 #include "fx_sin.h"
 
-//__attribute__((section(".dtcm_data"))) float memchor[2048];
-//__attribute__((section(".dtcm_data"))) float det_w[2048];
-
-float memchor[2048];
-float det_w[2048];
+float __CCM_BSS__ memchor[2048];
+float __CCM_BSS__ det_w[2048];
 
 float phase = 0.0f ;
 float phase1;
@@ -157,7 +154,7 @@ void CHORUS_set_par(CHORUS_param_type_t param_type, uint32_t val)
 		else
 		{
 			ch_wet = 1.0f;
-			ch_dry = (127.0f - val) * (1.0f/64.0);
+			ch_dry = 1.0f;
 		}
 		break;
 	}

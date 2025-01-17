@@ -17,7 +17,7 @@
 #include "PROCESSING/amp_imp.h"
 #include "PROCESSING/compressor.h"
 #include "PROCESSING/filters.h"
-#include "PROCESSING/Reverb/reverb.h"
+#include "PROCESSING/reverb.h"
 #include "PROCESSING/sound_processing.h"
 
 extern char __CCM_BSS__ buff[];

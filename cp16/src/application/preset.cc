@@ -9,9 +9,9 @@
 
 #include "PROCESSING/filters.h"
 
-char current_preset_name[PRESET_NAME_LENGTH];
-preset_data_legacy_t default_legacy_preset;
-preset_data_t current_preset;
+char __CCM_BSS__ current_preset_name[PRESET_NAME_LENGTH];
+preset_data_legacy_t __CCM_BSS__ default_legacy_preset;
+preset_data_t __CCM_BSS__ current_preset;
 ir_path_data_t current_ir_link;
 
 void PRESET_init()
@@ -53,6 +53,9 @@ void preset_from_legacy(preset_data_t *dst_preset, const preset_data_legacy_t *s
 		dst_preset->modules_order[4] = EQ;
 		dst_preset->modules_order[5] = NG;
 	}
+
+	dst_preset->reverb_config[0] = BYPASS;
+	dst_preset->reverb_config[1] = ER_MONO;
 
 	dst_preset->volume = src_preset->preset_volume;
 
@@ -112,6 +115,12 @@ void preset_from_legacy(preset_data_t *dst_preset, const preset_data_legacy_t *s
 	dst_preset->phaser.rate = 50;
 	dst_preset->phaser.center = 0;
 	dst_preset->phaser.width = 55;
+
+	dst_preset->delay.mix = 63;
+	dst_preset->delay.time = 200;
+	dst_preset->delay.feedback = 63;
+	dst_preset->delay.hpf = 0;
+	dst_preset->delay.lpf = 127;
 
 	dst_preset->reverb.on = src_preset->early_on;
 	dst_preset->reverb.type = src_preset->early_type;

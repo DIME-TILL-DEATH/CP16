@@ -15,6 +15,7 @@
 #define presence_stage 1
 
 typedef void (*processing_func_ptr)(float* in, float* out);
+typedef void (*stereo_processing_func_ptr)(float* inl, float* inr, float* outl, float* outr);
 
 #define MAX_PROCESSING_STAGES 10
 typedef enum
@@ -33,8 +34,15 @@ typedef enum
 	CH,
 	PH,
 	//---------
-	NUM_MONO_MODULE_TYPES
-}DSP_mono_module_type_t;
+	NUM_MONO_MODULE_TYPES,
+	//=====================
+	// Stereo moduls
+	ER_MONO = 64,
+	ER_STEREO,
+	DELAY,
+	//====================
+	MASTER=128
+}DSP_module_type_t;
 
 typedef struct
 {
@@ -53,7 +61,8 @@ extern uint8_t tuner_use;
 extern uint16_t irClips, outClips;
 
 void DSP_init();
-bool DSP_set_module_to_processing_stage(DSP_mono_module_type_t module_type, uint8_t stage_num);
+bool DSP_set_module_to_processing_stage(DSP_module_type_t module_type, uint8_t stage_num);
+void DSP_config_reverb_section(DSP_module_type_t delay_processing, DSP_module_type_t reverb_processing);
 
 extern float coeff_eq[eq_stage * 5];
 

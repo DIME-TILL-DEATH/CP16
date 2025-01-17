@@ -23,7 +23,8 @@
 #include "PROCESSING/tremolo.h"
 #include "PROCESSING/chorus.h"
 #include "PROCESSING/phaser.h"
-#include "PROCESSING/Reverb/reverb.h"
+#include "PROCESSING/reverb.h"
+#include "PROCESSING/delay.h"
 #include "PROCESSING/sound_processing.h"
 
 emb_string uploadingIrPath;
@@ -105,13 +106,15 @@ static void mconfig_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr
 		std::emb_string command = args[1];
 
 		msg_console(" %s", args[1]);
-		if (command == "set") {
+		if (command == "set")
+		{
 			char rcvBuffer[512];
 			char wrBuffer[256];
 			kgp_sdk_libc::memset(wrBuffer, 0, 256);
 			int32_t rcvBytesCount = getDataPartFromStream(rl, rcvBuffer, 512);
 
-			for (int i = 0; i < rcvBytesCount / 2; i++) {
+			for (int i = 0; i < rcvBytesCount / 2; i++)
+			{
 				char w;
 				int c = rcvBuffer[2 * i];
 
@@ -122,6 +125,7 @@ static void mconfig_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr
 				if (c > 57)
 					c -= 39;
 				w |= c - '0';
+
 				wrBuffer[i] = w;
 				kgp_sdk_libc::memcpy(&current_preset.modules_order, wrBuffer, MAX_PROCESSING_STAGES);
 			}
@@ -133,7 +137,55 @@ static void mconfig_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr
 	char buffer[MAX_PROCESSING_STAGES];
 	kgp_sdk_libc::memcpy(buffer, &current_preset.modules_order, MAX_PROCESSING_STAGES);
 
-	for (size_t i = 0; i < MAX_PROCESSING_STAGES; i++) {
+	for (size_t i = 0; i < MAX_PROCESSING_STAGES; i++)
+	{
+		i2hex(buffer[i], hex);
+		msg_console("%s", hex);
+	}
+	msg_console("\n");
+}
+
+static void rvconfig_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
+	msg_console("%s", args[0]);
+	if (count > 1)
+	{
+		std::emb_string command = args[1];
+
+		msg_console(" %s", args[1]);
+		if (command == "set")
+		{
+			char rcvBuffer[16];
+			char wrBuffer[16];
+			kgp_sdk_libc::memset(wrBuffer, 0, 16);
+			int32_t rcvBytesCount = getDataPartFromStream(rl, rcvBuffer, 16);
+
+			for (int i = 0; i < rcvBytesCount / 2; i++)
+			{
+				char w;
+				int c = rcvBuffer[2 * i];
+
+				if (c > 57)
+					c -= 39;
+				w = (c - '0') << 4;
+				c = rcvBuffer[2 * i + 1];
+				if (c > 57)
+					c -= 39;
+				w |= c - '0';
+
+				wrBuffer[i] = w;
+				kgp_sdk_libc::memcpy(&current_preset.reverb_config, wrBuffer, 2);
+			}
+		}
+		set_parameters();
+	}
+	msg_console("\r");
+	char hex[3] = { 0, 0, 0 };
+	char buffer[8];
+	kgp_sdk_libc::memcpy(buffer, &current_preset.reverb_config, 2);
+
+	for (size_t i = 0; i < 2; i++)
+	{
 		i2hex(buffer[i], hex);
 		msg_console("%s", hex);
 	}
@@ -257,8 +309,7 @@ static void ir_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *a
 		ir_path_data_t irPathData;
 		int32_t irSize;
 		EEPROM_getCurrentIrInfo(irPathData, irSize);
-		msg_console("info\r%s\r%s\r%d\n", irPathData.irLinkPath.c_str(),
-				irPathData.irFileName.c_str(), irSize);
+		msg_console("info\r%s\r%s\r%d\n", irPathData.irLinkPath.c_str(), irPathData.irFileName.c_str(), irSize);
 	}
 
 	if (command == "link")
@@ -335,6 +386,57 @@ static void ir_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *a
 		{
 			msg_console("error\rPART_SIZE_INCORRECT\n");
 		}
+	}
+
+	if(command == "download")
+	{
+		char buffer[128];
+		emb_string filePath;
+		getDataPartFromStream(rl, buffer, 128);
+		filePath = buffer;
+
+		FATFS fs;
+		FRESULT res;
+		FIL file;
+		res = f_mount(&fs, "0:", 1);
+
+		if(res == FR_OK)
+		{
+			res = f_open(&file, filePath.c_str(), FA_READ);
+			if (res == FR_OK)
+			{
+				msg_console("download\r%s\r", filePath.c_str());
+				char hex[3] = { 0, 0, 0 };
+				UINT br = 0;
+				char byte;
+
+				while (1)
+				{
+					res = f_read(&file, &byte, 1, &br);
+
+					if (res != FR_OK)
+					{
+						msg_console("\nERROR\n");
+						break;
+					}
+					if (br != 1)
+					{
+						msg_console("\n");
+						break;
+					}
+
+					i2hex(byte, hex);
+					msg_console("%s", hex);
+					TTask::Delay(1);
+				}
+				f_close(&file);
+			}
+		}
+		else
+		{
+			msg_console("error\rOPEN_FILE_ERROR\n");
+		}
+		f_mount(0, "0:", 0);
 	}
 
 	if (command == "delete")
@@ -512,7 +614,8 @@ static void presence_volume_command_handler(TReadLine *rl, TReadLine::const_symb
 static void eq0_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
 {
 	msg_console("%s ", args[0]);
-	if (count < 4) {
+	if (count < 4)
+	{
 		msg_console("ARGUMENTS_INCORRECT\r\n");
 		return;
 	}
@@ -521,9 +624,9 @@ static void eq0_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *
 	emb_string parameter = args[2];
 	long value = kgp_sdk_libc::strtol(args[3], &pEnd, 16);
 
-	if (target.at(0) == 'b') {
-		long bandNum = kgp_sdk_libc::strtol(target.substr(1).c_str(), &pEnd,
-				16);
+	if (target.at(0) == 'b')
+	{
+		long bandNum = kgp_sdk_libc::strtol(target.substr(1).c_str(), &pEnd, 16);
 
 		if (parameter.at(0) == 'f')
 			current_preset.eq1.freq[bandNum] = value;
@@ -661,15 +764,58 @@ static void early_on_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_pt
 	default_param_handler(&current_preset.reverb.on, rl, args, count);
 }
 
-static void early_volume_comm_handler(TReadLine *rl,
-		TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
+static void early_volume_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
 	default_param_handler(&current_preset.reverb.volume, rl, args, count);
 	processing_params.ear_vol = current_preset.reverb.volume * (1.0f / 31.0f);
 }
 
-static void early_type_comm_handler(TReadLine *rl,
-		TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
+static void early_type_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
 	default_param_handler(&current_preset.reverb.type, rl, args, count);
+}
+
+static void delay_on_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
+	default_param_handler(&current_preset.delay.on, rl, args, count);
+}
+
+static void delay_mix_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
+	default_param_handler(&current_preset.delay.mix, rl, args, count);
+	DELAY_set_par(DELAY_MIX, current_preset.delay.mix);
+}
+
+static void delay_time_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
+	if (count > 0)
+	{
+		if (count == 2)
+		{
+			char *end;
+			current_preset.delay.time = kgp_sdk_libc::strtol(args[1], &end, 16);
+			DELAY_set_par(DELAY_TIME, current_preset.delay.time);
+		}
+		msg_console("%s %s\n", args[0], args[1]);
+	}
+}
+
+static void delay_feedback_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
+	default_param_handler(&current_preset.delay.feedback, rl, args, count);
+	DELAY_set_par(DELAY_FEEDBACK, current_preset.delay.feedback);
+}
+
+static void delay_hpf_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
+	default_param_handler(&current_preset.delay.hpf, rl, args, count);
+	DELAY_set_par(DELAY_HPF, current_preset.delay.hpf);
+}
+
+static void delay_lpf_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
+	default_param_handler(&current_preset.delay.lpf, rl, args, count);
+	DELAY_set_par(DELAY_LPF, current_preset.delay.lpf);
 }
 //-------------------------------------------SERVICE COMMAND HANDLERS--------------------------------------------------------------------
 static void fs_format_command_handler(TReadLine *rl,
@@ -784,6 +930,7 @@ void consoleSetCmdHandlers(TReadLine *rl)
 	rl->AddCommandHandler("gb", get_bp_comm_handler);
 
 	rl->AddCommandHandler("mconfig", mconfig_comm_handler);
+	rl->AddCommandHandler("rvconfig", rvconfig_comm_handler);
 
 	rl->AddCommandHandler("pname", pname_comm_handler);
 
@@ -852,6 +999,13 @@ void consoleSetCmdHandlers(TReadLine *rl)
 	rl->AddCommandHandler("eo", early_on_comm_handler);
 	rl->AddCommandHandler("ev", early_volume_comm_handler);
 	rl->AddCommandHandler("et", early_type_comm_handler);
+
+	rl->AddCommandHandler("dl_on", delay_on_comm_handler);
+	rl->AddCommandHandler("dl_mx", delay_mix_comm_handler);
+	rl->AddCommandHandler("dl_fb", delay_feedback_comm_handler);
+	rl->AddCommandHandler("dl_tm", delay_time_comm_handler);
+	rl->AddCommandHandler("dl_hp", delay_hpf_comm_handler);
+	rl->AddCommandHandler("dl_lp", delay_lpf_comm_handler);
 
 	// *********************service comms*******************
 	rl->AddCommandHandler("sm0", preset_map0_command_handler);

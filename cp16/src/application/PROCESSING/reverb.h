@@ -1,16 +1,15 @@
 #ifndef __REVERB_H__
 #define __REVERB_H__
 
-#include "../../PROCESSING/Reverb/early.h"
 #include "appdefs.h"
 
 #include "eeprom.h"
 
 #define rev_size 8192
 
-void early1(void);
-void early2(void);
-void early3(void);
+void early1(bool mono);
+void early2(bool mono);
+void early3(bool mono);
 void hall1(void);
 void hall2(void);
 void hall3(void);

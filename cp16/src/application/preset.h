@@ -182,8 +182,20 @@ typedef struct
 
 typedef struct
 {
+	uint8_t on;
+	uint8_t mix;
+	uint16_t time;
+	uint8_t feedback;
+	uint8_t lpf;
+	uint8_t hpf;
+	uint8_t reserved[2];
+}delay_t;
+
+typedef struct
+{
     uint8_t modules_order[MAX_PROCESSING_STAGES];
-    uint8_t head_reserved[14-MAX_PROCESSING_STAGES];
+    uint8_t reverb_config[2];
+    uint8_t head_reserved[14-2-MAX_PROCESSING_STAGES];
     uint8_t volume;
     uint8_t cab_sim_on;
 
@@ -202,6 +214,7 @@ typedef struct
     uint8_t reserved[12];
 
     reverb_data_t reverb;
+    delay_t delay;
 }preset_data_t;
 
 #define PRESET_NAME_LENGTH 32

@@ -1,9 +1,9 @@
-#include "phaStagesser.h"
+#include "phaser.h"
 
 #include <vdt/vdt.h>
 #include "fx_sin.h"
 
-float phaser_mem[16];
+float __CCM_BSS__ phaser_mem[16];
 
 uint8_t ph_on;
 float ph_phase1 = 0.0f ;

@@ -12,7 +12,7 @@
 #include "PROCESSING/filters.h"
 // #include "gu.h"
 
- static const  char* note_name_table[] =
+static const  char* note_name_table[] =
 {
 	"C-1",
 	"C#-1",

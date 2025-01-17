@@ -11,15 +11,17 @@
 
 #include "preset.h"
 
+#include "PROCESSING/sound_processing.h"
+
 #include "PROCESSING/amp_imp.h"
 #include "PROCESSING/compressor.h"
 #include "PROCESSING/fades.h"
 #include "PROCESSING/filters.h"
 #include "PROCESSING/tremolo.h"
 #include "PROCESSING/chorus.h"
-#include "PROCESSING/sound_processing.h"
+#include "PROCESSING/delay.h"
 
-char loadedCab[256]; // debug data
+char __CCM_BSS__ loadedCab[256]; // debug data
 
 inline void key_check(void);
 
@@ -220,10 +222,18 @@ void set_parameters(void) {
 	CHORUS_set_par(CHORUS_WIDTH, current_preset.chorus.width);
 	CHORUS_set_par(CHORUS_HPF, current_preset.chorus.hpf);
 
+	DELAY_set_par(DELAY_MIX, current_preset.delay.mix);
+	DELAY_set_par(DELAY_TIME, current_preset.delay.time);
+	DELAY_set_par(DELAY_FEEDBACK, current_preset.delay.feedback);
+	DELAY_set_par(DELAY_HPF, current_preset.delay.hpf);
+	DELAY_set_par(DELAY_LPF, current_preset.delay.lpf);
+
 	processing_params.ear_vol = current_preset.reverb.volume * (1.0 / 31.0);
 
 	for(int i=0; i<MAX_PROCESSING_STAGES; i++)
 	{
-		DSP_set_module_to_processing_stage((DSP_mono_module_type_t)current_preset.modules_order[i], i);
+		DSP_set_module_to_processing_stage((DSP_module_type_t)current_preset.modules_order[i], i);
 	}
+
+	DSP_config_reverb_section((DSP_module_type_t)current_preset.reverb_config[0], (DSP_module_type_t)current_preset.reverb_config[1]);
 }

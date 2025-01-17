@@ -7,7 +7,8 @@
 #include "preset.h"
 #include <list.h>
 
-float cab_data[1024];
+// TODO use rev buffer
+float __CCM_BSS__ cab_data[1024];
 
 system_parameters_t system_parameters;
 
@@ -139,7 +140,8 @@ void EEPROM_saveSys(void) {
 	f_mount(0, "0:", 0);
 }
 
-static inline bool dir_get_wav(const emb_string &dir_name, std::emb_string &wav_file_name) {
+static inline bool dir_get_wav(const emb_string &dir_name, std::emb_string &wav_file_name)
+{
 	FILINFO fno;
 	DIR dir;
 	char *fn; /* This function assumes non-Unicode configuration */
@@ -193,7 +195,8 @@ static inline bool dir_get_wav(const emb_string &dir_name, std::emb_string &wav_
 	return result;
 }
 
-bool console_out_currnt_cab(std::emb_string &err_msg, TReadLine *rl) {
+bool console_out_currnt_cab(std::emb_string &err_msg, TReadLine *rl)
+{
 	bool result = false;
 
 	FATFS fs;
@@ -206,14 +209,15 @@ bool console_out_currnt_cab(std::emb_string &err_msg, TReadLine *rl) {
 	emb_string file_name;
 	dir_name = "/Bank_";
 	dir_name += (size_t) bank_pres[0];
-	;
+
 	dir_name += "/Preset_";
 	dir_name += (size_t) bank_pres[1];
 
 	emb_string ret_msg = "\nFILE_NOT_FIND\n";
 	result = dir_get_wav(dir_name, file_name);
 
-	if (res == FR_OK) {
+	if (res == FR_OK)
+	{
 		emb_string file_path = dir_name + "/" + file_name;
 
 		res = f_open(&file, file_path.c_str(), FA_READ);
@@ -222,10 +226,11 @@ bool console_out_currnt_cab(std::emb_string &err_msg, TReadLine *rl) {
 			UINT br = 0;
 			char byte;
 
-			msg_console( "%s %d\n", file_name.c_str(), f_size(&file) );
+			msg_console("%s %d\n", file_name.c_str(), f_size(&file));
 			TTask::Delay(1);
 
-			while (1) {
+			while (1)
+			{
 				res = f_read(&file, &byte, 1, &br);
 
 				if (res != FR_OK) {

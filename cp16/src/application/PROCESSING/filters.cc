@@ -2,26 +2,26 @@
 
 #include "appdefs.h"
 
-float pres_buf[5];
-float Coeffs_b[5];
+float __CCM_BSS__ pres_buf[5];
+float __CCM_BSS__ Coeffs_b[5];
 
-float filt_cos[5];
-float filt_sin[5];
-float filt_alpha[5];
+float __CCM_BSS__ filt_cos[5];
+float __CCM_BSS__ filt_sin[5];
+float __CCM_BSS__ filt_alpha[5];
 
-float fil_lp_in[2];
-float fil_hp_in[2];
-float fil_lp_out[2];
-float fil_hp_out[2];
+float __CCM_BSS__ fil_lp_in[2];
+float __CCM_BSS__ fil_hp_in[2];
+float __CCM_BSS__ fil_lp_out[2];
+float __CCM_BSS__ fil_hp_out[2];
 
-float a0;
-float a1;
-float a01;
-float a11;
-float b1;
-float b11;
+float __CCM_BSS__ a0;
+float __CCM_BSS__ a1;
+float __CCM_BSS__ a01;
+float __CCM_BSS__ a11;
+float __CCM_BSS__ b1;
+float __CCM_BSS__ b11;
 
-float legacyCenterFreq[5] = {120.0, 360.0, 800.0, 2000.0, 6000.0};
+float __CCM_BSS__ legacyCenterFreq[5] = {120.0, 360.0, 800.0, 2000.0, 6000.0};
 //float freq1[5];
 //volatile float filt_q;
 
