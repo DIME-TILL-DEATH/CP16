@@ -10,7 +10,6 @@
 
 #include "appdefs.h"
 
-#define eq_stage 5
 #define preamp_stage 6
 #define presence_stage 1
 
@@ -26,13 +25,14 @@ typedef enum
 	PA,
 	IR,
 	HP,
-	EQ,
+	EQ0,
 	LP,
 	NG,
 	PS,
 	TR,
 	CH,
 	PH,
+	EQ1,
 	//---------
 	NUM_MONO_MODULE_TYPES,
 	//=====================
@@ -63,8 +63,6 @@ extern uint16_t irClips, outClips;
 void DSP_init();
 bool DSP_set_module_to_processing_stage(DSP_module_type_t module_type, uint8_t stage_num);
 void DSP_config_reverb_section(DSP_module_type_t delay_processing, DSP_module_type_t reverb_processing);
-
-extern float coeff_eq[eq_stage * 5];
 
 constexpr float vol_ind_k[] = { 3e-3f,  2.7e-5f,   1.75e-4f,};
 extern volatile  float vol_ind_vector[3];

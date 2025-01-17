@@ -13,11 +13,11 @@
 arm_fir_instance_f32 pa_instance;
 
 float __CCM_BSS__ coeff_pa[TAPS_PA_FIR];
-float __CCM_BSS__ pa_state[TAPS_PA_FIR + block_size -1];
+float __CCM_BSS__ pa_state[TAPS_PA_FIR + BLOCK_SIZE -1];
 
 void pa_init()
 {
-	arm_fir_init_f32(&pa_instance, TAPS_PA_FIR, coeff_pa, pa_state, block_size);
+	arm_fir_init_f32(&pa_instance, TAPS_PA_FIR, coeff_pa, pa_state, BLOCK_SIZE);
 }
 
 void pa_update_coefficients(uint8_t amp_type)

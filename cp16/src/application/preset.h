@@ -204,8 +204,8 @@ typedef struct
     preamp_data_t		preamp;
     pa_data_t			power_amp;
 
+    eq_t eq0;
     eq_t eq1;
-    eq_t eq2;
 
     tremolo_t tremolo;
     chorus_t chorus;

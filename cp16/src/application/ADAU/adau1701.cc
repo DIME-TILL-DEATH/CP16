@@ -8,8 +8,8 @@
 #include "gpio.h"
 
 
-ad_data_t adc_data[block_size * 2];
-da_data_t dac_data[block_size * 2];
+ad_data_t adc_data[BLOCK_SIZE * 2];
+da_data_t dac_data[BLOCK_SIZE * 2];
 
 #define SPI3_DMA_BUFFER_SIZE 16
 uint8_t spi_com_buffer[SPI3_DMA_BUFFER_SIZE];
@@ -173,7 +173,7 @@ void adau_init_ic (void)
 	DMA_InitStructure.DMA_PeripheralBaseAddr = (u32)&adau_i2s_spi_ext->DR;
 	DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralToMemory;
 	DMA_InitStructure.DMA_Memory0BaseAddr = (u32)adc_data;
-	DMA_InitStructure.DMA_BufferSize = 4 * block_size * 2;
+	DMA_InitStructure.DMA_BufferSize = 4 * BLOCK_SIZE * 2;
 	DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
 	DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
 	DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord;
@@ -190,7 +190,7 @@ void adau_init_ic (void)
 	DMA_InitStructure.DMA_Channel = DMA_Channel_0;
 	DMA_InitStructure.DMA_PeripheralBaseAddr = (u32)&adau_i2s_spi->DR;
 	DMA_InitStructure.DMA_Memory0BaseAddr = (u32)dac_data;
-	DMA_InitStructure.DMA_BufferSize = 4 * block_size * 2;
+	DMA_InitStructure.DMA_BufferSize = 4 * BLOCK_SIZE * 2;
 	DMA_InitStructure.DMA_DIR = DMA_DIR_MemoryToPeripheral;
 	DMA_Init(DMA1_Stream4, &DMA_InitStructure);
 	DMA_Cmd(DMA1_Stream4, ENABLE);

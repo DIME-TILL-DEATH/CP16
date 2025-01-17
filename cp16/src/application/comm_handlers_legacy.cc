@@ -16,9 +16,12 @@
 
 #include "PROCESSING/amp_imp.h"
 #include "PROCESSING/compressor.h"
+#include "PROCESSING/eq.h"
 #include "PROCESSING/filters.h"
 #include "PROCESSING/reverb.h"
 #include "PROCESSING/sound_processing.h"
+
+extern ParametricEq parametricEq0;
 
 extern char __CCM_BSS__ buff[];
 char hex[3] = { 0, 0, 0 };
@@ -230,20 +233,20 @@ static void get_state_comm_handler(TReadLine *rl,
 
 static void lpf_on_comm_handler(TReadLine *rl,
 		TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
-	default_param_handler(&current_preset.eq1.lp_on, rl, args, count);
+	default_param_handler(&current_preset.eq0.lp_on, rl, args, count);
 }
 
-static void lpf_volume_comm_handler(TReadLine *rl,
-		TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
+static void lpf_volume_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
 	char hex[3] = { 0, 0, 0 };
 	uint8_t val;
 	if (count > 0) {
 		if (count == 2) {
 			char *end;
 			val = kgp_sdk_libc::strtol(args[1], &end, 16);
-			current_preset.eq1.lp_freq = powf(195 - val, 2.0f)
+			current_preset.eq0.lp_freq = powf(195 - val, 2.0f)
 					* (19000.0f / powf(195.0f, 2.0f)) + 1000.0f;
-			SetLPF(current_preset.eq1.lp_freq);
+			parametricEq0.setLPF(current_preset.eq0.lp_freq);
 		}
 
 		i2hex(val, hex);
@@ -251,21 +254,21 @@ static void lpf_volume_comm_handler(TReadLine *rl,
 	}
 }
 
-static void hpf_on_comm_handler(TReadLine *rl,
-		TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
-	default_param_handler(&current_preset.eq1.hp_on, rl, args, count);
+static void hpf_on_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
+	default_param_handler(&current_preset.eq0.hp_on, rl, args, count);
 }
 
-static void hpf_volume_comm_handler(TReadLine *rl,
-		TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
+static void hpf_volume_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
 	char hex[3] = { 0, 0, 0 };
 	uint8_t val;
 	if (count > 0) {
 		if (count == 2) {
 			char *end;
 			val = kgp_sdk_libc::strtol(args[1], &end, 16);
-			current_preset.eq1.hp_freq = val * (980.0f / 255.0f) + 20.0f;
-			SetHPF(current_preset.eq1.hp_freq);
+			current_preset.eq0.hp_freq = val * (980.0f / 255.0f) + 20.0f;
+			parametricEq0.setHPF(current_preset.eq0.hp_freq);
 		}
 
 		i2hex(val, hex);
@@ -279,70 +282,64 @@ static void eq_on_comm_handler(TReadLine *rl,
 		if (count == 2) {
 			char *end;
 			uint8_t val = kgp_sdk_libc::strtol(args[1], &end, 16);
-			current_preset.eq1.parametric_on = val;
+			current_preset.eq0.parametric_on = val;
 		}
 
-		i2hex(current_preset.eq1.parametric_on, hex);
+		i2hex(current_preset.eq0.parametric_on, hex);
 		msg_console("%s %s\n", args[0], hex);
 	}
 }
 
-static void eq_volume_comm_handler(TReadLine *rl,
-		TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
+static void eq_volume_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
 	uint8_t band_num = args[1][0] - 48;
 	if (count > 1) {
 		if (count == 3) {
 			char *end;
 			uint32_t val = kgp_sdk_libc::strtol(args[2], &end, 16);
-			current_preset.eq1.gain[band_num] = val;
+			current_preset.eq0.gain[band_num] = val;
 
-			filterInit(band_num, current_preset.eq1.freq[band_num],
-					current_preset.eq1.Q[band_num]);
-			filterCalcCoefs(band_num, current_preset.eq1.gain[band_num],
-					(band_type_t) current_preset.eq1.band_type[band_num]);
+			parametricEq0.filterInit(band_num, current_preset.eq0.freq[band_num], current_preset.eq0.Q[band_num]);
+			parametricEq0. filterCalcCoefs(band_num, current_preset.eq0.gain[band_num], (ParametricEq::band_type_t) current_preset.eq0.band_type[band_num]);
 		}
-		i2hex(current_preset.eq1.gain[band_num], hex);
+		i2hex(current_preset.eq0.gain[band_num], hex);
 		msg_console("%s %d %s\r\n", args[0], band_num, hex);
 	}
 }
 
-static void eq_freq_comm_handler(TReadLine *rl,
-		TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
+static void eq_freq_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
 	uint8_t band_num = args[1][0] - 48;
 
 	if (count > 1) {
 		if (count == 3) {
 			char *end;
 			int32_t val = kgp_sdk_libc::strtol(args[2], &end, 16);
-			current_preset.eq1.freq[band_num] = convertLegacyFreq(band_num,
+			current_preset.eq0.freq[band_num] = convertLegacyFreq(band_num,
 					val);
 
-			filterInit(band_num, current_preset.eq1.freq[band_num],
-					current_preset.eq1.Q[band_num]);
-			filterCalcCoefs(band_num, current_preset.eq1.gain[band_num],
-					(band_type_t) current_preset.eq1.band_type[band_num]);
+			parametricEq0.filterInit(band_num, current_preset.eq0.freq[band_num], current_preset.eq0.Q[band_num]);
+			parametricEq0. filterCalcCoefs(band_num, current_preset.eq0.gain[band_num], (ParametricEq::band_type_t) current_preset.eq0.band_type[band_num]);
 		}
-		i2hex(current_preset.eq1.freq[band_num], hex);
+		i2hex(current_preset.eq0.freq[band_num], hex);
 		msg_console("%s %d %s\r\n", args[0], band_num, hex);
 	}
 }
 
-static void eq_q_comm_handler(TReadLine *rl,
-		TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
+static void eq_q_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
 	uint8_t band_num = args[1][0] - 48;
 
 	if (count > 1) {
 		if (count == 3) {
 			char *end;
 			int32_t val = kgp_sdk_libc::strtol(args[2], &end, 16);
-			current_preset.eq1.Q[band_num] = val;
+			current_preset.eq0.Q[band_num] = val;
 
-			filterInit(band_num, current_preset.eq1.freq[band_num],
-					current_preset.eq1.Q[band_num]);
-			filterCalcCoefs(band_num, current_preset.eq1.gain[band_num],
-					(band_type_t) current_preset.eq1.band_type[band_num]);
+			parametricEq0.filterInit(band_num, current_preset.eq0.freq[band_num], current_preset.eq0.Q[band_num]);
+						parametricEq0. filterCalcCoefs(band_num, current_preset.eq0.gain[band_num], (ParametricEq::band_type_t) current_preset.eq0.band_type[band_num]);
 		}
-		i2hex(current_preset.eq1.Q[band_num], hex);
+		i2hex(current_preset.eq0.Q[band_num], hex);
 		msg_console("%s %d %s\r\n", args[0], band_num, hex);
 	}
 }
@@ -362,7 +359,7 @@ static void eq_position_comm_handler(TReadLine *rl,
 	if (val) {
 		DSP_set_module_to_processing_stage(BYPASS, 0);
 		DSP_set_module_to_processing_stage(CM, 1);
-		DSP_set_module_to_processing_stage(EQ, 2);
+		DSP_set_module_to_processing_stage(EQ0, 2);
 		DSP_set_module_to_processing_stage(PR, 3);
 		DSP_set_module_to_processing_stage(PA, 4);
 		DSP_set_module_to_processing_stage(IR, 5);
@@ -376,7 +373,7 @@ static void eq_position_comm_handler(TReadLine *rl,
 		DSP_set_module_to_processing_stage(PA, 3);
 		DSP_set_module_to_processing_stage(IR, 4);
 		DSP_set_module_to_processing_stage(HP, 5);
-		DSP_set_module_to_processing_stage(EQ, 6);
+		DSP_set_module_to_processing_stage(EQ0, 6);
 		DSP_set_module_to_processing_stage(LP, 7);
 		DSP_set_module_to_processing_stage(NG, 8);
 	}

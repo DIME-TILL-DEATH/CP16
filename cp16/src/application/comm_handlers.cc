@@ -18,6 +18,7 @@
 
 #include "PROCESSING/amp_imp.h"
 #include "PROCESSING/compressor.h"
+#include "PROCESSING/eq.h"
 #include "PROCESSING/fades.h"
 #include "PROCESSING/filters.h"
 #include "PROCESSING/tremolo.h"
@@ -26,6 +27,9 @@
 #include "PROCESSING/reverb.h"
 #include "PROCESSING/delay.h"
 #include "PROCESSING/sound_processing.h"
+
+extern ParametricEq parametricEq0;
+extern ParametricEq parametricEq1;
 
 emb_string uploadingIrPath;
 
@@ -41,6 +45,8 @@ uint16_t getDataPartFromStream(TReadLine *rl, char *buf, int maxSize)
 		}
 		buf[streamPos++] = c;
 	} while (streamPos < maxSize);
+
+	return streamPos;
 }
 
 static void amtid_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
@@ -611,7 +617,7 @@ static void presence_volume_command_handler(TReadLine *rl, TReadLine::const_symb
 	set_shelf(current_preset.power_amp.presence_vol); // in RV was *(25.0f/31.0f));
 }
 
-static void eq0_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+void eqX_settling(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count, ParametricEq* eqObject)
 {
 	msg_console("%s ", args[0]);
 	if (count < 4)
@@ -629,41 +635,49 @@ static void eq0_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *
 		long bandNum = kgp_sdk_libc::strtol(target.substr(1).c_str(), &pEnd, 16);
 
 		if (parameter.at(0) == 'f')
-			current_preset.eq1.freq[bandNum] = value;
+			eqObject->eq_data->freq[bandNum] = value;
 		if (parameter.at(0) == 'g')
-			current_preset.eq1.gain[bandNum] = value;
+			eqObject->eq_data->gain[bandNum] = value;
 		if (parameter.at(0) == 'q')
-			current_preset.eq1.Q[bandNum] = value;
+			eqObject->eq_data->Q[bandNum] = value;
 		if (parameter.at(0) == 't')
-			current_preset.eq1.band_type[bandNum] = value;
+			eqObject->eq_data->band_type[bandNum] = value;
 
-		filterInit(bandNum, current_preset.eq1.freq[bandNum],
-				current_preset.eq1.Q[bandNum]);
-		filterCalcCoefs(bandNum, current_preset.eq1.gain[bandNum],
-				(band_type_t) current_preset.eq1.band_type[bandNum]);
+		eqObject->filterInit(bandNum, eqObject->eq_data->freq[bandNum], eqObject->eq_data->Q[bandNum]);
+		eqObject->filterCalcCoefs(bandNum, eqObject->eq_data->gain[bandNum], (ParametricEq::band_type_t)eqObject->eq_data->band_type[bandNum]);
 
 	} else {
 		if (target == "par") {
-			current_preset.eq1.parametric_on = value;
+			eqObject->eq_data->parametric_on = value;
 		}
 		if (target == "hp") {
 			if (parameter.at(0) == 'f') {
-				current_preset.eq1.hp_freq = value;
-				SetHPF(current_preset.eq1.hp_freq);
+				eqObject->eq_data->hp_freq = value;
+				eqObject->setHPF(eqObject->eq_data->hp_freq);
 			}
 			if (parameter.at(0) == 'o')
-				current_preset.eq1.hp_on = value;
+				eqObject->eq_data->hp_on = value;
 		}
 		if (target == "lp") {
 			if (parameter.at(0) == 'f') {
-				current_preset.eq1.lp_freq = value;
-				SetLPF(current_preset.eq1.lp_freq);
+				eqObject->eq_data->lp_freq = value;
+				eqObject->setLPF(eqObject->eq_data->lp_freq);
 			}
 			if (parameter.at(0) == 'o')
-				current_preset.eq1.lp_on = value;
+				eqObject->eq_data->lp_on = value;
 		}
 	}
 	msg_console("%s %s %s\r\n", target.c_str(), parameter.c_str(), args[3]);
+}
+
+static void eq0_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
+	eqX_settling(rl, args, count, &parametricEq0);
+}
+
+static void eq1_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
+	eqX_settling(rl, args, count, &parametricEq1);
 }
 
 static void tremolo_on_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
@@ -976,6 +990,7 @@ void consoleSetCmdHandlers(TReadLine *rl)
 	rl->AddCommandHandler("pv", presence_volume_command_handler);
 
 	rl->AddCommandHandler("eq0", eq0_comm_handler);
+	rl->AddCommandHandler("eq1", eq1_comm_handler);
 
 	rl->AddCommandHandler("tr_on", tremolo_on_comm_handler);
 	rl->AddCommandHandler("tr_dp", tremolo_depth_comm_handler);

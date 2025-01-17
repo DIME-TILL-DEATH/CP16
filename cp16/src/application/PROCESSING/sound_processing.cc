@@ -16,12 +16,16 @@
 #include "phaser.h"
 #include "reverb.h"
 #include "delay.h"
+#include "eq.h"
 
 #include "preset.h"
 
 #include "ADAU/adau1701.h"
 
 #include "spectrum.h"
+
+ParametricEq parametricEq0(&current_preset.eq0);
+ParametricEq parametricEq1(&current_preset.eq1);
 
 processing_func_ptr processing_library[NUM_MONO_MODULE_TYPES];
 processing_func_ptr processing_stage[MAX_PROCESSING_STAGES];
@@ -36,9 +40,8 @@ void __RAMFUNC__ compressor_processing_stage(float *in_samples, float *out_sampl
 void __RAMFUNC__ preamp_processing_stage(float *in_samples, float *out_samples);
 void __RAMFUNC__ pa_processing_stage(float *in_samples, float *out_samples);
 void __RAMFUNC__ ir_processing_stage(float *in_samples, float *out_samples);
-void __RAMFUNC__ hpf_processing_stage(float *in_samples, float *out_samples);
-void __RAMFUNC__ eq_processing_stage(float *in_samples, float *out_samples);
-void __RAMFUNC__ lpf_processing_stage(float *in_samples, float *out_samples);
+void __RAMFUNC__ eq0_processing_stage(float *in_samples, float *out_samples);
+void __RAMFUNC__ eq1_processing_stage(float *in_samples, float *out_samples);
 void __RAMFUNC__ gate_processing_stage(float *in_samples, float *out_samples);
 
 void __RAMFUNC__ tremolo_processing_stage(float *in_samples, float *out_samples);
@@ -64,16 +67,12 @@ volatile float vol_ind_vector[3];
 float __CCM_BSS__ coeff_preamp[preamp_stage * 5];
 float __CCM_BSS__ stage_preamp[preamp_stage * 4];
 
-float __CCM_BSS__ coeff_eq[eq_stage * 5];
-float __CCM_BSS__ stage_eq[eq_stage * 4];
-
 float __CCM_BSS__ coeff_presen[presence_stage * 5];
 float __CCM_BSS__ stage_presen[presence_stage * 4];
 
-float __CCM_BSS__ gate_buf[block_size];
+float __CCM_BSS__ gate_buf[BLOCK_SIZE];
 
 arm_biquad_casd_df1_inst_f32 __CCM_BSS__ preamp_instance;
-arm_biquad_casd_df1_inst_f32 __CCM_BSS__ eq_instance;
 arm_biquad_casd_df1_inst_f32 __CCM_BSS__ presence_instance;
 
 uint16_t __CCM_BSS__ pwm = 0;
@@ -92,7 +91,6 @@ void DSP_init()
 
 	pa_init();
 
-	arm_biquad_cascade_df1_init_f32(&eq_instance, eq_stage, coeff_eq, stage_eq);
 	arm_biquad_cascade_df1_init_f32(&presence_instance, presence_stage,
 			coeff_presen, stage_presen);
 	arm_biquad_cascade_df1_init_f32(&preamp_instance, preamp_stage,
@@ -111,9 +109,10 @@ void DSP_init()
 	processing_library[PR] = preamp_processing_stage;
 	processing_library[PA] = pa_processing_stage;
 	processing_library[IR] = ir_processing_stage;
-	processing_library[HP] = hpf_processing_stage;
-	processing_library[EQ] = eq_processing_stage;
-	processing_library[LP] = lpf_processing_stage;
+	processing_library[HP] = bypass_processing_stage; //depricated
+	processing_library[EQ0] = eq0_processing_stage;
+	processing_library[EQ1] = eq1_processing_stage;
+	processing_library[LP] = bypass_processing_stage; //depricated
 	processing_library[NG] = gate_processing_stage;
 	processing_library[TR] = tremolo_processing_stage;
 	processing_library[CH] = chorus_processing_stage;
@@ -156,8 +155,8 @@ void DSP_config_reverb_section(DSP_module_type_t delay_processing, DSP_module_ty
 
 //================================Main processing routine=================================
 uint8_t __CCM_BSS__ frame_part = 0;
-uint8_t __CCM_BSS__ aux_samples[block_size * 2][5];
-uint8_t __CCM_BSS__ buf_aux_samples[block_size * 2][5];
+uint8_t __CCM_BSS__ aux_samples[BLOCK_SIZE * 2][5];
+uint8_t __CCM_BSS__ buf_aux_samples[BLOCK_SIZE * 2][5];
 uint8_t __CCM_BSS__ aux_smpl_rd_ptr = 0;
 uint8_t __CCM_BSS__ aux_smpl_wr_ptr = 0;
 
@@ -172,7 +171,7 @@ extern "C" void SPI2_IRQHandler()
 //		send_ist = true;
 		aux_smpl_rd_ptr++;
 //		aux_smpl_rd_ptr += 2;  // Decimation! result max frequency 12kHz
-		if (aux_smpl_rd_ptr == block_size * 2)
+		if (aux_smpl_rd_ptr == BLOCK_SIZE * 2)
 			aux_smpl_rd_ptr = 0;
 	}
 
@@ -183,17 +182,17 @@ extern "C" void SPI2_IRQHandler()
 }
 
 // Как оно размещается в CCM если она не работает с DMA?
-float __CCM_BSS__ di_samples[block_size];
-float __CCM_BSS__ ir_samples[block_size];
+float __CCM_BSS__ di_samples[BLOCK_SIZE];
+float __CCM_BSS__ ir_samples[BLOCK_SIZE];
 
-float __CCM_BSS__ processing_samples[block_size];
+float __CCM_BSS__ processing_samples[BLOCK_SIZE];
 
-float __CCM_BSS__ mon_sample[block_size]; // pre IR
-float __CCM_BSS__ out_sampleL[block_size];
-float __CCM_BSS__ out_sampleR[block_size];
+float __CCM_BSS__ mon_sample[BLOCK_SIZE]; // pre IR
+float __CCM_BSS__ out_sampleL[BLOCK_SIZE];
+float __CCM_BSS__ out_sampleR[BLOCK_SIZE];
 
-int32_t __CCM_BSS__ ccl[block_size];
-int32_t __CCM_BSS__ ccr[block_size];
+int32_t __CCM_BSS__ ccl[BLOCK_SIZE];
+int32_t __CCM_BSS__ ccr[BLOCK_SIZE];
 
 uint16_t __CCM_BSS__ irClipCounter = 0;
 uint16_t __CCM_BSS__ outClipCounter = 0;
@@ -219,25 +218,25 @@ extern "C" void DMA1_Stream3_IRQHandler()
 		dma_ht_fl = 1;
 	}
 
-	uint8_t base_address = dma_ht_fl * block_size;
+	uint8_t base_address = dma_ht_fl * BLOCK_SIZE;
 
 	//=============================================AUX samples==========================================
-	int8_t aux_smpl_wr_ptr = aux_smpl_rd_ptr - block_size;
-	if(aux_smpl_wr_ptr < 0) aux_smpl_wr_ptr = 2 * block_size + aux_smpl_wr_ptr;
+	int8_t aux_smpl_wr_ptr = aux_smpl_rd_ptr - BLOCK_SIZE;
+	if(aux_smpl_wr_ptr < 0) aux_smpl_wr_ptr = 2 * BLOCK_SIZE + aux_smpl_wr_ptr;
 
 	if(frame_part > 0) frame_part = 0; // correct SPI and DMA position
 
 //	GPIO_SetBits(GPIOB, GPIO_Pin_7);
-	for(int i=0; i < block_size; i++)
+	for(int i=0; i < BLOCK_SIZE; i++)
 	{
 		kgp_sdk_libc::memcpy(&aux_samples[aux_smpl_wr_ptr], &buf_aux_samples[i], 5);
 		aux_smpl_wr_ptr++;
-		if(aux_smpl_wr_ptr == 2 * block_size) aux_smpl_wr_ptr = 0;
+		if(aux_smpl_wr_ptr == 2 * BLOCK_SIZE) aux_smpl_wr_ptr = 0;
 	}
 //	GPIO_ResetBits(GPIOB, GPIO_Pin_7);
 
 	//---------------------------Input sample convert------------------------------------
-	for (uint8_t i = 0; i < block_size; i++)
+	for (uint8_t i = 0; i < BLOCK_SIZE; i++)
 	{
 		di_samples[i] = (int32_t)(ror16(adc_data[base_address + i].left.sample)) >> 8;
 		ir_samples[i] = (int32_t)(ror16(adc_data[base_address + i].right.sample)) >> 8;
@@ -284,7 +283,7 @@ extern "C" void DMA1_Stream3_IRQHandler()
 
 	calc_fade_step();
 
-	for (uint8_t i = 0; i < block_size; i++)
+	for (uint8_t i = 0; i < BLOCK_SIZE; i++)
 	{
 		//---------------------------------------------PWM indicator---------------------------------
 		float a_ind = fabsf(out_sampleL[i]);
@@ -370,13 +369,13 @@ extern "C" void DMA1_Stream3_IRQHandler()
 //=============================Processing functions=====================================
 void __RAMFUNC__ bypass_processing_stage(float *in_samples, float *out_samples)
 {
-	for (uint8_t i = 0; i < block_size; i++)
+	for (uint8_t i = 0; i < BLOCK_SIZE; i++)
 		out_samples[i] = in_samples[i];
 }
 
 void __RAMFUNC__ bypass_stereo_processing_stage(float *in_l_samples, float *in_r_samples, float *out_l_samples, float *out_r_samples)
 {
-	for (uint8_t i = 0; i < block_size; i++)
+	for (uint8_t i = 0; i < BLOCK_SIZE; i++)
 	{
 		out_l_samples[i] = in_l_samples[i];
 		out_r_samples[i] = in_r_samples[i];
@@ -387,7 +386,7 @@ void __RAMFUNC__ gate_processing_stage(float *in_samples, float *out_samples)
 {
 	if (current_preset.gate.on) {
 		//-------------------------------GATE processs(threshold on start)-------------------
-		for (uint8_t i = 0; i < block_size; i++)
+		for (uint8_t i = 0; i < BLOCK_SIZE; i++)
 			out_samples[i] = in_samples[i] * gate_buf[i];
 	}
 }
@@ -398,18 +397,18 @@ void __RAMFUNC__ compressor_processing_stage(float *in_samples, float *out_sampl
 
 	if (current_preset.compressor.on)
 	{
-		for (uint8_t i = 0; i < block_size; i++)
+		for (uint8_t i = 0; i < BLOCK_SIZE; i++)
 			out_samples[i] = compr_out(in_samples[i]);
 	}
 }
 
 void __RAMFUNC__ preamp_processing_stage(float *in_samples, float *out_samples) {
 	if (current_preset.preamp.on) {
-		float out_biquad_samples[block_size];
+		float out_biquad_samples[BLOCK_SIZE];
 		arm_biquad_cascade_df1_f32(&preamp_instance, in_samples,
-				out_biquad_samples, block_size);
+				out_biquad_samples, BLOCK_SIZE);
 
-		for (uint8_t i = 0; i < block_size; i++)
+		for (uint8_t i = 0; i < BLOCK_SIZE; i++)
 			out_samples[i] = out_biquad_samples[i] * processing_params.pream_vol
 					* 3.0f;
 	}
@@ -422,19 +421,19 @@ void __RAMFUNC__ pa_processing_stage(float *in_samples, float *out_samples)
 	{
 		if (current_preset.power_amp.type != 8)
 		{
-			for (uint8_t i = 0; i < block_size; i++)
+			for (uint8_t i = 0; i < BLOCK_SIZE; i++)
 				out_samples[i] = soft_clip_amp(in_samples[i] * processing_params.amp_vol) * processing_params.amp_slave;
 
-			arm_fir_f32(&pa_instance, out_samples, out_samples, block_size);
+			arm_fir_f32(&pa_instance, out_samples, out_samples, BLOCK_SIZE);
 		}
 
-		arm_biquad_cascade_df1_f32(&presence_instance, out_samples, out_samples, block_size);
+		arm_biquad_cascade_df1_f32(&presence_instance, out_samples, out_samples, BLOCK_SIZE);
 	}
 }
 
 void __RAMFUNC__ ir_processing_stage(float *in_samples, float *out_samples)
 {
-	for (int i = 0; i < block_size; i++)
+	for (int i = 0; i < BLOCK_SIZE; i++)
 	{
 		mon_sample[i] = in_samples[i];
 
@@ -456,43 +455,21 @@ void __RAMFUNC__ ir_processing_stage(float *in_samples, float *out_samples)
 	}
 }
 
-void __RAMFUNC__ hpf_processing_stage(float *in_samples, float *out_samples)
+void __RAMFUNC__ eq0_processing_stage(float *in_samples, float *out_samples)
 {
-	if (current_preset.eq1.hp_on)
-	{
-		for (uint8_t i = 0; i < block_size; i++)
-			out_samples[i] = filt_hp(in_samples[i]);
-	}
+	parametricEq0.process(in_samples, out_samples, BLOCK_SIZE);
 }
 
-void __RAMFUNC__ eq_processing_stage(float *in_samples, float *out_samples)
+void __RAMFUNC__ eq1_processing_stage(float *in_samples, float *out_samples)
 {
-	hpf_processing_stage(in_samples, out_samples);
-
-	//------------------------------------PARAMETRIC-------------------------------------------
-	if (current_preset.eq1.parametric_on)
-	{
-		arm_biquad_cascade_df1_f32(&eq_instance, in_samples, out_samples, block_size);
-	} else
-		bypass_processing_stage(in_samples, out_samples);
-
-	lpf_processing_stage(in_samples, out_samples);
-}
-
-void __RAMFUNC__ lpf_processing_stage(float *in_samples, float *out_samples)
-{
-	if (current_preset.eq1.lp_on)
-	{
-		for (uint8_t i = 0; i < block_size; i++)
-			out_samples[i] = filt_lp(in_samples[i]);
-	}
+	parametricEq1.process(in_samples, out_samples, BLOCK_SIZE);
 }
 
 void __RAMFUNC__ tremolo_processing_stage(float *in_samples, float *out_samples)
 {
 	if(current_preset.tremolo.on)
 	{
-		for (uint8_t i = 0; i < block_size; i++)
+		for (uint8_t i = 0; i < BLOCK_SIZE; i++)
 		{
 			TREMOLO_step();
 			out_samples[i] = in_samples[i] * TREMOLO_get_volume();
@@ -504,7 +481,7 @@ void __RAMFUNC__ chorus_processing_stage(float *in_samples, float *out_samples)
 {
 	if(current_preset.chorus.on)
 	{
-		for (uint8_t i = 0; i < block_size; i++)
+		for (uint8_t i = 0; i < BLOCK_SIZE; i++)
 		{
 			CHORUS_process(&in_samples[i], &out_samples[i]);
 		}
@@ -515,7 +492,7 @@ void __RAMFUNC__ phaser_processing_stage(float *in_samples, float *out_samples)
 {
 	if(current_preset.phaser.on)
 	{
-		for (uint8_t i = 0; i < block_size; i++)
+		for (uint8_t i = 0; i < BLOCK_SIZE; i++)
 		{
 			PHASER_process(&in_samples[i], &out_samples[i]);
 		}
@@ -524,7 +501,7 @@ void __RAMFUNC__ phaser_processing_stage(float *in_samples, float *out_samples)
 
 void __RAMFUNC__ early_stereo_processing_stage(float *in_l_samples, float *in_r_samples, float *out_l_samples, float *out_r_samples)
 {
-	for (uint8_t i = 0; i < block_size; i++)
+	for (uint8_t i = 0; i < BLOCK_SIZE; i++)
 	{
 		if (current_preset.reverb.on)
 			reverb_accum = in_l_samples[i] * 0.7f;
@@ -555,7 +532,7 @@ void __RAMFUNC__ early_stereo_processing_stage(float *in_l_samples, float *in_r_
 
 void __RAMFUNC__ early_mono_processing_stage(float *in_l_samples, float *in_r_samples, float *out_l_samples, float *out_r_samples)
 {
-	for (uint8_t i = 0; i < block_size; i++)
+	for (uint8_t i = 0; i < BLOCK_SIZE; i++)
 	{
 		if (current_preset.reverb.on)
 			reverb_accum = in_l_samples[i] * 0.7f;
@@ -586,7 +563,7 @@ void __RAMFUNC__ early_mono_processing_stage(float *in_l_samples, float *in_r_sa
 
 void __RAMFUNC__ delay_processing_stage(float *in_l_samples, float *in_r_samples, float *out_l_samples, float *out_r_samples)
 {
-	for (uint8_t i = 0; i < block_size; i++)
+	for (uint8_t i = 0; i < BLOCK_SIZE; i++)
 	{
 		if(current_preset.delay.on)
 		{

@@ -15,11 +15,15 @@
 
 #include "PROCESSING/amp_imp.h"
 #include "PROCESSING/compressor.h"
+#include "PROCESSING/eq.h"
 #include "PROCESSING/fades.h"
 #include "PROCESSING/filters.h"
 #include "PROCESSING/tremolo.h"
 #include "PROCESSING/chorus.h"
 #include "PROCESSING/delay.h"
+
+extern ParametricEq parametricEq0;
+extern ParametricEq parametricEq1;
 
 char __CCM_BSS__ loadedCab[256]; // debug data
 
@@ -203,15 +207,8 @@ void set_parameters(void) {
 	pa_update_coefficients(current_preset.power_amp.type);
 	set_shelf(current_preset.power_amp.presence_vol * (31.0f / 31.0f));
 
-	for (uint8_t i = 0; i < 5; i++)
-	{
-		filterInit(i, current_preset.eq1.freq[i], current_preset.eq1.Q[i]);
-		filterCalcCoefs(i, current_preset.eq1.gain[i],
-				(band_type_t) current_preset.eq1.band_type[i]);
-	}
-
-	SetLPF(current_preset.eq1.lp_freq);
-	SetHPF(current_preset.eq1.hp_freq);
+	parametricEq0.recalcCoefficients();
+	parametricEq1.recalcCoefficients();
 
 	TREMOLO_set_par(TREMOLO_DEPTH, current_preset.tremolo.depth);
 	TREMOLO_set_par(TREMOLO_RATE, current_preset.tremolo.rate);

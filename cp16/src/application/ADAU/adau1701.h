@@ -1,8 +1,9 @@
 #ifndef __SIGMA_H__
+#define __SIGMA_H__
 
 #include "appdefs.h"
 
-#define block_size 16//8
+#define BLOCK_SIZE 16//8
 
 typedef union
 {
