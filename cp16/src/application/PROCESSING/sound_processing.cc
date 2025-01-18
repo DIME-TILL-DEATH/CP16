@@ -166,16 +166,16 @@ extern "C" void SPI2_IRQHandler()
 
 	if (frame_part == 2)
 	{
-		adau_dma_transmit(DSP_AUXIN_ADDRESS, &aux_samples[aux_smpl_rd_ptr][1], 4);
-//		adau_dma_transmit(DSP_SAFELOAD_DATA0_ADDRESS, &aux_samples[aux_smpl_rd_ptr][0], 5 * 2);
-//		send_ist = true;
-		aux_smpl_rd_ptr++;
-//		aux_smpl_rd_ptr += 2;  // Decimation! result max frequency 12kHz
+//		adau_dma_transmit(DSP_AUXIN_ADDRESS, &aux_samples[aux_smpl_rd_ptr][1], 4);
+		adau_dma_transmit(DSP_SAFELOAD_DATA0_ADDRESS, &aux_samples[aux_smpl_rd_ptr][0], 5 * 2);
+		send_ist = true;
+//		aux_smpl_rd_ptr++;
+		aux_smpl_rd_ptr += 2;  // Decimation! result max frequency 12kHz
 		if (aux_smpl_rd_ptr == BLOCK_SIZE * 2)
 			aux_smpl_rd_ptr = 0;
 	}
 
-	if (frame_part == 4-1) //4 * 2 - 1)
+	if (frame_part == 4 * 2 - 1) // 4-1
 		frame_part = 0;
 	else
 		frame_part++;
@@ -224,7 +224,7 @@ extern "C" void DMA1_Stream3_IRQHandler()
 	int8_t aux_smpl_wr_ptr = aux_smpl_rd_ptr - BLOCK_SIZE;
 	if(aux_smpl_wr_ptr < 0) aux_smpl_wr_ptr = 2 * BLOCK_SIZE + aux_smpl_wr_ptr;
 
-	if(frame_part > 0) frame_part = 0; // correct SPI and DMA position
+	if(frame_part != 0) frame_part = 0; // correct SPI and DMA position
 
 //	GPIO_SetBits(GPIOB, GPIO_Pin_7);
 	for(int i=0; i < BLOCK_SIZE; i++)

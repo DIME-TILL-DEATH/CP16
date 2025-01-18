@@ -286,11 +286,11 @@ extern "C" void DMA1_Stream5_IRQHandler()
 
 	GPIO_SetBits(adau_spi_cs_port, adau_spi_cs);
 
-//	if(send_ist)
-//	{
-//		adau_dma_transmit(DSP_CTRL_ADDRESS, (uint8_t*)HWCONTROL_IST, sizeof(HWCONTROL_IST));
-//		send_ist = false;
-//	}
+	if(send_ist)
+	{
+		adau_dma_transmit(DSP_CTRL_ADDRESS, (uint8_t*)HWCONTROL_IST, sizeof(HWCONTROL_IST));
+		send_ist = false;
+	}
 }
 
 void adau_load_firmware(ADAU_fw_type_t fw_type)
