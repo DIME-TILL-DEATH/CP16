@@ -19,8 +19,10 @@ typedef enum
 	DELAY_LPF
 }DELAY_param_type_t;
 
+void DELAY_init();
 void DELAY_process(float* inl , float* inr, float* outl, float* outr);
 void DELAY_set_par(DELAY_param_type_t param_type, uint32_t val);
+void DELAY_mem_clear();
 
 extern preset_data_t current_preset;
 

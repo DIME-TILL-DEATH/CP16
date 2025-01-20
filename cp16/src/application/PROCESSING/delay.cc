@@ -35,6 +35,23 @@ FirstOrderFilt del_hp1;
 FirstOrderFilt del_hp2;
 FirstOrderFilt del_hp3;
 
+uint32_t direc = 0;
+uint8_t hpf_fl = 0;
+uint8_t lpf_fl = 0;
+
+float del_in_contr1;
+float wh;
+uint32_t d_p;
+float fr;
+
+PassFilt delay_aafilt;
+
+void DELAY_init()
+{
+	DELAY_mem_clear();
+	delay_aafilt.SetLPF(10000);
+}
+
 void SetLPF_d(float fCut)
 {
 	del_lp1.SetLPF(fCut);
@@ -49,19 +66,11 @@ void SetHPF_d(float fCut)
 	del_hp3.SetHPF(fCut);
 }
 
-uint32_t direc = 0;
-uint8_t hpf_fl = 0;
-uint8_t lpf_fl = 0;
-
-float del_in_contr1;
-float wh;
-uint32_t d_p;
-float fr;
-
 #define DECIMATION_COEFFICIENT 2
 uint8_t decimation_counter = 0;
 void DELAY_process(float* inl , float* inr, float* outl, float* outr)
 {
+	float in = delay_aafilt.process(*inl, 3);
 	if(decimation_counter == DECIMATION_COEFFICIENT-1)
 	{
 		/*
@@ -70,7 +79,7 @@ void DELAY_process(float* inl , float* inr, float* outl, float* outr)
 		 */
 		decimation_counter = 0;
 
-		float in = *inl * 32767.0f;
+		in = in * 32767.0f;
 
 		del_ph += del_ra;
 		if(del_ph > 1.0f) del_ph = 0.0f;
@@ -150,4 +159,9 @@ void DELAY_set_par(DELAY_param_type_t param_type, uint32_t val)
 			break;
 		}
 	}
+}
+
+void DELAY_mem_clear()
+{
+	kgp_sdk_libc::memset(del_buf, 0, DELAY_BUFF_SIZE);
 }

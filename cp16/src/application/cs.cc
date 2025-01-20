@@ -20,6 +20,7 @@
 #include "PROCESSING/filters.h"
 #include "PROCESSING/tremolo.h"
 #include "PROCESSING/chorus.h"
+#include "PROCESSING/phaser.h"
 #include "PROCESSING/delay.h"
 
 extern ParametricEq parametricEq0;
@@ -143,15 +144,13 @@ void preset_change(void)
 	fade_out();
 	while (!is_fade_complete());
 
-	kgp_sdk_libc::memset(current_preset_name, 0, sizeof(PRESET_NAME_LENGTH));
+	kgp_sdk_libc::memset(current_preset_name, 0, PRESET_NAME_LENGTH);
 
 	save_data_t load_data;
 
 	EEPROM_loadPreset(bank_pres[0], bank_pres[1], load_data, current_ir_link);
-	kgp_sdk_libc::memcpy(&current_preset, &load_data.parametersData,
-			sizeof(preset_data_t));
-	kgp_sdk_libc::memcpy(current_preset_name, load_data.name,
-			sizeof(PRESET_NAME_LENGTH));
+	kgp_sdk_libc::memcpy(&current_preset, &load_data.parametersData, sizeof(preset_data_t));
+	kgp_sdk_libc::memcpy(current_preset_name, load_data.name, PRESET_NAME_LENGTH);
 
 	ir_path_data_t link_data;
 	EEPROM_getPresetCabPath(bank_pres[0], bank_pres[1], link_data);
@@ -188,8 +187,7 @@ void set_parameters(void) {
 	if (!current_preset.compressor.volume)
 		current_preset.compressor.volume = 15;
 
-	processing_params.preset_volume = powf(current_preset.volume, 2.0f)
-			* (1.0f / powf(31.0f, 2.0f));
+	processing_params.preset_volume = powf(current_preset.volume, 2.0f) * (1.0f / powf(31.0f, 2.0f));
 
 	gate_par(current_preset.gate.threshold << 8);
 	gate_par(1 | (current_preset.gate.decay << 8));
@@ -219,8 +217,15 @@ void set_parameters(void) {
 	CHORUS_set_par(CHORUS_WIDTH, current_preset.chorus.width);
 	CHORUS_set_par(CHORUS_HPF, current_preset.chorus.hpf);
 
-	DELAY_set_par(DELAY_MIX, current_preset.delay.mix);
+	PHASER_set_par(PHASER_MIX, current_preset.phaser.mix);
+	PHASER_set_par(PHASER_FEEDBACK, current_preset.phaser.feedback);
+	PHASER_set_par(PHASER_RATE, current_preset.phaser.rate);
+	PHASER_set_par(PHASER_WIDTH, current_preset.phaser.width);
+	PHASER_set_par(PHASER_CENTER, current_preset.phaser.center);
+	PHASER_set_par(PHASER_STAGES, current_preset.phaser.stages);
+
 	DELAY_set_par(DELAY_TIME, current_preset.delay.time);
+	DELAY_set_par(DELAY_MIX, current_preset.delay.mix);
 	DELAY_set_par(DELAY_FEEDBACK, current_preset.delay.feedback);
 	DELAY_set_par(DELAY_HPF, current_preset.delay.hpf);
 	DELAY_set_par(DELAY_LPF, current_preset.delay.lpf);

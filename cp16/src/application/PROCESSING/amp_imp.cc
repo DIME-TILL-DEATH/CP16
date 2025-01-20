@@ -15,7 +15,7 @@ arm_fir_instance_f32 pa_instance;
 float __CCM_BSS__ coeff_pa[TAPS_PA_FIR];
 float __CCM_BSS__ pa_state[TAPS_PA_FIR + BLOCK_SIZE -1];
 
-void pa_init()
+void PA_init()
 {
 	arm_fir_init_f32(&pa_instance, TAPS_PA_FIR, coeff_pa, pa_state, BLOCK_SIZE);
 }

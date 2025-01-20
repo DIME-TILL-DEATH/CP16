@@ -9,7 +9,7 @@
 
 #include "PROCESSING/eq.h"
 
-char __CCM_BSS__ current_preset_name[PRESET_NAME_LENGTH];
+char current_preset_name[PRESET_NAME_LENGTH];
 preset_data_legacy_t __CCM_BSS__ default_legacy_preset;
 preset_data_t __CCM_BSS__ current_preset;
 ir_path_data_t current_ir_link;

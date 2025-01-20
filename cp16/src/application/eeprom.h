@@ -86,7 +86,7 @@ bool EEPROM_delete_file(const char *file_name);
 void delete_current_cab(std::emb_string &err_msg, TReadLine *rl);
 bool console_out_currnt_cab(std::emb_string &err_msg, TReadLine *rl);
 bool console_fs_format(std::emb_string &err_msg, TReadLine *rl);
-bool console_fs_write_file(std::emb_string &err_msg, TReadLine *rl,
+bool EEPROM_console_write_file(std::emb_string &err_msg, TReadLine *rl,
 		const char *file_name);
 void console_dir_remove_wavs(const emb_string &dir_name);
 

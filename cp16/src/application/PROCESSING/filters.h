@@ -24,7 +24,6 @@ extern float b1;
 extern float b11;
 
 
-
 typedef enum
 {
 	PREAMP_LOW = 0,
@@ -33,7 +32,6 @@ typedef enum
 }preamp_param_t;
 
 void preamp_param(preamp_param_t num, uint8_t val);
-
 
 
 inline float filt_proc(float in , float* buf , float* coef)

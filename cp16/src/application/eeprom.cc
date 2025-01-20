@@ -133,8 +133,7 @@ void EEPROM_saveSys(void) {
 	f_mount(&fs, "0:", 1);
 	f_open(&file, "/system.pan", FA_WRITE);
 	f_lseek(&file, seek);
-	f_write(&file, &system_parameters, sizeof(system_parameters),
-			&bytes_written);
+	f_write(&file, &system_parameters, sizeof(system_parameters), &bytes_written);
 	f_sync(&file);
 	f_close(&file);
 	f_mount(0, "0:", 0);
@@ -285,7 +284,7 @@ bool EEPROM_delete_file(const char *file_name) {
 	return res == FR_OK;
 }
 
-bool console_fs_write_file(std::emb_string &err_msg, TReadLine *rl, const char *file_name)
+bool EEPROM_console_write_file(std::emb_string &err_msg, TReadLine *rl, const char *file_name)
 {
 	constexpr size_t chunk_buff_size = 2048;
 	char *chunk = new char[chunk_buff_size];
@@ -336,7 +335,7 @@ bool console_fs_write_file(std::emb_string &err_msg, TReadLine *rl, const char *
 
 				if(chunk_size == 0)
 				{
-					msg_console("END_PTR %s\r\n", end);
+					//msg_console("END_PTR %s\r\n", end);
 					if(end == str.c_str())
 					{
 						continue;
@@ -440,7 +439,7 @@ void EEPROM_savePreset(void) {
 
 	save_data_t save_data;
 	kgp_sdk_libc::memcpy(&save_data.parametersData, &current_preset, sizeof(preset_data_t));
-	kgp_sdk_libc::memcpy(save_data.name, current_preset_name, sizeof(PRESET_NAME_LENGTH));
+	kgp_sdk_libc::memcpy(save_data.name, current_preset_name, PRESET_NAME_LENGTH);
 
 	f_lseek(&file, seek);
 	f_write(&file, &save_data, sizeof(save_data_t), &f_size);

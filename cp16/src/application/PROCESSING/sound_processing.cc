@@ -83,18 +83,21 @@ uint16_t __CCM_BSS__ pwm_count_po;
 volatile uint8_t rev_en = 0;
 volatile uint8_t rev_en1 = 0;
 
+
+PassFilt ir_aafilter;
 void DSP_init()
 {
 	gate_change_preset();
 	compressor_init();
 	compressor_change_preset(0, 0);
 
-	pa_init();
+	PA_init();
+	DELAY_init();
 
-	arm_biquad_cascade_df1_init_f32(&presence_instance, presence_stage,
-			coeff_presen, stage_presen);
-	arm_biquad_cascade_df1_init_f32(&preamp_instance, preamp_stage,
-			coeff_preamp, stage_preamp);
+	ir_aafilter.SetLPF(11000);
+
+	arm_biquad_cascade_df1_init_f32(&presence_instance, presence_stage, coeff_presen, stage_presen);
+	arm_biquad_cascade_df1_init_f32(&preamp_instance, preamp_stage, coeff_preamp, stage_preamp);
 
 	processing_params.pream_vol = 1.0f;
 	processing_params.amp_vol = 1.0f;
@@ -438,7 +441,7 @@ void __RAMFUNC__ ir_processing_stage(float *in_samples, float *out_samples)
 		mon_sample[i] = in_samples[i];
 
 		bool irClipped;
-		to523(out_clip(in_samples[i], &irClipped), &buf_aux_samples[i][1]); //&aux_samples[aux_smpl_wr_ptr][1]);
+		to523(out_clip(ir_aafilter.process(in_samples[i], 3), &irClipped), &buf_aux_samples[i][1]); //&aux_samples[aux_smpl_wr_ptr][1]);
 
 		if (irClipped)
 			irClipCounter++;

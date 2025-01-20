@@ -72,8 +72,7 @@ static void preset_list_command_handler(TReadLine *rl, TReadLine::const_symbol_t
 			ir_path_data_t link_data;
 			EEPROM_loadPreset(b, p, load_data, link_data);
 			EEPROM_getPresetCabPath(b, p, link_data);
-			msg_console("\r%s|0%d|%s", link_data.irFileName.c_str(),
-					load_data.parametersData.cab_sim_on, load_data.name);
+			msg_console("\r%s|0%d|%s", link_data.irFileName.c_str(), load_data.parametersData.cab_sim_on, load_data.name);
 		}
 	msg_console("\n");
 }
@@ -199,10 +198,12 @@ static void rvconfig_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_pt
 }
 
 static void pname_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
-	if (count > 1) {
+	if (count > 1)
+	{
 		std::emb_string command = args[1];
 
-		if (command == "set") {
+		if (command == "set")
+		{
 			getDataPartFromStream(rl, current_preset_name, PRESET_NAME_LENGTH);
 		}
 		msg_console("pname\r%s\n", current_preset_name);
@@ -861,7 +862,8 @@ static void fw_update_command_handler(TReadLine *rl,
 
 	msg_console("fwu\r");
 	std::emb_string err_msg;
-	if (console_fs_write_file(err_msg, rl, "0:/firmware")) {
+	if (EEPROM_console_write_file(err_msg, rl, "0:/firmware"))
+	{
 		TTask::Delay(100); // задержка, необходимая для сброса данных в TUsbTask по интерфейсу usb
 		NVIC_SystemReset();
 	}

@@ -7,7 +7,7 @@
 
 extern arm_fir_instance_f32 pa_instance;
 
-void pa_init();
+void PA_init();
 void pa_update_coefficients(uint8_t amp_type);
 
 static constexpr float PP_6L6[512] =
