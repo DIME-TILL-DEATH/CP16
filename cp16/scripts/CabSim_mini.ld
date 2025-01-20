@@ -11,8 +11,8 @@ MEMORY
    
    
 
-  flash  (rx)  : ORIGIN = 0x08000000 + 0x40000, LENGTH = 1M - 0x40000 - ALIGN( 0K , 4 )
-  eeprom (rw)	: ORIGIN = 0x08000000 + 0x40000 + LENGTH(flash), LENGTH = ALIGN( 0K , 4 )
+  flash  (rx)  : ORIGIN = 0x08000000 + 0x00000000, LENGTH = 1M - 0x00000000 - ALIGN( 0K , 4 )
+  eeprom (rw)	: ORIGIN = 0x08000000 + 0x00000000 + LENGTH(flash), LENGTH = ALIGN( 0K , 4 )
 
 }
 

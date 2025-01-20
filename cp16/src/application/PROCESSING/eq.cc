@@ -8,11 +8,27 @@
 
 #include "eq.h"
 
+const float legacyCenterFreq[] = {120.0, 360.0, 800.0, 2000.0, 6000.0};
+
 ParametricEq::ParametricEq(eq_t* eq_data_ptr)
 {
 	eq_data = eq_data_ptr;
 	arm_biquad_cascade_df1_init_f32(&eq_instance, EQ_STAGES, coeff, stage);
 }
+
+uint16_t ParametricEq::convertLegacyFreq(uint8_t bandNum, uint8_t freqVal)
+{
+	uint16_t convertedFreq = 20;
+	switch(bandNum)
+	{
+	case 0:case 1:convertedFreq = (int8_t)freqVal + legacyCenterFreq[bandNum];break;
+	case 2:convertedFreq = (int8_t)freqVal*2 + legacyCenterFreq[bandNum];break;
+	case 3:convertedFreq = (int8_t)freqVal*10 + legacyCenterFreq[bandNum];break;
+	case 4:convertedFreq = (int8_t)freqVal*50 + legacyCenterFreq[bandNum];break;
+	}
+	return convertedFreq;
+}
+
 void ParametricEq::recalcCoefficients()
 {
 	for (uint8_t i = 0; i < EQ_BANDS_COUNT; i++)

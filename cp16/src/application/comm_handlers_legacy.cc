@@ -315,8 +315,7 @@ static void eq_freq_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr
 		if (count == 3) {
 			char *end;
 			int32_t val = kgp_sdk_libc::strtol(args[2], &end, 16);
-			current_preset.eq0.freq[band_num] = convertLegacyFreq(band_num,
-					val);
+			current_preset.eq0.freq[band_num] = ParametricEq::convertLegacyFreq(band_num, val);
 
 			parametricEq0.filterInit(band_num, current_preset.eq0.freq[band_num], current_preset.eq0.Q[band_num]);
 			parametricEq0. filterCalcCoefs(band_num, current_preset.eq0.gain[band_num], (ParametricEq::band_type_t) current_preset.eq0.band_type[band_num]);

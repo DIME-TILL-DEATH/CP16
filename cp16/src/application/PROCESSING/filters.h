@@ -7,11 +7,7 @@
 extern float pres_buf[5];
 extern float Coeffs_b[5];
 
-//extern float filt_cos[5];
-//extern float filt_sin[5];
-//extern float filt_alpha[5];
 
-//extern float coeff_eq[];
 extern float coeff_presen[];
 extern float coeff_preamp[];
 
@@ -27,7 +23,7 @@ extern float a11;
 extern float b1;
 extern float b11;
 
-extern float legacyCenterFreq[5];
+
 
 typedef enum
 {
@@ -36,40 +32,8 @@ typedef enum
 	PREAMP_HIGH
 }preamp_param_t;
 
-//typedef enum
-//{
-//	PEAKING=0,
-//	LOW_SHELF,
-//	HIGH_SHELF
-//}band_type_t;
-
 void preamp_param(preamp_param_t num, uint8_t val);
 
-uint16_t convertLegacyFreq(uint8_t bandNum, uint8_t freqVal);
-
-//inline void SetLPF(float fCut)
-//{
-//    float w = 2.0f * 48000.0f;
-//    float Norm;
-//    fCut *= 2.0f * FILT_PI;
-//    Norm = 1.0f / (fCut + w);
-//    b1 = (w - fCut) * Norm;
-//    a0 = a1 = fCut * Norm;
-//}
-//
-//inline void SetHPF(float fCut)
-//{
-//    float w = 2.0f * 48000.0f;
-//    float Norm;
-//    fCut *= 2.0f * FILT_PI;
-//    Norm = 1.0f / (fCut + w);
-//    a01 = w * Norm;
-//    a11 = -a01;
-//    b11 = (w - fCut) * Norm;
-//}
-//
-//void filterInit(uint8_t bandNum, uint16_t freq, int8_t q);
-//void filterCalcCoefs(uint8_t band_num, int8_t filt_gain, band_type_t band_type);
 
 
 inline float filt_proc(float in , float* buf , float* coef)
@@ -82,24 +46,6 @@ inline float filt_proc(float in , float* buf , float* coef)
   buf[3] = out;
   return out;
 }
-
-//inline float filt_lp(float in)
-//{
-//  fil_lp_in[0] = in;
-//  fil_lp_out[0] = fil_lp_in[0]*a0 + fil_lp_in[1]*a1 + fil_lp_out[1]*b1;
-//  fil_lp_in[1] = fil_lp_in[0];
-//  fil_lp_out[1] = fil_lp_out[0];
-//  return fil_lp_out[0];
-//}
-//
-//inline float filt_hp(float in)
-//{
-//  fil_hp_in[0] = in;
-//  fil_hp_out[0] = fil_hp_in[0]*a01 + fil_hp_in[1]*a11 + fil_hp_out[1]*b11;
-//  fil_hp_in[1] = fil_hp_in[0];
-//  fil_hp_out[1] = fil_hp_out[0];
-//  return fil_hp_out[0];
-//}
 
 inline float proc_shelf(float in)
 {

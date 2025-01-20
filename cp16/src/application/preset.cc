@@ -7,7 +7,7 @@
 
 #include "preset.h"
 
-#include "PROCESSING/filters.h"
+#include "PROCESSING/eq.h"
 
 char __CCM_BSS__ current_preset_name[PRESET_NAME_LENGTH];
 preset_data_legacy_t __CCM_BSS__ default_legacy_preset;
@@ -84,7 +84,7 @@ void preset_from_legacy(preset_data_t *dst_preset, const preset_data_legacy_t *s
 	for (int i = 0; i < 5; i++) {
 
 		dst_preset->eq0.gain[i] = src_preset->eq_band_vol[i] - 15;
-		dst_preset->eq0.freq[i] = convertLegacyFreq(i, src_preset->eq_freq[i]);
+		dst_preset->eq0.freq[i] = ParametricEq::convertLegacyFreq(i, src_preset->eq_freq[i]);
 		dst_preset->eq0.Q[i] = (int8_t)(src_preset->eq_Q[i]);
 	}
 	dst_preset->eq0.hp_on = src_preset->hp_on;
@@ -95,9 +95,10 @@ void preset_from_legacy(preset_data_t *dst_preset, const preset_data_legacy_t *s
 
 	for (int i = 0; i < 5; i++) {
 		dst_preset->eq1.gain[i] = 0;
-		dst_preset->eq1.freq[i] = legacyCenterFreq[i];
+		dst_preset->eq1.freq[i] = ParametricEq::convertLegacyFreq(i, 0);
 		dst_preset->eq1.Q[i] = 0;
 	}
+
 	dst_preset->eq1.hp_freq = 20;
 	dst_preset->eq1.lp_freq = 20000;
 

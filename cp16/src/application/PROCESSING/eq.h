@@ -39,6 +39,8 @@ public:
 
 	void process(float* in, float* out, int processing_block_size);
 
+	static uint16_t convertLegacyFreq(uint8_t bandNum, uint8_t freqVal);
+
 private:
 	arm_biquad_casd_df1_inst_f32 eq_instance;
 
@@ -52,5 +54,7 @@ private:
 	float coeff[EQ_STAGES * EQ_PARAMETRIC_BANDS]; // pointer to CCM data?
 	float stage[EQ_STAGES * 4];
 };
+
+extern const float legacyCenterFreq[];
 
 #endif /* SRC_APPLICATION_PROCESSING_EQ_H_ */
