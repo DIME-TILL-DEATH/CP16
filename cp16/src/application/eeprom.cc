@@ -30,12 +30,20 @@ float convert(uint8_t *in) {
 	return out;
 }
 
-void init_file_info(FILINFO &fileInfo) {
+void init_file_info(FILINFO &fileInfo)
+{
 #if _USE_LFN
 	const size_t sz = _MAX_LFN + 1;
 	char *lfn = new char[sz]; /* Buffer to store the LFN */
 	fileInfo.lfname = lfn;
 	fileInfo.lfsize = sz;
+#endif
+}
+
+void free_file_info(FILINFO &fileInfo)
+{
+#if _USE_LFN
+	free(fileInfo.lfname);
 #endif
 }
 
@@ -98,6 +106,7 @@ void EEPROM_folderInit(void) {
 				if (fno.fname[0] != 46)
 					z += 1;
 			}
+
 			z -= 1;
 			f_closedir(&dir);
 		}
@@ -119,6 +128,10 @@ void EEPROM_folderInit(void) {
 		f_write(&file, &map, 2, &fsize);
 		f_sync(&file);
 	}
+#endif
+
+#if _USE_LFN
+	free(lfn);
 #endif
 
 	f_close(&file);
@@ -503,17 +516,21 @@ bool EEPROM_getPresetIrLink(uint8_t bank, uint8_t preset, ir_path_data_t &outIrL
 	return result;
 }
 
-void EEPROM_getPresetCabPath(uint8_t bank, uint8_t preset,
-		ir_path_data_t &outCabPath) {
+void EEPROM_getPresetCabPath(uint8_t bank, uint8_t preset, ir_path_data_t &outCabPath)
+{
 	if (bank == bank_pres[0] && preset == bank_pres[1]) // data in RAM, not on the flash
-			{
-		if (current_ir_link.irFileName != "") {
+	{
+		if (current_ir_link.irFileName != "")
+		{
 			outCabPath = current_ir_link;
 			return;
 		}
-	} else {
+	}
+	else
+	{
 		ir_path_data_t irLinkData;
-		if (EEPROM_getPresetIrLink(bank, preset, irLinkData)) {
+		if (EEPROM_getPresetIrLink(bank, preset, irLinkData))
+		{
 			outCabPath = irLinkData;
 			return;
 		}
@@ -536,7 +553,8 @@ void EEPROM_getPresetCabPath(uint8_t bank, uint8_t preset,
 
 	f_opendir(&dir, dirName.c_str());
 	res = f_findfirst(&dir, &fileInfo, dirName.c_str(), "*.wav");
-	if (res == FR_OK) {
+	if (res == FR_OK)
+	{
 #if _USE_LFN
 		char *fn = *fileInfo.lfname ? fileInfo.lfname : fileInfo.fname;
 #else
@@ -544,10 +562,16 @@ void EEPROM_getPresetCabPath(uint8_t bank, uint8_t preset,
 	#endif
 		outCabPath.irFileName = fn;
 		outCabPath.irLinkPath = dirName;
-	} else {
+	}
+	else
+	{
 		outCabPath.irFileName.clear();
 		outCabPath.irLinkPath.clear();
 	}
+
+	free_file_info(fileInfo);
+	f_closedir(&dir);
+	f_mount(0, "0:", 0);
 }
 
 bool EEPROM_getDirWavNames(const std::emb_string &dirPath, list<std::emb_string> &fileNamesList, TReadLine *rl) {
@@ -561,7 +585,9 @@ bool EEPROM_getDirWavNames(const std::emb_string &dirPath, list<std::emb_string>
 	init_file_info(fileInfo);
 
 	res = f_opendir(&dir, dirPath.c_str());
-	if (res != FR_OK) {
+	if (res != FR_OK)
+	{
+		free_file_info(fileInfo);
 		f_mount(0, "0:", 0);
 		return false;
 	}
@@ -582,6 +608,8 @@ bool EEPROM_getDirWavNames(const std::emb_string &dirPath, list<std::emb_string>
 
 		res = f_readdir(&dir, &fileInfo); /* Search for next item */
 	}
+
+	free_file_info(fileInfo);
 	f_closedir(&dir);
 	f_mount(0, "0:", 0);
 	return true;
@@ -628,6 +656,8 @@ void EEPROM_getCurrentIrInfo(ir_path_data_t &outIrData, int32_t &resultSize) {
 			outIrData.irLinkPath.clear();
 			resultSize = -1;
 		}
+
+		free_file_info(fileInfo);
 		f_closedir(&dir);
 		f_mount(0, "0:", 0);
 	}
@@ -712,7 +742,8 @@ bool EEPROM_loadIr(float *cabData, const std::emb_string &irFilePath,
 }
 
 //-----------------------------FILE MANAGEMENT-------------------------------------------------
-void delete_current_cab(std::emb_string &err_msg, TReadLine *rl) {
+void delete_current_cab(std::emb_string &err_msg, TReadLine *rl)
+{
 	FATFS fs;
 	FRESULT res;
 
@@ -737,8 +768,10 @@ void delete_current_cab(std::emb_string &err_msg, TReadLine *rl) {
 #endif
 
 	res = f_opendir(&dir, dir_name.c_str()); /* Open the directory */
-	if (res == FR_OK) {
-		for (;;) {
+	if (res == FR_OK)
+	{
+		for (;;)
+		{
 			res = f_readdir(&dir, &fno); /* Read a directory item */
 			if (res != FR_OK || fno.fname[0] == 0) {
 				err_msg = "no *.wav file in the dir";
@@ -766,6 +799,7 @@ void delete_current_cab(std::emb_string &err_msg, TReadLine *rl) {
 
 			}
 		}
+		f_closedir(&dir);
 	}
 	f_mount(0, "0:", 0);
 }
