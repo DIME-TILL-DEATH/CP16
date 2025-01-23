@@ -864,9 +864,12 @@ static void la3map_command_handler(TReadLine *rl, TReadLine::const_symbol_type_p
 
 	std::emb_string command = args[1];
 	if(command == "use"){
+		uint16_t channel = (~(GPIOB->IDR & 0x800)>>11) & 0x1;
 		if(count == 3){
 			char *end;
-			if(kgp_sdk_libc::strtol(args[2], &end, 16) == 1){
+			channel = kgp_sdk_libc::strtol(args[2], &end, 16);
+
+			if(channel == 1){
 				bank_pres[0] = (system_parameters.la3_drv_preset & 0xF0) >> 4;
 				bank_pres[1] = system_parameters.la3_drv_preset & 0x0F;
 			}else{
@@ -876,7 +879,7 @@ static void la3map_command_handler(TReadLine *rl, TReadLine::const_symbol_type_p
 
 			preset_change();
 		}
-		msg_console("la3map %s %s\r\n", args[1], args[2]);
+		msg_console("la3map %s %d\r\n", args[1], channel);
 		return;
 	}
 
