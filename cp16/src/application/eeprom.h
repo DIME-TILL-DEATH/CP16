@@ -90,7 +90,7 @@ bool EEPROM_console_write_file(std::emb_string &err_msg, TReadLine *rl,
 		const char *file_name);
 void console_dir_remove_wavs(const emb_string &dir_name);
 
-void save_map0(const uint8_t bank_preset);
-void load_map0(uint8_t &bank_preset);
-void save_map1(const uint8_t bank_preset);
-void load_map1(uint8_t &bank_preset);
+//void save_map0(const uint8_t bank_preset);
+//void load_map0(uint8_t &bank_preset);
+//void save_map1(const uint8_t bank_preset);
+//void load_map1(uint8_t &bank_preset);

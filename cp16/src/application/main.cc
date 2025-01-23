@@ -18,15 +18,13 @@
 
 volatile uint8_t usb_type = 0;
 volatile uint32_t sysclock ;
-extern "C" unsigned long GetCpuClock(void)
-{
+extern "C" unsigned long GetCpuClock(void){
     RCC_ClocksTypeDef rrc ;
     RCC_GetClocksFreq ( &rrc) ;
     return rrc.SYSCLK_Frequency ;
 }
 
-extern "C" void _init(void)
-{
+extern "C" void _init(void){
 	heap_init();
 	sysclock = GetCpuClock() ;
 	*(__errno()) = 0 ;
@@ -41,27 +39,23 @@ extern "C" void _fini(void)
 {
 }
 
-extern "C" void vApplicationStackOverflowHook( TaskHandle_t *pxTask, char *pcTaskName )
-{
+extern "C" void vApplicationStackOverflowHook( TaskHandle_t *pxTask, char *pcTaskName ){
 	//volatile char * task_name = (volatile char*) pcTaskName ;
 	//err ( "task stack overflow: %s 0x%x\n" , pcTaskName , pxTask ) ;
 	while(1)
 		NOP();
 }
 
-extern "C" void vApplicationTickHook()
-{
+extern "C" void vApplicationTickHook(){
 	NOP();
 }
 
 volatile uint32_t stack ;
-extern "C" void vApplicationIdleHook()
-{
+extern "C" void vApplicationIdleHook(){
 	NOP();
 }
 
-void pin_usb_init(void)
-{
+void pin_usb_init(void){
 	GPIO_InitTypeDef  GPIO_InitStructure;
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA,ENABLE);
 	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP ;
@@ -73,8 +67,7 @@ void pin_usb_init(void)
 }
 
 //volatile uint64_t zw = 78 ;
-int main(void)
-{
+int main(void){
 	pin_usb_init();
 	if(!(GPIOA->IDR & GPIO_Pin_9))
 		usb_type = 0;
@@ -99,16 +92,14 @@ int main(void)
 	TScheduler::StartScheduler();
 }
 //---------------------------------------------------------------------------
-void start_usb(uint8_t type)
-{
-	if(!type)
-	{
+void start_usb(uint8_t type){
+	if(!type){
 		ConsoleTask->SetIo(&cdc_io);
 		UsbTask =  new TUsbTask(TUsbTask::mCDC);
 	}
-	else
+	else{
 		UsbTask =  new TUsbTask(TUsbTask::mMSC);
-
+	}
 	UsbTask->Create("USB", 10*configMINIMAL_STACK_SIZE, 0);
 }
 
@@ -126,8 +117,7 @@ extern void _fini (void);
 extern void _premain (void);
 
 // Iterate over all the init routines.
-extern "C" void __libc_init_array (void)
-{
+extern "C" void __libc_init_array (void){
 	size_t count;
 	size_t i;
 
@@ -143,8 +133,7 @@ extern "C" void __libc_init_array (void)
 }
 
 /* Run all the cleanup routines.  */
-extern "C" void __libc_fini_array (void)
-{
+extern "C" void __libc_fini_array (void){
 	size_t count;
 	size_t i;
 

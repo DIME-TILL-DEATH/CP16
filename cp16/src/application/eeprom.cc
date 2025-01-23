@@ -7,7 +7,6 @@
 #include "preset.h"
 #include <list.h>
 
-// TODO use rev buffer
 float __CCM_BSS__ cab_data[1024];
 
 system_parameters_t system_parameters;
@@ -89,11 +88,12 @@ void EEPROM_folderInit(void) {
 			ll_dir = hl_dir + "/Preset_";
 			ll_dir += j;
 			res = f_opendir(&dir, ll_dir.c_str());
+
 			if (res != FR_OK)
 				res = f_mkdir(ll_dir.c_str());
 			ll_dir += "/preset.pan";
-			res = f_open(&file, ll_dir.c_str(),
-					FA_READ | FA_WRITE | FA_OPEN_ALWAYS);
+			res = f_open(&file, ll_dir.c_str(), FA_READ | FA_WRITE | FA_OPEN_ALWAYS);
+
 			if (file.fsize == 0)
 				f_write(&file, &default_legacy_preset,
 						sizeof(preset_data_legacy_t), &bytes_readed);
@@ -120,13 +120,10 @@ void EEPROM_folderInit(void) {
 	f_read(&file, &system_parameters, sizeof(system_parameters), &bytes_readed);
 
 #ifdef __LA3_MOD__
-	if(bytes_readed(&file) == 32) // запись map0, map1 по умолчанию
+	if(bytes_readed < sizeof(system_parameters_t)) // запись map0, map1 по умолчанию
 	{
-		size_t fsize ;
-		f_lseek (&file, 32);
-		uint16_t map  = 0x1122 ; // дефолтные пресеты по умолчанию при инициализации
-		f_write(&file, &map, 2, &fsize);
-		f_sync(&file);
+		system_parameters.la3_cln_preset = 0x00;
+		system_parameters.la3_drv_preset = 0x20;
 	}
 #endif
 
@@ -138,7 +135,7 @@ void EEPROM_folderInit(void) {
 	f_mount(0, "0:", 0);
 }
 
-void EEPROM_saveSys(void) {
+void EEPROM_saveSys(void){
 	FATFS fs;
 	FIL file;
 	UINT bytes_written;
@@ -152,8 +149,7 @@ void EEPROM_saveSys(void) {
 	f_mount(0, "0:", 0);
 }
 
-static inline bool dir_get_wav(const emb_string &dir_name, std::emb_string &wav_file_name)
-{
+static inline bool dir_get_wav(const emb_string &dir_name, std::emb_string &wav_file_name){
 	FILINFO fno;
 	DIR dir;
 	char *fn; /* This function assumes non-Unicode configuration */
@@ -174,7 +170,7 @@ static inline bool dir_get_wav(const emb_string &dir_name, std::emb_string &wav_
 			if (res != FR_OK || fno.fname[0] == 0) {
 				result = false; /* Break on error or end of dir */
 				break;
-			}
+		}
 
 #if _USE_LFN
 			fn = *fno.lfname ? fno.lfname : fno.fname;
@@ -207,8 +203,7 @@ static inline bool dir_get_wav(const emb_string &dir_name, std::emb_string &wav_
 	return result;
 }
 
-bool console_out_currnt_cab(std::emb_string &err_msg, TReadLine *rl)
-{
+bool console_out_currnt_cab(std::emb_string &err_msg, TReadLine *rl){
 	bool result = false;
 
 	FATFS fs;
@@ -228,8 +223,7 @@ bool console_out_currnt_cab(std::emb_string &err_msg, TReadLine *rl)
 	emb_string ret_msg = "\nFILE_NOT_FIND\n";
 	result = dir_get_wav(dir_name, file_name);
 
-	if (res == FR_OK)
-	{
+	if (res == FR_OK){
 		emb_string file_path = dir_name + "/" + file_name;
 
 		res = f_open(&file, file_path.c_str(), FA_READ);
@@ -241,8 +235,7 @@ bool console_out_currnt_cab(std::emb_string &err_msg, TReadLine *rl)
 			msg_console("%s %d\n", file_name.c_str(), f_size(&file));
 			TTask::Delay(1);
 
-			while (1)
-			{
+			while (1){
 				res = f_read(&file, &byte, 1, &br);
 
 				if (res != FR_OK) {
@@ -273,7 +266,7 @@ bool console_out_currnt_cab(std::emb_string &err_msg, TReadLine *rl)
 bool console_fs_format(std::emb_string &err_msg, TReadLine *rl) {
 	FRESULT res;
 	FATFS fs;
-	if ((res = f_mount(&fs, "0:", 1)) == FR_OK)
+	if ((res = f_mount(&fs, "0:", 1)) == FR_OK){
 		if ((res = f_mkfs("0:", 0, 0)) == FR_OK) {
 			string tmp = volume_label;
 			tmp.erase(std::remove(tmp.begin(), tmp.end(), '.'), tmp.end());
@@ -282,7 +275,7 @@ bool console_fs_format(std::emb_string &err_msg, TReadLine *rl) {
 				if ((res = f_mount(0, "0:", 1)) == FR_OK) {
 				};
 		}
-
+	}
 	msg_console("%s\n", f_err2str(res));
 	return res == FR_OK;
 }
@@ -297,8 +290,7 @@ bool EEPROM_delete_file(const char *file_name) {
 	return res == FR_OK;
 }
 
-bool EEPROM_console_write_file(std::emb_string &err_msg, TReadLine *rl, const char *file_name)
-{
+bool EEPROM_console_write_file(std::emb_string &err_msg, TReadLine *rl, const char *file_name) {
 	constexpr size_t chunk_buff_size = 2048;
 	char *chunk = new char[chunk_buff_size];
 	if (!chunk)
@@ -377,8 +369,7 @@ bool EEPROM_console_write_file(std::emb_string &err_msg, TReadLine *rl, const ch
 	return res == FR_OK;
 }
 
-void EEPROM_loadPreset(uint8_t bank, uint8_t preset, save_data_t &loaded_data,
-		ir_path_data_t &ir_link) {
+void EEPROM_loadPreset(uint8_t bank, uint8_t preset, save_data_t &loaded_data, ir_path_data_t &ir_link) {
 	FATFS fs;
 
 	FIL file;
@@ -516,8 +507,7 @@ bool EEPROM_getPresetIrLink(uint8_t bank, uint8_t preset, ir_path_data_t &outIrL
 	return result;
 }
 
-void EEPROM_getPresetCabPath(uint8_t bank, uint8_t preset, ir_path_data_t &outCabPath)
-{
+void EEPROM_getPresetCabPath(uint8_t bank, uint8_t preset, ir_path_data_t &outCabPath){
 	if (bank == bank_pres[0] && preset == bank_pres[1]) // data in RAM, not on the flash
 	{
 		if (current_ir_link.irFileName != "")
@@ -663,8 +653,7 @@ void EEPROM_getCurrentIrInfo(ir_path_data_t &outIrData, int32_t &resultSize) {
 	}
 }
 
-bool EEPROM_loadIr(float *cabData, const std::emb_string &irFilePath,
-		std::emb_string &err_msg) {
+bool EEPROM_loadIr(float *cabData, const std::emb_string &irFilePath, std::emb_string &err_msg) {
 	FATFS fs;
 	FIL file;
 	f_mount(&fs, "0:", 1);
@@ -742,8 +731,7 @@ bool EEPROM_loadIr(float *cabData, const std::emb_string &irFilePath,
 }
 
 //-----------------------------FILE MANAGEMENT-------------------------------------------------
-void delete_current_cab(std::emb_string &err_msg, TReadLine *rl)
-{
+void delete_current_cab(std::emb_string &err_msg, TReadLine *rl){
 	FATFS fs;
 	FRESULT res;
 
@@ -811,8 +799,7 @@ static inline void dir_remove_wavs_raw(const emb_string &dir_name) {
 	}
 }
 
-bool EEPROM_copyFile(emb_string &errMsg, const emb_string &srcPath,
-		const emb_string &dstPath) {
+bool EEPROM_copyFile(emb_string &errMsg, const emb_string &srcPath, const emb_string &dstPath) {
 	FATFS fs;
 	FRESULT res;
 
@@ -862,57 +849,3 @@ void console_dir_remove_wavs(const emb_string &dir_name) {
 	f_mount(0, "0:", 0);
 }
 
-//====================================================LA3 comms===================================
-void save_map0(const uint8_t bank_preset) {
-	FATFS fs;
-	FIL file;
-	UINT f_size;
-	DWORD seek = 32;
-	f_mount(&fs, "0:", 1);
-	f_open(&file, "/system.pan", FA_WRITE);
-	f_lseek(&file, seek);
-	f_write(&file, &bank_preset, 1, &f_size);
-	f_sync(&file);
-	f_close(&file);
-	f_mount(0, "0:", 0);
-}
-
-void load_map0(uint8_t &bank_preset) {
-	FATFS fs;
-	FIL file;
-	UINT f_size;
-	DWORD seek = 32;
-	f_mount(&fs, "0:", 1);
-	f_open(&file, "/system.pan", FA_READ);
-	f_lseek(&file, seek);
-	f_read(&file, &bank_preset, 1, &f_size);
-	f_close(&file);
-	f_mount(0, "0:", 0);
-}
-
-void save_map1(const uint8_t bank_preset) {
-	FATFS fs;
-	FIL file;
-	UINT f_size;
-	DWORD seek = 33;
-	f_mount(&fs, "0:", 1);
-	f_open(&file, "/system.pan", FA_WRITE);
-	f_lseek(&file, seek);
-	f_write(&file, &bank_preset, 1, &f_size);
-	f_sync(&file);
-	f_close(&file);
-	f_mount(0, "0:", 0);
-}
-
-void load_map1(uint8_t &bank_preset) {
-	FATFS fs;
-	FIL file;
-	UINT f_size;
-	DWORD seek = 33;
-	f_mount(&fs, "0:", 1);
-	f_open(&file, "/system.pan", FA_READ);
-	f_lseek(&file, seek);
-	f_read(&file, &bank_preset, 1, &f_size);
-	f_close(&file);
-	f_mount(0, "0:", 0);
-}

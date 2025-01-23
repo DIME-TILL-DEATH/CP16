@@ -3,8 +3,7 @@
 #include "eeprom.h"
 
 //-----------------------------------------------------------------
-void init(void)
-{
+void init(void){
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB,ENABLE);
 
 	GPIO_InitTypeDef  GPIO_InitStructure;
@@ -89,51 +88,60 @@ void init(void)
 	SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOB, EXTI_PinSource11);
 }
 
-void pinInterrupt()
-{
-	static volatile bool fst = true ;
-	if ( fst ) { fst = false; return; }
-
-	uint8_t bank = (~((GPIOB->IDR & 0xc00) >> 10)) & 0x3;
-	uint8_t preset = (~(GPIOB->IDR & 0x3)) & 0x3;
-
+void pinInterrupt(){
+	static volatile bool fst = true;
+	if(fst) {
+		fst = false;
+		return;
+	}
 
 	BaseType_t  HigherPriorityTaskWoken;
 
+#ifdef __LA3_MOD__
+	uint16_t channel = (~(GPIOB->IDR & 0x800)>>11) & 0x1;
+	if(channel) // drive
+	{
+		char cmd[] = "la3map use 1\r\n";
+		for (size_t i = 0; i<15; i++)
+				ConsoleTask->WriteToInputBuffFromISR(cmd + i ,&HigherPriorityTaskWoken);
+	}
+	else
+	{
+		char cmd[] = "la3map use 0\r\n";;
+		for (size_t i = 0; i<15; i++)
+				ConsoleTask->WriteToInputBuffFromISR(cmd + i ,&HigherPriorityTaskWoken);
+	}
+#else
 	char cmd[] = "pc 00\r\n";
+	uint8_t bank = (~((GPIOB->IDR & 0xc00) >> 10)) & 0x3;
+	uint8_t preset = (~(GPIOB->IDR & 0x3)) & 0x3;
+
 	cmd[3] = bank + '0'; // make hex. Works for digits 0-9
 	cmd[4] = preset + '0';
 
 	for (size_t i = 0; i<7; i++)
 		ConsoleTask->WriteToInputBuffFromISR(cmd + i ,&HigherPriorityTaskWoken);
-
+#endif
 	portYIELD_FROM_ISR(HigherPriorityTaskWoken);
 }
 
-extern "C" void EXTI0_IRQHandler()
-{
+extern "C" void EXTI0_IRQHandler(){
 	EXTI_ClearFlag(EXTI_Line0);
-
 	pinInterrupt();
 }
 
-extern "C" void EXTI1_IRQHandler()
-{
+extern "C" void EXTI1_IRQHandler(){
 	EXTI_ClearFlag(EXTI_Line1);
-
 	pinInterrupt();
 }
 
-extern "C" void EXTI15_10_IRQHandler()
-{
+extern "C" void EXTI15_10_IRQHandler(){
 	EXTI_ClearFlag(EXTI_Line10);
 	EXTI_ClearFlag(EXTI_Line11);
-
 	pinInterrupt();
 }
 
-inline unsigned long GetCpuClock(void)
-{
+inline unsigned long GetCpuClock(void){
 	RCC_ClocksTypeDef rrc ;
 	RCC_GetClocksFreq ( &rrc) ;
 	return rrc.SYSCLK_Frequency ;

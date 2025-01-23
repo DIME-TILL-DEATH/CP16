@@ -67,8 +67,7 @@ void TCSTask::Code() {
 	version_string[kgp_sdk_libc::strlen(dev)] = '.';
 	kgp_sdk_libc::strcpy(version_string + kgp_sdk_libc::strlen(dev) + 1, ver);
 
-	if (kgp_sdk_libc::strcmp(version_string,
-			system_parameters.firmware_version)) {
+	if (kgp_sdk_libc::strcmp(version_string, system_parameters.firmware_version)) {
 		system_parameters.eol_symb = '\n';
 		kgp_sdk_libc::memset(system_parameters.firmware_version, 0,
 				FIRMWARE_STRING_SIZE);
@@ -97,30 +96,37 @@ void TCSTask::Code() {
 				NVIC_SystemReset();
 		}
 
-		if (!started)
-		{
+		if (!started){
 			NVIC_EnableIRQ(DMA1_Stream5_IRQn);
 			SPI_I2S_DMACmd(adau_com_spi, SPI_I2S_DMAReq_Tx, ENABLE);
 			NVIC_EnableIRQ(SPI2_IRQn);
 
 			key_check();
-			started = true;
-
-			NVIC_EnableIRQ (EXTI0_IRQn);
-			NVIC_EnableIRQ (EXTI1_IRQn);
-			NVIC_EnableIRQ (EXTI15_10_IRQn);
-		}
 
 #ifdef __LA3_MOD__
-	uint8_t bp ;
-	load_map0(bp);
-	decode_preset( bank_pres, bp);
-	preset_change();
+			// LA3 starting with clean channel
+			bank_pres[0] = (system_parameters.la3_cln_preset & 0xF0) >> 4;
+			bank_pres[1] = system_parameters.la3_cln_preset & 0x0F;
+			preset_change();
 #endif
+			started = true;
+
+			NVIC_EnableIRQ(EXTI0_IRQn);
+			NVIC_EnableIRQ(EXTI1_IRQn);
+			NVIC_EnableIRQ(EXTI15_10_IRQn);
+		}
+
+//#ifdef __LA3_MOD__
+//	uint8_t bp ;
+//	load_map0(bp);
+//	decode_preset( bank_pres, bp);
+//	preset_change();
+//#endif
 	}
 }
 
-inline void key_check(void) {
+inline void key_check(void)
+{
 	static uint8_t key_buf_local = 0xff;
 
 	if (!sw4_state)
@@ -130,7 +136,8 @@ inline void key_check(void) {
 	key_buf |= key_buf >> 8;
 	key_buf = ~key_buf & 0xf;
 
-	if (key_buf_local != key_buf) {
+	if (key_buf_local != key_buf)
+	{
 		key_buf_local = key_buf;
 		bank_pres[0] = key_buf_local >> 2;
 		bank_pres[1] = key_buf_local & 3;
@@ -139,8 +146,7 @@ inline void key_check(void) {
 	}
 }
 
-void preset_change(void)
-{
+void preset_change(void){
 	fade_out();
 	while (!is_fade_complete());
 
@@ -232,8 +238,7 @@ void set_parameters(void) {
 
 	processing_params.ear_vol = current_preset.reverb.volume * (1.0 / 31.0);
 
-	for(int i=0; i<MAX_PROCESSING_STAGES; i++)
-	{
+	for(int i=0; i<MAX_PROCESSING_STAGES; i++){
 		DSP_set_module_to_processing_stage((DSP_module_type_t)current_preset.modules_order[i], i);
 	}
 

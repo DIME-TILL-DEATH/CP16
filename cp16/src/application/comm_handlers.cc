@@ -545,69 +545,57 @@ static void compressor_sustain_comm_handler(TReadLine *rl, TReadLine::const_symb
 	comp_par(0 | (current_preset.compressor.sustain << 8));
 }
 
-static void compressor_volume_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
-{
+static void compressor_volume_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count){
 	default_param_handler(&current_preset.compressor.volume, rl, args, count);
 	comp_par(2 | (current_preset.compressor.volume << 8));
 }
 
-static void preamp_on_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
-{
+static void preamp_on_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count){
 	default_param_handler(&current_preset.preamp.on, rl, args, count);
 }
 
-static void preamp_volume_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
-{
+static void preamp_volume_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count){
 	default_param_handler(&current_preset.preamp.volume, rl, args, count);
 	processing_params.pream_vol = powf(current_preset.preamp.volume, 2.0f)
 			* (1.0f / powf(31.0f, 2.0f));
 }
 
-static void preamp_low_command_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
-{
+static void preamp_low_command_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count){
 	default_param_handler(&current_preset.preamp.low, rl, args, count);
 	preamp_param(PREAMP_LOW, current_preset.preamp.low);
 }
 
-static void preamp_mid_command_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
-{
+static void preamp_mid_command_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count){
 	default_param_handler(&current_preset.preamp.mid, rl, args, count);
 	preamp_param(PREAMP_MID, current_preset.preamp.mid);
 }
 
-static void preamp_high_command_handler(TReadLine *rl,
-		TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
+static void preamp_high_command_handler(TReadLine *rl,TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
 	default_param_handler(&current_preset.preamp.high, rl, args, count);
 	preamp_param(PREAMP_HIGH, current_preset.preamp.high);
 }
 
-static void amp_on_command_handler(TReadLine *rl,
-		TReadLine::const_symbol_type_ptr_t *args, const size_t count)
-{
+static void amp_on_command_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count){
 	default_param_handler(&current_preset.power_amp.on, rl, args, count);
 }
 
-static void amp_volume_command_handler(TReadLine *rl,
-		TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
+static void amp_volume_command_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
 	default_param_handler(&current_preset.power_amp.volume, rl, args, count);
 	processing_params.amp_vol = powf(current_preset.power_amp.volume, 2.0f)
 			* (10.0f / powf(31.0f, 2.0f)) + 1.0f;
 }
 
-static void amp_slave_command_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
-{
+static void amp_slave_command_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count){
 	default_param_handler(&current_preset.power_amp.slave, rl, args, count);
 	processing_params.amp_slave = powf(current_preset.power_amp.slave, 4.0f) * (0.99f / powf(31.0f, 4.0f)) + 0.01f;
 }
 
-static void amp_type_command_handler(TReadLine *rl,
-		TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
+static void amp_type_command_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
 	default_param_handler(&current_preset.power_amp.type, rl, args, count);
 	pa_update_coefficients(current_preset.power_amp.type);
 }
 
-static void presence_on_comm_handler(TReadLine *rl,
-		TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
+static void presence_on_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
 	default_param_handler(&current_preset.power_amp.presence_on, rl, args,
 			count);
 }
@@ -833,8 +821,7 @@ static void delay_lpf_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_p
 	DELAY_set_par(DELAY_LPF, current_preset.delay.lpf);
 }
 //-------------------------------------------SERVICE COMMAND HANDLERS--------------------------------------------------------------------
-static void fs_format_command_handler(TReadLine *rl,
-		TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
+static void fs_format_command_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
 	fade_out();
 	while (!is_fade_complete()) {
 	};
@@ -847,8 +834,7 @@ static void fs_format_command_handler(TReadLine *rl,
 	console_fs_format(err_str, rl);
 }
 
-static void fw_update_command_handler(TReadLine *rl,
-		TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
+static void fw_update_command_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
 	fade_out();
 	adau_mute();
 	while (!is_fade_complete()) {
@@ -869,60 +855,109 @@ static void fw_update_command_handler(TReadLine *rl,
 	}
 }
 //================================================LA3 COMMS=============================================================
-static void preset_map0_command_handler(TReadLine *rl,
-		TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
+static void la3map_command_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count){
+
+	if(count<2){
+		msg_console("la3map\rINCORRECT_ARGUMENTS\n");
+		return;
+	}
+
+	std::emb_string command = args[1];
+	if(command == "use"){
+		if(count == 3){
+			char *end;
+			if(kgp_sdk_libc::strtol(args[2], &end, 16) == 1){
+				bank_pres[0] = (system_parameters.la3_drv_preset & 0xF0) >> 4;
+				bank_pres[1] = system_parameters.la3_drv_preset & 0x0F;
+			}else{
+				bank_pres[0] = (system_parameters.la3_cln_preset & 0xF0) >> 4;
+				bank_pres[1] = system_parameters.la3_cln_preset & 0x0F;
+			}
+
+			preset_change();
+		}
+		msg_console("la3map %s %s\r\n", args[1], args[2]);
+		return;
+	}
+
+	if(command == "set"){
+		const int bufferSize = 16;
+		char dataBuffer[bufferSize];
+		char wrBuffer[bufferSize/2];
+		int32_t rcvBytesCount = getDataPartFromStream(rl, dataBuffer, bufferSize);
+
+		for (int i = 0; i < rcvBytesCount / 2; i++)
+		{
+			char w;
+			int c = dataBuffer[2 * i];
+
+			if (c > 57)
+				c -= 39;
+			w = (c - '0') << 4;
+			c = dataBuffer[2 * i + 1];
+			if (c > 57)
+				c -= 39;
+			w |= c - '0';
+
+			wrBuffer[i] = w;
+		}
+		system_parameters.la3_cln_preset = wrBuffer[0];
+		system_parameters.la3_drv_preset = wrBuffer[1];
+		EEPROM_saveSys();
+
+		char hex[] = {0, 0, 0};
+		msg_console("la3map set\r");
+		i2hex(system_parameters.la3_cln_preset, hex);
+		msg_console("%s" , hex );
+		i2hex(system_parameters.la3_drv_preset, hex);
+		msg_console("%s" , hex );
+		msg_console("\n");
+		return;
+	}
+
+	if(command == "get"){
+		char hex[] = {0, 0, 0};
+		msg_console("la3map get\r");
+		i2hex(system_parameters.la3_cln_preset, hex);
+		msg_console("%s" , hex );
+		i2hex(system_parameters.la3_drv_preset, hex);
+		msg_console("%s" , hex );
+		msg_console("\n");
+		return;
+	}
+
 	char hex[3] = { 0, 0, 0 };
 	if (count == 1) // вывод map0
-			{
-		uint8_t bp;
-		load_map0(bp);
-		i2hex(bp, hex);
+	{
+		i2hex(system_parameters.la3_cln_preset, hex);
 		msg_console("%s\n" , hex );
-	} else // запись map0
+	}
+	else // запись map0
 	{
 		char *end;
 		uint8_t arg1 = kgp_sdk_libc::strtol(args[1], &end, 16);
-		save_map0(arg1);
+		system_parameters.la3_cln_preset = arg1;
+		EEPROM_saveSys();
 	}
 	msg_console("END\n");
 }
 
-static void preset_map1_command_handler(TReadLine *rl,
-		TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
+static void preset_map1_command_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
 	char hex[3] = { 0, 0, 0 };
 	if (count == 1) // вывод map0
-			{
-		uint8_t bp;
-		load_map1(bp);
-		i2hex(bp, hex);
+	{
+		i2hex(system_parameters.la3_drv_preset, hex);
 		msg_console("%s\n" , hex );
-	} else // запись map1
+	}
+	else // запись map1
 	{
 		char *end;
 		uint8_t arg1 = kgp_sdk_libc::strtol(args[1], &end, 16);
-		save_map1(arg1);
+		system_parameters.la3_drv_preset = arg1;
+		EEPROM_saveSys();
 	}
 	msg_console("END\n");
-}
-
-static void use_map0_command_handler(TReadLine *rl,
-		TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
-	char hex[3] = { 0, 0, 0 };
-	uint8_t bp;
-	load_map0(bp);
-	i2hex(bp, hex);
-	const char *a[2] = { 0, hex };
-	preset_change_comm_handler(rl, a, 2);
-}
-
-static void use_map1_command_handler(TReadLine *rl,
-		TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
-	char hex[3] = { 0, 0, 0 };
-	uint8_t bp;
-	load_map1(bp);
-	i2hex(bp, hex);
-	const char *a[2] = { 0, hex };
-	preset_change_comm_handler(rl, a, 2);
 }
 //****************************************DEBUG***************************************************************************
 static void debug_comm_hadler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
@@ -1024,12 +1059,9 @@ void consoleSetCmdHandlers(TReadLine *rl)
 	rl->AddCommandHandler("dl_hp", delay_hpf_comm_handler);
 	rl->AddCommandHandler("dl_lp", delay_lpf_comm_handler);
 
-	// *********************service comms*******************
-	rl->AddCommandHandler("sm0", preset_map0_command_handler);
-	rl->AddCommandHandler("sm1", preset_map1_command_handler);
-	rl->AddCommandHandler("um0", use_map0_command_handler);
-	rl->AddCommandHandler("um1", use_map1_command_handler);
+	rl->AddCommandHandler("la3map", la3map_command_handler);
 
+	// *********************service comms*******************
 	rl->AddCommandHandler("fsf", fs_format_command_handler);
 	rl->AddCommandHandler("fwu", fw_update_command_handler);
 
