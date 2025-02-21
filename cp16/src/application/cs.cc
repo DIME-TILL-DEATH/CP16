@@ -101,27 +101,23 @@ void TCSTask::Code() {
 			SPI_I2S_DMACmd(adau_com_spi, SPI_I2S_DMAReq_Tx, ENABLE);
 			NVIC_EnableIRQ(SPI2_IRQn);
 
-			key_check();
+//			key_check();
 
 #ifdef __LA3_MOD__
 			// LA3 starting with clean channel
 			bank_pres[0] = (system_parameters.la3_cln_preset & 0xF0) >> 4;
 			bank_pres[1] = system_parameters.la3_cln_preset & 0x0F;
 			preset_change();
+#else
+			key_check();
 #endif
-			started = true;
 
 			NVIC_EnableIRQ(EXTI0_IRQn);
 			NVIC_EnableIRQ(EXTI1_IRQn);
 			NVIC_EnableIRQ(EXTI15_10_IRQn);
-		}
 
-//#ifdef __LA3_MOD__
-//	uint8_t bp ;
-//	load_map0(bp);
-//	decode_preset( bank_pres, bp);
-//	preset_change();
-//#endif
+			started = true;
+		}
 	}
 }
 
@@ -167,6 +163,7 @@ void preset_change(void){
 
 bool CS_activateIr(const emb_string &irFilePath) {
 	emb_string err_msg;
+	cleanCabData();
 	if (EEPROM_loadIr(cab_data, irFilePath, err_msg) != true) {
 		processing_params.impulse_avaliable = 0;
 		led_pulse_config(1);
@@ -194,6 +191,7 @@ void set_parameters(void) {
 		current_preset.compressor.volume = 15;
 
 	processing_params.preset_volume = powf(current_preset.volume, 2.0f) * (1.0f / powf(31.0f, 2.0f));
+	processing_params.ir_send_volume = powf(current_preset.ir_send_level, 2.0f) * (1.0f / powf(31.0f, 2.0f));
 
 	gate_par(current_preset.gate.threshold << 8);
 	gate_par(1 | (current_preset.gate.decay << 8));

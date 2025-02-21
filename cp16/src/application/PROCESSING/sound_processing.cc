@@ -24,6 +24,8 @@
 
 #include "spectrum.h"
 
+bool consoleBusy = false;
+
 ParametricEq parametricEq0(&current_preset.eq0);
 ParametricEq parametricEq1(&current_preset.eq1);
 
@@ -123,11 +125,11 @@ void DSP_init()
 
 	for (int i = 0; i < MAX_PROCESSING_STAGES; i++)
 	{
-		processing_stage[i] = processing_library[i];
+		processing_stage[i] = 0;//processing_library[i];
 	}
 
-	stereo_stage1 = delay_processing_stage;
-	stereo_stage2 = early_stereo_processing_stage;
+	stereo_stage1 = 0;
+	stereo_stage2 = 0;
 }
 
 bool DSP_set_module_to_processing_stage(DSP_module_type_t module_type, uint8_t stage_num)
@@ -197,11 +199,15 @@ float __CCM_BSS__ out_sampleR[BLOCK_SIZE];
 int32_t __CCM_BSS__ ccl[BLOCK_SIZE];
 int32_t __CCM_BSS__ ccr[BLOCK_SIZE];
 
-uint16_t __CCM_BSS__ irClipCounter = 0;
+uint16_t __CCM_BSS__ irInClipCounter = 0;
+uint16_t __CCM_BSS__ irOutClipCounter = 0;
+uint16_t __CCM_BSS__ inClipCounter = 0;
 uint16_t __CCM_BSS__ outClipCounter = 0;
 uint16_t __CCM_BSS__ framesCounter = 0;
 
-uint16_t __CCM_BSS__ irClips = 0;
+uint16_t __CCM_BSS__ irInClips = 0;
+uint16_t __CCM_BSS__ irOutClips = 0;
+uint16_t __CCM_BSS__ inClips = 0;
 uint16_t __CCM_BSS__ outClips = 0;
 
 extern "C" void DMA1_Stream3_IRQHandler()
@@ -247,6 +253,8 @@ extern "C" void DMA1_Stream3_IRQHandler()
 		processing_samples[i] = dc_block(di_samples[i]) * 0.000000119f;
 		ir_samples[i] *= 0.000000119f;
 
+		if(fabs(processing_samples[i]) > 0.9486f) inClipCounter++;
+
 		if (current_preset.gate.on)
 			gate_buf[i] = gate_out(processing_samples[i]);
 		else
@@ -289,7 +297,7 @@ extern "C" void DMA1_Stream3_IRQHandler()
 	for (uint8_t i = 0; i < BLOCK_SIZE; i++)
 	{
 		//---------------------------------------------PWM indicator---------------------------------
-		float a_ind = fabsf(out_sampleL[i]);
+		float a_ind = fabsf(out_sampleL[i] * processing_params.preset_volume);
 
 		if (pwm_count_f < a_ind)
 			pwm_count_f = a_ind;
@@ -341,9 +349,11 @@ extern "C" void DMA1_Stream3_IRQHandler()
 	} else {
 		framesCounter = 0;
 
-		if (irClipCounter > 0 || outClipCounter > 0) {
+		if (irInClipCounter > 0 || irOutClipCounter > 0 || inClipCounter > 0 || outClipCounter > 0) {
+			inClips = inClipCounter;
 			outClips = outClipCounter;
-			irClips = irClipCounter;
+			irInClips = irInClipCounter;
+			irOutClips = irOutClipCounter;
 
 			static volatile bool fst = true;
 			if (fst) {
@@ -351,18 +361,24 @@ extern "C" void DMA1_Stream3_IRQHandler()
 				return;
 			}
 
-			BaseType_t HigherPriorityTaskWoken;
-			char cmd[] = "clip\r\n";
-			for (size_t i = 0; i < 7; i++)
-				ConsoleTask->WriteToInputBuffFromISR(cmd + i, &HigherPriorityTaskWoken);
+			if(!consoleBusy){
+				BaseType_t HigherPriorityTaskWoken;
+				char cmd[] = "clip\r\n";
+				for (size_t i = 0; i < 7; i++)
+					ConsoleTask->WriteToInputBuffFromISR(cmd + i, &HigherPriorityTaskWoken);
 
-			portYIELD_FROM_ISR(HigherPriorityTaskWoken);
+				portYIELD_FROM_ISR(HigherPriorityTaskWoken);
+			}
 		} else {
-			irClips = 0;
+			irInClips = 0;
+			irOutClips = 0;
+			inClips = 0;
 			outClips = 0;
 		}
 
-		irClipCounter = 0;
+		irInClipCounter = 0;
+		irOutClipCounter = 0;
+		inClipCounter = 0;
 		outClipCounter = 0;
 	}
 
@@ -412,8 +428,7 @@ void __RAMFUNC__ preamp_processing_stage(float *in_samples, float *out_samples) 
 				out_biquad_samples, BLOCK_SIZE);
 
 		for (uint8_t i = 0; i < BLOCK_SIZE; i++)
-			out_samples[i] = out_biquad_samples[i] * processing_params.pream_vol
-					* 3.0f;
+			out_samples[i] = out_biquad_samples[i] * processing_params.pream_vol * 3.0f;
 	}
 }
 
@@ -422,11 +437,11 @@ void __RAMFUNC__ pa_processing_stage(float *in_samples, float *out_samples)
 	//--------------------------------------Amplifier----------------------------------------
 	if (current_preset.power_amp.on)
 	{
+		for (uint8_t i = 0; i < BLOCK_SIZE; i++)
+			out_samples[i] = soft_clip_amp(in_samples[i] * processing_params.amp_vol) * processing_params.amp_slave;
+
 		if (current_preset.power_amp.type != 8)
 		{
-			for (uint8_t i = 0; i < BLOCK_SIZE; i++)
-				out_samples[i] = soft_clip_amp(in_samples[i] * processing_params.amp_vol) * processing_params.amp_slave;
-
 			arm_fir_f32(&pa_instance, out_samples, out_samples, BLOCK_SIZE);
 		}
 
@@ -441,10 +456,10 @@ void __RAMFUNC__ ir_processing_stage(float *in_samples, float *out_samples)
 		mon_sample[i] = in_samples[i];
 
 		bool irClipped;
-		to523(out_clip(ir_aafilter.process(in_samples[i], 3), &irClipped), &buf_aux_samples[i][1]); //&aux_samples[aux_smpl_wr_ptr][1]);
+		to523(out_clip(ir_aafilter.process(in_samples[i] * processing_params.ir_send_volume, 3), &irClipped),
+				&buf_aux_samples[i][1]);
 
-		if (irClipped)
-			irClipCounter++;
+
 		//---------------------------------------Cab data or Dry signal-------------------------
 		if (!current_preset.cab_sim_on || !processing_params.impulse_avaliable)
 		{
@@ -454,6 +469,12 @@ void __RAMFUNC__ ir_processing_stage(float *in_samples, float *out_samples)
 		else
 		{
 			out_samples[i] = ir_samples[i];
+
+			if(fabs(ir_samples[i]) > 0.9486f)
+				irOutClipCounter++;
+
+			if(irClipped)
+				irInClipCounter++;
 		}
 	}
 }

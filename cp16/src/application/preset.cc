@@ -57,6 +57,7 @@ void preset_from_legacy(preset_data_t *dst_preset, const preset_data_legacy_t *s
 	dst_preset->reverb_config[0] = BYPASS;
 	dst_preset->reverb_config[1] = ER_MONO;
 
+	dst_preset->ir_send_level = 32;
 	dst_preset->volume = src_preset->preset_volume;
 
 	dst_preset->gate.on = src_preset->gate_on;

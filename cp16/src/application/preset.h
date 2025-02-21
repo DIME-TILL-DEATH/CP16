@@ -195,7 +195,8 @@ typedef struct
 {
     uint8_t modules_order[MAX_PROCESSING_STAGES];
     uint8_t reverb_config[2];
-    uint8_t head_reserved[14-2-MAX_PROCESSING_STAGES];
+    uint8_t ir_send_level;
+    uint8_t head_reserved; //[14-3-MAX_PROCESSING_STAGES];
     uint8_t volume;
     uint8_t cab_sim_on;
 

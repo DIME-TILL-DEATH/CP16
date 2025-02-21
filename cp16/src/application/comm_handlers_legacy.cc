@@ -33,8 +33,7 @@ uint16_t imp_count = 0;
 volatile uint32_t buff_size = rev_size * sizeof(float);
 volatile uint32_t stream_pos;
 
-static void current_cabinet_comm_handler(TReadLine *rl,
-		TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
+static void current_cabinet_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
 	msg_console("%s", args[0]);
 
 	std::emb_string err_str;
@@ -47,7 +46,7 @@ static void current_cabinet_comm_handler(TReadLine *rl,
 
 	if (count == 3) {
 		msg_console(" %s %s\r", args[1], args[2]);
-		rev_en = 1;
+//		rev_en = 1;
 		if (args[2][0] == '0' && kgp_sdk_libc::strlen(args[2]) == 1) {
 			while (!rev_en1);
 
@@ -117,31 +116,33 @@ static void current_cabinet_comm_handler(TReadLine *rl,
 			} while (1);
 			//--------------------------------------------------------------------------------------
 		} else {
-			while (!rev_en1)
-				;
+//			while (!rev_en1)
+//				;
 			imp_count = 0;
 			chunk = 3;
 			uint8_t buff1[3] = { 0, 0, 0 };
+			cleanCabData();
 			do {
 				int c;
 				char w;
 				for (size_t i = 0; i < chunk; i++) {
 					rl->RecvChar(c);
 					if (c == '\r') {
-						if (imp_count < 984) {
-							for (; imp_count < 984; imp_count++) {
-								buff1[0] = buff1[1] = buff1[2] = 0;
-								cab_data[imp_count] = convert((uint8_t*) buff1);
-							}
-						}
+//						if (imp_count < 984) {
+//							for (; imp_count < 984; imp_count++) {
+//								buff1[0] = buff1[1] = buff1[2] = 0;
+//								cab_data[imp_count] = convertToFloat((uint8_t*) buff1);
+//							}
+//						}
 
 						dsp_upload_ir(cab_data);
+						cleanCabData();
 						processing_params.impulse_avaliable = 1;
 						current_preset.cab_sim_on = 1;
 
 						imp_count = 0;
-						rev_en = 0;
-						rev_en1 = 0;
+//						rev_en = 0;
+//						rev_en1 = 0;
 						msg_console("ccEND\n");
 						return;
 					}
@@ -155,7 +156,7 @@ static void current_cabinet_comm_handler(TReadLine *rl,
 					buff1[i] = w;
 				}
 				if (imp_count < 984)
-					cab_data[imp_count++] = convert((uint8_t*) buff1);
+					cab_data[imp_count++] = convertToFloat((uint8_t*) buff1);
 			} while (1);
 			return;
 		}
@@ -386,8 +387,7 @@ static void esc_comm_handler(TReadLine *rl,
 	msg_console("%s\r\nEND\n", args[0]);
 }
 
-static void load_current_cab_command_handler(TReadLine *rl,
-		TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
+static void load_current_cab_command_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
 	msg_console("%s\r\n", args[0]);
 	ir_path_data_t link_data;
 	EEPROM_getPresetCabPath(bank_pres[0], bank_pres[1], link_data);

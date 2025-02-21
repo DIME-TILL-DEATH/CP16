@@ -52,13 +52,17 @@ typedef struct
 	float preset_volume = 1.0f;
 	float ear_vol = 0.0f;
 
+	float ir_send_volume = 1.0f;
 	uint8_t impulse_avaliable = 0;
 }processing_params_t;
+
+extern bool consoleBusy;
 
 extern processing_params_t processing_params;
 extern uint8_t tuner_use;
 
-extern uint16_t irClips, outClips;
+extern uint16_t irInClips, irOutClips;
+extern uint16_t inClips, outClips;
 
 void DSP_init();
 bool DSP_set_module_to_processing_stage(DSP_module_type_t module_type, uint8_t stage_num);

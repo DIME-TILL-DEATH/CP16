@@ -113,6 +113,7 @@ static void mconfig_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr
 		msg_console(" %s", args[1]);
 		if (command == "set")
 		{
+			consoleBusy = true;
 			char rcvBuffer[512];
 			char wrBuffer[256];
 			kgp_sdk_libc::memset(wrBuffer, 0, 256);
@@ -134,6 +135,7 @@ static void mconfig_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr
 				wrBuffer[i] = w;
 				kgp_sdk_libc::memcpy(&current_preset.modules_order, wrBuffer, MAX_PROCESSING_STAGES);
 			}
+			consoleBusy = false;
 		}
 		set_parameters();
 	}
@@ -160,6 +162,7 @@ static void rvconfig_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_pt
 		msg_console(" %s", args[1]);
 		if (command == "set")
 		{
+			consoleBusy = true;
 			char rcvBuffer[16];
 			char wrBuffer[16];
 			kgp_sdk_libc::memset(wrBuffer, 0, 16);
@@ -181,6 +184,7 @@ static void rvconfig_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_pt
 				wrBuffer[i] = w;
 				kgp_sdk_libc::memcpy(&current_preset.reverb_config, wrBuffer, 2);
 			}
+			consoleBusy = false;
 		}
 		set_parameters();
 	}
@@ -204,7 +208,9 @@ static void pname_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t
 
 		if (command == "set")
 		{
+			consoleBusy = true;
 			getDataPartFromStream(rl, current_preset_name, PRESET_NAME_LENGTH);
+			consoleBusy = false;
 		}
 		msg_console("pname\r%s\n", current_preset_name);
 	}
@@ -213,6 +219,7 @@ static void pname_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t
 static void state_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
 	msg_console("%s", args[0]);
 	if (count > 1) {
+		consoleBusy = true;
 		std::emb_string command = args[1];
 
 		msg_console(" %s", args[1]);
@@ -237,6 +244,7 @@ static void state_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t
 			}
 		}
 		set_parameters();
+		consoleBusy = false;
 	}
 	msg_console("\r");
 	char hex[3] = { 0, 0, 0 };
@@ -266,15 +274,13 @@ static void preset_change_comm_handler(TReadLine *rl, TReadLine::const_symbol_ty
 	msg_console("pc\rPARAM_ERROR\n");
 }
 
-static void save_pres_comm_handler(TReadLine *rl,
-		TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
+static void save_pres_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
 	msg_console("%s\r\n", args[0]);
 	EEPROM_savePreset();
 	msg_console("END\n");
 }
 
-static void ls_comm_handler(TReadLine *rl,
-		TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
+static void ls_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
 	msg_console("%s", args[0]);
 
 	if (count < 2) {
@@ -300,6 +306,7 @@ static void ls_comm_handler(TReadLine *rl,
 }
 
 static void ir_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count) {
+	consoleBusy = true;
 	msg_console("ir ");
 	if (count < 2)
 	{
@@ -321,6 +328,7 @@ static void ir_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *a
 
 	if (command == "link")
 	{
+		consoleBusy = true;
 		getDataPartFromStream(rl, dataBuffer, bufferSize);
 		current_ir_link.irFileName = dataBuffer;
 		getDataPartFromStream(rl, dataBuffer, bufferSize);
@@ -329,11 +337,38 @@ static void ir_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *a
 		emb_string irFilePath = current_ir_link.irLinkPath + "/"
 				+ current_ir_link.irFileName;
 		bool res = CS_activateIr(irFilePath);
+		consoleBusy = false;
 
 		if (res)
 			msg_console("link\r%s\r%s\n", current_ir_link.irFileName.c_str(), current_ir_link.irLinkPath.c_str());
 		else
 			msg_console("link\rLINK_NOT_VALID\n");
+	}
+
+	if (command == "preview")
+	{
+		msg_console("preview\rRECIEVING\n");
+
+		int c;
+		int imp_count = 0;
+		uint8_t convBuff[3] = { 0, 0, 0 };
+
+		cleanCabData();
+
+		do {
+			for (size_t i = 0; i < 3; i++) {
+				rl->RecvChar(c);
+				convBuff[i] = c;
+			}
+			cab_data[imp_count++] = convertToFloat(convBuff);
+
+			if (imp_count > 983) break;
+		} while (1);
+		dsp_upload_ir(cab_data);
+		processing_params.impulse_avaliable = 1;
+		cleanCabData();
+		msg_console("ir preview\rAPPLIED\n");
+
 	}
 
 	if (command == "start_upload")
@@ -459,16 +494,20 @@ static void ir_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *a
 			msg_console("\rERROR\n");
 		}
 	}
+
+	consoleBusy = false;
 }
 
 static void copy_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
 {
+	consoleBusy = true;
 	char buffer[256];
 	emb_string srcPath, dstPath, errMsg;
 	getDataPartFromStream(rl, buffer, 256);
 	srcPath = buffer;
 	getDataPartFromStream(rl, buffer, 256);
 	dstPath = buffer;
+	consoleBusy = false;
 
 	if (EEPROM_copyFile(errMsg, srcPath, dstPath)) {
 		msg_console("copy complete\r\n");
@@ -502,7 +541,11 @@ static void tuner_data_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_
 
 static void clip_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
 {
-	msg_console("clip\r%d\r%d\n", irClips, outClips);
+	if(irInClips > 0 || irOutClips > 0)
+		msg_console("clip ir\r%d\r%d\n", irInClips, irOutClips);
+
+	if(inClips > 0 || outClips > 0)
+			msg_console("clip io\r%d\r%d\n", inClips, outClips);
 }
 //===============================================PARAMETERS COMM HANDLERS========================================================
 
@@ -515,6 +558,12 @@ static void master_volume_comm_handler(TReadLine *rl, TReadLine::const_symbol_ty
 {
 	default_param_handler(&current_preset.volume, rl, args, count);
 	processing_params.preset_volume = powf(current_preset.volume, 2.0f) * (1.0f / powf(31.0f, 2.0f));
+}
+
+static void ir_send_comm_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
+{
+	default_param_handler(&current_preset.ir_send_level, rl, args, count);
+	processing_params.ir_send_volume = powf(current_preset.ir_send_level, 2.0f) * (1.0f / powf(31.0f, 2.0f));
 }
 
 static void gate_on_comm_handler(TReadLine *rl,
@@ -856,7 +905,7 @@ static void fw_update_command_handler(TReadLine *rl, TReadLine::const_symbol_typ
 }
 //================================================LA3 COMMS=============================================================
 static void la3map_command_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count){
-
+#ifdef __LA3_MOD__
 	if(count<2){
 		msg_console("la3map\rINCORRECT_ARGUMENTS\n");
 		return;
@@ -943,10 +992,12 @@ static void la3map_command_handler(TReadLine *rl, TReadLine::const_symbol_type_p
 		EEPROM_saveSys();
 	}
 	msg_console("END\n");
+#endif
 }
 
 static void preset_map1_command_handler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
 {
+#ifdef __LA3_MOD__
 	char hex[3] = { 0, 0, 0 };
 	if (count == 1) // вывод map0
 	{
@@ -961,6 +1012,7 @@ static void preset_map1_command_handler(TReadLine *rl, TReadLine::const_symbol_t
 		EEPROM_saveSys();
 	}
 	msg_console("END\n");
+#endif
 }
 //****************************************DEBUG***************************************************************************
 static void debug_comm_hadler(TReadLine *rl, TReadLine::const_symbol_type_ptr_t *args, const size_t count)
@@ -1007,6 +1059,7 @@ void consoleSetCmdHandlers(TReadLine *rl)
 	rl->AddCommandHandler("ce", cabinet_enable_comm_handler);
 
 	rl->AddCommandHandler("mv", master_volume_comm_handler);
+	rl->AddCommandHandler("ir_sn", ir_send_comm_handler);
 
 	rl->AddCommandHandler("go", gate_on_comm_handler);
 	rl->AddCommandHandler("gt", gate_threshold_comm_handler);

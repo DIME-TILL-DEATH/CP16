@@ -48,7 +48,6 @@ extern TCSTask* CSTask ;
 
 extern char loadedCab[256];
 
-float convert ( uint8_t* in );
 extern uint8_t m1_up[];
 extern uint8_t m1_up1[];
 

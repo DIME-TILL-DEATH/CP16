@@ -17,7 +17,7 @@ uint8_t bank_pres[2] = { 0, 0 };
 
 constexpr char volume_label[] = FIRMWARE_NAME;
 
-float convert(uint8_t *in) {
+float convertToFloat(uint8_t *in) {
 	int32_t d = 0;
 	float out;
 	d |= (in[0]) << 8;
@@ -27,6 +27,11 @@ float convert(uint8_t *in) {
 	d = d / 256;
 	out = d / 8388607.0f;
 	return out;
+}
+
+void cleanCabData(){
+	for(int i=0; i< DSP_FIR_SIZE; i++)
+		cab_data[i] = 0;
 }
 
 void init_file_info(FILINFO &fileInfo)
@@ -95,8 +100,7 @@ void EEPROM_folderInit(void) {
 			res = f_open(&file, ll_dir.c_str(), FA_READ | FA_WRITE | FA_OPEN_ALWAYS);
 
 			if (file.fsize == 0)
-				f_write(&file, &default_legacy_preset,
-						sizeof(preset_data_legacy_t), &bytes_readed);
+				f_write(&file, &default_legacy_preset, sizeof(preset_data_legacy_t), &bytes_readed);
 			f_close(&file);
 
 			while (1) {
@@ -320,6 +324,7 @@ bool EEPROM_console_write_file(std::emb_string &err_msg, TReadLine *rl, const ch
 		{
 			UINT bytes;
 
+			uint8_t attempts = 0;
 			while (1)
 			{
 				// запрос размера
@@ -333,22 +338,32 @@ bool EEPROM_console_write_file(std::emb_string &err_msg, TReadLine *rl, const ch
 				if(chunk_size > chunk_buff_size)
 				{
 					res = f_close(&file);
-					msg_console("CHUNK_IS_TOO_BIG\n");
+					rl->SendString("CHUNK_IS_TOO_BIG\r\n");
 					break;
 				}
 
 
 				if(chunk_size == 0)
 				{
-					//msg_console("END_PTR %s\r\n", end);
+
 					if(end == str.c_str())
 					{
+						rl->SendString("END_PTR\n");
 						continue;
 					}
 					else
 					{
-						res = f_close(&file);
-						break;
+						if(attempts < 3)
+						{
+							attempts++;
+							rl->SendString("ZERO_SIZE_RECIEVED\n");
+							continue;
+						}
+						else
+						{
+							res = f_close(&file);
+							break;
+						}
 					}
 				}
 				// прием куска данных
@@ -711,13 +726,13 @@ bool EEPROM_loadIr(float *cabData, const std::emb_string &irFilePath, std::emb_s
 		for (i = 0; i < cab_size; i++) {
 			uint8_t buff[4];
 			fs_res = f_read(&file, (void*) buff, 3, &br);
-			cabData[i] = convert(buff);
+			cabData[i] = convertToFloat(buff);
 		}
 
 		if (i < 983) {
 			for (; i < 984; i++) {
 				uint8_t buff[4] = { 0, 0, 0, 0 };
-				cabData[i] = convert(buff);
+				cabData[i] = convertToFloat(buff);
 			}
 		}
 

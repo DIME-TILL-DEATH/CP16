@@ -62,6 +62,9 @@ inline void decode_preset_dir(const uint8_t val, emb_string &preset_dir_name) {
 
 extern uint8_t dir_use[];
 
+float convertToFloat(uint8_t* in);
+void cleanCabData();
+
 void EEPROM_folderInit(void);
 void EEPROM_loadPreset(uint8_t bank, uint8_t preset, save_data_t &save_data,
 		ir_path_data_t &ir_link);
